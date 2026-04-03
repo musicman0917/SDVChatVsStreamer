@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TikTok Gifts</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,400;0,700;1,400&display=swap');
+
+  :root {
+    --red:    #ff2d55;
+    --cyan:   #00f2ea;
+    --dark:   #0d0d14;
+    --card:   #161620;
+    --border: #222233;
+    --text:   #f0f0f5;
+    --muted:  #6a6a88;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1080px;
+    height: 587px;
+    background: var(--dark);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 28px;
+    background: linear-gradient(90deg, rgba(255,45,85,0.15), rgba(0,242,234,0.08));
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .header svg { width: 28px; height: 28px; flex-shrink: 0; }
+
+  .header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, #fff, var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  .scroll {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .scroll-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 24px;
+    animation: autoscroll 40s linear infinite;
+  }
+
+  @keyframes autoscroll {
+    0%   { transform: translateY(0); }
+    40%  { transform: translateY(-680px); }
+    50%  { transform: translateY(-680px); }
+    90%  { transform: translateY(0); }
+    100% { transform: translateY(0); }
+  }
+
+  .section {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 4px 4px 2px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 22px;
+    border-left: 4px solid transparent;
+  }
+
+  .row.fun       { border-left-color: var(--cyan); }
+  .row.chaos     { border-left-color: #ff9500; }
+  .row.legendary { border-left-color: #ffd700; box-shadow: 0 0 16px rgba(255,215,0,0.1); }
+  .row.tier-1    { border-left-color: #778899; }
+  .row.tier-2    { border-left-color: #f0a500; }
+  .row.tier-3    { border-left-color: #ff6b35; }
+  .row.tier-4    { border-left-color: var(--red); }
+  .row.tier-5    { border-left-color: var(--cyan); }
+
+  .row-emoji { font-size: 32px; width: 44px; height: 44px; text-align: center; flex-shrink: 0; object-fit: contain; }
+
+  .row-info { flex: 1; min-width: 0; }
+
+  .row-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+
+  .row.fun .row-name       { color: var(--cyan); }
+  .row.chaos .row-name     { color: #ff9500; }
+  .row.legendary .row-name { color: #ffd700; }
+  .row.tier-1 .row-name   { color: #aab8c2; }
+  .row.tier-2 .row-name   { color: #f0a500; }
+  .row.tier-3 .row-name   { color: #ff6b35; }
+  .row.tier-4 .row-name   { color: var(--red); }
+  .row.tier-5 .row-name   { color: var(--cyan); }
+
+  .row-effect {
+    font-size: 15px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .row-effect strong { color: #c0c0d0; }
+
+  .row-cost {
+    font-size: 15px;
+    font-weight: 700;
+    flex-shrink: 0;
+    white-space: nowrap;
+    opacity: 0.85;
+  }
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 10px 28px;
+    border-top: 1px solid var(--border);
+    background: rgba(145,70,255,0.08);
+    flex-shrink: 0;
+  }
+
+  .footer-text { font-size: 15px; color: var(--muted); }
+
+  .footer-url {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1px;
+    color: #bf94ff;
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <svg viewBox="0 0 24 24">
+      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1.01-.07z" fill="url(#hg)"/>
+      <defs>
+        <linearGradient id="hg" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#ff2d55"/>
+          <stop offset="100%" stop-color="#00f2ea"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="header-title">GIFT CHAOS MENU</div>
+  </div>
+
+  <div class="scroll">
+    <div class="scroll-inner">
+
+      <div class="section">✦ Special Gifts</div>
+
+      <div class="row fun">
+        <img class="row-emoji" src="https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/d56945782445b0b8c8658ed44f894c7b~tplv-obj.webp" alt="Heart Me">
+        <div class="row-info">
+          <div class="row-name">Heart Me</div>
+          <div class="row-effect">Farmer does a <strong>heart emote</strong></div>
+        </div>
+        
+      </div>
+
+      <div class="row fun">
+        <img class="row-emoji" src="https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/eba3a9bb85c33e017f3648eaf88d7189~tplv-obj.webp" alt="Rose">
+        <div class="row-info">
+          <div class="row-name">Rose</div>
+          <div class="row-effect">Farmer does a <strong>happy emote</strong></div>
+        </div>
+        
+      </div>
+
+      <div class="row fun">
+        <img class="row-emoji" src="https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/968820bc85e274713c795a6aef3f7c67~tplv-obj.webp" alt="Ice Cream">
+        <div class="row-info">
+          <div class="row-name">Ice Cream</div>
+          <div class="row-effect">Adds <strong>Ice Cream</strong> to inventory</div>
+        </div>
+        
+      </div>
+
+      <div class="row chaos">
+        <img class="row-emoji" src="https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/9494c8a0bc5c03521ef65368e59cc2b8~tplv-obj.webp" alt="Fireworks">
+        <div class="row-info">
+          <div class="row-name">Fireworks</div>
+          <div class="row-effect"><strong>Mega Bomb</strong> at farmer's feet</div>
+        </div>
+        
+      </div>
+
+      <div class="row chaos">
+        <img class="row-emoji" src="https://p16-webcast.tiktokcdn.com/img/alisg/webcast-sg/resource/17667837f58f77f6e189617880315f7c.png~tplv-obj.webp" alt="Mystery Box">
+        <div class="row-info">
+          <div class="row-name">Mystery Box</div>
+          <div class="row-effect">Mystery Box + <strong>devastating sabotage</strong></div>
+        </div>
+        
+      </div>
+
+      <div class="row legendary">
+        <img class="row-emoji" src="https://p16-webcast.tiktokcdn.com/img/maliva/webcast-va/8f471afbcebfda3841a6cc515e381f58~tplv-obj.webp" alt="TikTok Universe">
+        <div class="row-info">
+          <div class="row-name">TikTok Universe</div>
+          <div class="row-effect">Mr. Qi — <strong>forces the day to end</strong></div>
+        </div>
+        
+      </div>
+
+      <div class="section" style="margin-top:4px">✦ Gift Tiers — Everything Else</div>
+
+      <div class="row tier-1">
+        <div class="row-emoji">😤</div>
+        <div class="row-info">
+          <div class="row-name">2–18 Coins — Nuisance</div>
+          <div class="row-effect">Rain, trash, dizzy, energy drain</div>
+        </div>
+      </div>
+
+      <div class="row tier-2">
+        <div class="row-emoji">😈</div>
+        <div class="row-info">
+          <div class="row-name">20–98 Coins — Disruptive</div>
+          <div class="row-effect">Slimes, crows, bats, stolen gold</div>
+        </div>
+      </div>
+
+      <div class="row tier-3">
+        <div class="row-emoji">💥</div>
+        <div class="row-info">
+          <div class="row-name">100–398 Coins — Painful</div>
+          <div class="row-effect">Bombs, swarms, warps, weeds</div>
+        </div>
+      </div>
+
+      <div class="row tier-4">
+        <div class="row-emoji">💀</div>
+        <div class="row-info">
+          <div class="row-name">400–998 Coins — Devastating</div>
+          <div class="row-effect">Forced sleep, crop death, green rain</div>
+        </div>
+      </div>
+
+      <div class="row tier-5">
+        <div class="row-emoji">🌟</div>
+        <div class="row-info">
+          <div class="row-name">1,000+ Coins — Blessing</div>
+          <div class="row-effect">Restored energy, gold, watered crops</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-text">Full chaos control on the purple app →</div>
+    <div class="footer-url">ttv/neighborhoodofmusic</div>
+  </div>
+
+</body>
+</html>

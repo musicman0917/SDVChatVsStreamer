@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Version>0.2.0</Version>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ChatVsStreamer</AssemblyName>
+    <GamePath>F:\SteamLibrary\steamapps\Common\Stardew Valley</GamePath>
+    <GameModsPath>C:\Users\music\AppData\Roaming\Stardrop\Data\Selected Mods</GameModsPath>
+    <BundleExtraAssemblies>ThirdParty</BundleExtraAssemblies>
+    <EnableModZip>false</EnableModZip>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+    <PackageReference Include="TwitchLib.Client" Version="4.0.0" PrivateAssets="none" />
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="8.0.0" PrivateAssets="none" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.8" PrivateAssets="none" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.Runtime.Loader.UseRidGraph" Value="true" Trim="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="manifest.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Overlay/overlay.html" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Overlay/mobile.html" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Overlay/chat.html" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="CopyNativeSQLite" AfterTargets="Build">
+    <ItemGroup>
+      <NativeSQLite Include="$(OutputPath)runtimes\win-x64\native\e_sqlite3.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(NativeSQLite)" DestinationFolder="$(OutputPath)" Condition="Exists('%(FullPath)')" />
+  </Target>
+
+</Project>

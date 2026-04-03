@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tikfinity Event Tester</title>
+<style>
+  body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+  h1 { color: #ff2d55; }
+  .status { padding: 8px 12px; border-radius: 4px; margin-bottom: 16px; font-weight: bold; }
+  .connected { background: #1a4a1a; color: #4caf50; }
+  .disconnected { background: #4a1a1a; color: #f44336; }
+  .row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+  input, select { background: #2a2a4e; color: #eee; border: 1px solid #555; padding: 6px 10px; border-radius: 4px; font-family: monospace; }
+  input[type=text] { flex: 1; }
+  button { background: #ff2d55; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-family: monospace; }
+  button:hover { background: #ff5577; }
+  button.secondary { background: #9146ff; }
+  button.secondary:hover { background: #a970ff; }
+  #log { background: #111; border: 1px solid #333; padding: 12px; border-radius: 4px; height: 200px; overflow-y: auto; font-size: 12px; }
+  .log-entry { margin-bottom: 4px; }
+  .log-entry.sent { color: #64b5f6; }
+  .log-entry.info { color: #aaa; }
+  .log-entry.error { color: #f44336; }
+  h3 { color: #ff2d55; margin-top: 20px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<h1>🎵 Tikfinity Event Tester</h1>
+<div id="status" class="status disconnected">● Disconnected from ws://localhost:21213/</div>
+
+<h3>Chat Message</h3>
+<div class="row">
+  <input type="text" id="chatUser" value="testuser" placeholder="Username">
+  <input type="text" id="chatText" value="Hello from TikTok!" placeholder="Message">
+  <button onclick="sendChat()">Send Chat</button>
+</div>
+
+<h3>Gift</h3>
+<div class="row">
+  <input type="text" id="giftUser" value="testuser" placeholder="Username">
+  <input type="text" id="giftName" value="Heart Me" placeholder="Gift name">
+  <input type="number" id="giftDiamonds" value="1" placeholder="Diamonds" style="width:80px">
+  <button onclick="sendGift()">Send Gift</button>
+</div>
+
+<h3>Follow / Like / Share / Subscribe</h3>
+<div class="row">
+  <input type="text" id="eventUser" value="testuser" placeholder="Username">
+  <button onclick="sendEvent('follow')">Follow</button>
+  <button onclick="sendEvent('like')">Like</button>
+  <button onclick="sendEvent('share')">Share</button>
+  <button onclick="sendEvent('subscribe')" class="secondary">Subscribe</button>
+</div>
+
+<h3>Log</h3>
+<div id="log"></div>
+
+<script>
+  const params      = new URLSearchParams(location.search);
+  const port        = params.get('port') || '7373';
+  let ws = null;
+
+  function log(msg, type = 'info') {
+    const el = document.createElement('div');
+    el.className = `log-entry ${type}`;
+    el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    document.getElementById('log').prepend(el);
+  }
+
+  function connect() {
+    ws = new WebSocket(`ws://localhost:${port}/tiktok-test`);
+    ws.onopen = () => {
+      document.getElementById('status').className = 'status connected';
+      document.getElementById('status').textContent = `● Connected to ws://localhost:${port}/tiktok-test`;
+      log('Connected to mod overlay server', 'info');
+    };
+    ws.onclose = () => {
+      document.getElementById('status').className = 'status disconnected';
+      document.getElementById('status').textContent = `● Disconnected from ws://localhost:${port}/tiktok-test`;
+      log('Disconnected — retrying in 3s', 'error');
+      setTimeout(connect, 3000);
+    };
+    ws.onerror = () => log('Connection error', 'error');
+    ws.onmessage = e => log(`Received: ${e.data}`, 'info');
+  }
+
+  function send(payload) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      log('Not connected!', 'error');
+      return;
+    }
+    const json = JSON.stringify(payload);
+    ws.send(json);
+    log(`Sent: ${json}`, 'sent');
+  }
+
+  function sendChat() {
+    send({
+      event: 'chat',
+      data: {
+        uniqueId: document.getElementById('chatUser').value,
+        nickname: document.getElementById('chatUser').value,
+        comment:  document.getElementById('chatText').value
+      }
+    });
+  }
+
+  function sendGift() {
+    const diamonds = parseInt(document.getElementById('giftDiamonds').value) || 1;
+    send({
+      event: 'gift',
+      data: {
+        uniqueId:    document.getElementById('giftUser').value,
+        nickname:    document.getElementById('giftUser').value,
+        giftName:    document.getElementById('giftName').value,
+        giftId:      9999,
+        giftType:    2,
+        repeatCount: 1,
+        repeatEnd:   true,
+        extendedGiftInfo: { diamond_count: diamonds }
+      }
+    });
+  }
+
+  function sendEvent(type) {
+    const user = document.getElementById('eventUser').value;
+    send({
+      event: type,
+      data: {
+        uniqueId: user,
+        nickname: user,
+        likeCount: type === 'like' ? 1 : undefined
+      }
+    });
+  }
+
+  connect();
+</script>
+</body>
+</html>

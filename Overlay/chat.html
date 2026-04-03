@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat vs Streamer — Chat</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: transparent;
+    font-family: 'Press Start 2P', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', monospace;
+    font-size: 12px;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 8px;
+  }
+
+  #chat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 100vh;
+    overflow: hidden;
+  }
+
+  .msg {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.65);
+    border-radius: 4px;
+    padding: 5px 8px;
+    animation: fadeIn 0.3s ease;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .msg.twitch { border-left: 3px solid #9146ff; }
+  .msg.tiktok { border-left: 3px solid #ff2d55; }
+
+  .icon {
+    font-size: 10px;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .msg.twitch .icon { color: #9146ff; }
+  .msg.tiktok .icon { color: #ff2d55; }
+
+  .username {
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+
+  .msg.twitch .username { color: #bf94ff; }
+  .msg.tiktok .username { color: #ff6b8a; }
+
+  .sep { color: #888; flex-shrink: 0; }
+
+  .text { color: #ffffff; flex: 1; }
+
+  .text img.emote {
+    height: 1.8em;
+    width: auto;
+    vertical-align: middle;
+    display: inline-block;
+    margin: 0 1px;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .icon svg { width: 16px; height: 16px; display: block; }
+</style>
+</head>
+<body>
+<div id="chat"></div>
+
+<script>
+  const params      = new URLSearchParams(location.search);
+  const maxMessages = parseInt(params.get('maxMessages') || '12');
+  const fontSize    = params.get('fontSize') || '12';
+  const width       = params.get('width') || '360';
+
+  document.body.style.fontSize = fontSize + 'px';
+  document.body.style.width    = width + 'px';
+
+  const chat = document.getElementById('chat');
+
+  const TWITCH_SVG = `<svg viewBox="0 0 24 24" fill="#9146ff" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
+  </svg>`;
+
+  const TIKTOK_SVG = `<svg viewBox="0 0 24 24" fill="#ff2d55" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1.01-.07z"/>
+  </svg>`;
+
+  function addMessage(data) {
+    const msg = document.createElement('div');
+    msg.className = `msg ${data.platform}`;
+    if (data.id)       msg.dataset.id   = data.id;
+    if (data.username) msg.dataset.user = data.username.toLowerCase();
+
+    const iconEl   = document.createElement('span');
+    iconEl.className = 'icon';
+    iconEl.innerHTML = data.platform === 'twitch' ? TWITCH_SVG : TIKTOK_SVG;
+
+    const nameEl   = document.createElement('span');
+    nameEl.className = 'username';
+    nameEl.textContent = data.username;
+
+    const sepEl    = document.createElement('span');
+    sepEl.className = 'sep';
+    sepEl.textContent = ':';
+
+    const textEl   = document.createElement('span');
+    textEl.className = 'text';
+    // Use renderedText (HTML with emote images) if available, else fallback to plain text
+    if (data.renderedText) {
+      textEl.innerHTML = data.renderedText;
+    } else {
+      textEl.textContent = data.text;
+    }
+
+    msg.appendChild(iconEl);
+    msg.appendChild(nameEl);
+    msg.appendChild(sepEl);
+    msg.appendChild(textEl);
+    chat.appendChild(msg);
+
+    // Trim old messages
+    while (chat.children.length > maxMessages)
+      chat.removeChild(chat.firstChild);
+  }
+
+  function removeByUser(username) {
+    const lower = username.toLowerCase();
+    document.querySelectorAll(`[data-user="${lower}"]`).forEach(el => el.remove());
+  }
+
+  function removeById(id) {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (el) el.remove();
+  }
+
+  // WebSocket connection
+  const port = params.get('port') || location.port || '7373';
+  let ws;
+
+  function connect() {
+    ws = new WebSocket(`ws://localhost:${port}/chat`);
+
+    ws.onmessage = e => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'chat') addMessage(data);
+        else if (data.type === 'remove_user') removeByUser(data.username);
+        else if (data.type === 'remove_msg')  removeById(data.id);
+      } catch {}
+    };
+
+    ws.onclose = () => setTimeout(connect, 3000);
+    ws.onerror = () => ws.close();
+  }
+
+  connect();
+</script>
+</body>
+</html>

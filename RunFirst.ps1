@@ -37,20 +37,78 @@ if (Test-Path $configFile) {
 # ─── Check SMAPI ─────────────────────────────────────────────────────────────
 
 Write-Host "Checking for SMAPI..." -ForegroundColor Gray
-$steamPath = "C:\Program Files (x86)\Steam\steamapps\common\Stardew Valley"
-$gogPath   = "C:\Program Files (x86)\GOG Galaxy\Games\Stardew Valley"
+
+$gamePaths = @(
+    "C:\Program Files (x86)\Steam\steamapps\common\Stardew Valley",
+    "C:\Program Files\Steam\steamapps\common\Stardew Valley",
+    "C:\Program Files (x86)\GOG Galaxy\Games\Stardew Valley",
+    "C:\Program Files\GOG Galaxy\Games\Stardew Valley"
+)
+
+$gamePath  = $null
 $smapiExe  = $null
 
-foreach ($path in @($steamPath, $gogPath)) {
-    $candidate = Join-Path $path "StardewModdingAPI.exe"
-    if (Test-Path $candidate) { $smapiExe = $candidate; break }
+foreach ($path in $gamePaths) {
+    if (Test-Path (Join-Path $path "Stardew Valley.exe")) {
+        $gamePath = $path
+        $candidate = Join-Path $path "StardewModdingAPI.exe"
+        if (Test-Path $candidate) { $smapiExe = $candidate }
+        break
+    }
 }
 
 if ($smapiExe) {
-    Write-Host "   ✅ SMAPI found at: $smapiExe" -ForegroundColor Green
-} else {
-    Write-Host "   ⚠️  SMAPI not found in default locations." -ForegroundColor Yellow
-    Write-Host "   Make sure SMAPI is installed before launching the mod." -ForegroundColor Yellow
+    Write-Host "   ✅ SMAPI found." -ForegroundColor Green
+}
+elseif ($gamePath) {
+    Write-Host "   ⚠️  Stardew Valley found but SMAPI is not installed." -ForegroundColor Yellow
+    $installSmapi = Read-Host "   Install SMAPI now? (y/n)"
+
+    if ($installSmapi -eq "y") {
+        Write-Host "   Fetching latest SMAPI release..." -ForegroundColor Gray
+
+        try {
+            $release  = Invoke-RestMethod -Uri "https://api.github.com/repos/Pathoschild/SMAPI/releases/latest" -UseBasicParsing
+            $asset    = $release.assets | Where-Object { $_.name -like "SMAPI-*-installer.zip" } | Select-Object -First 1
+
+            if (-not $asset) {
+                Write-Host "   ❌ Could not find SMAPI installer in release assets." -ForegroundColor Red
+            } else {
+                $zipPath = Join-Path $env:TEMP "SMAPI-installer.zip"
+                $extractPath = Join-Path $env:TEMP "SMAPI-installer"
+
+                Write-Host "   Downloading $($asset.name)..." -ForegroundColor Gray
+                Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zipPath -UseBasicParsing
+
+                Write-Host "   Extracting..." -ForegroundColor Gray
+                if (Test-Path $extractPath) { Remove-Item $extractPath -Recurse -Force }
+                Expand-Archive -Path $zipPath -DestinationPath $extractPath
+
+                $installer = Get-ChildItem -Path $extractPath -Filter "install on Windows.bat" -Recurse | Select-Object -First 1
+                if ($installer) {
+                    Write-Host "   Launching SMAPI installer — follow the prompts in the new window." -ForegroundColor Cyan
+                    Start-Process -FilePath $installer.FullName -Wait
+                    Write-Host "   ✅ SMAPI installation complete." -ForegroundColor Green
+                } else {
+                    Write-Host "   ❌ Installer batch file not found. Please install SMAPI manually from https://smapi.io" -ForegroundColor Red
+                }
+
+                # Cleanup
+                Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
+                Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+        catch {
+            Write-Host "   ❌ Failed to download SMAPI: $_" -ForegroundColor Red
+            Write-Host "   Please install manually from https://smapi.io" -ForegroundColor Yellow
+        }
+    }
+}
+else {
+    Write-Host "   ❌ Stardew Valley not found in default locations." -ForegroundColor Red
+    Write-Host "   Please install Stardew Valley first, then re-run this script." -ForegroundColor Yellow
+    Read-Host "Press Enter to exit"
+    exit 1
 }
 
 Write-Host ""

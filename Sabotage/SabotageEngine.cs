@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework;
 using SDVChatVsStreamer.Economy;
 using StardewModdingAPI;
 using StardewValley;
@@ -123,8 +124,60 @@ public class SabotageEngine
 
     public void TriggerRaidEvent(string raidLeader, int viewerCount, Action<string> sendChatMessage)
     {
-        ModEntry.PendingActions.Enqueue(() =>
-            RaidEvents.Execute(raidLeader, viewerCount, sendChatMessage));
+        ModEntry.PendingActions.Enqueue(() => FireRaidSlimes(raidLeader, viewerCount, sendChatMessage));
+    }
+
+    private static readonly string[] RaidDevastatingPool = { "sleep", "killfarm", "greenrain", "warp", "bomb" };
+    private readonly Random _raidRng = new();
+
+    private void FireRaidSlimes(string raidLeader, int viewerCount, Action<string> sendChatMessage)
+    {
+        var loc      = Game1.player.currentLocation;
+        var origin   = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        int count    = Math.Min(viewerCount, 25);
+        int season   = loc.GetSeasonIndex();
+        bool isBig   = viewerCount >= 20;
+
+        // Spawn slimes on passable tiles
+        var tiles = Sabotages.MonsterSpawnHelper.FindSpawnTiles(loc, origin, count);
+        foreach (var pos in tiles)
+            loc.characters.Add(new StardewValley.Monsters.GreenSlime(pos, season));
+
+        var slimeMsg = count == 1
+            ? $"1 slime"
+            : $"{count} slimes";
+
+        string hudMsg, chatMsg;
+
+        if (isBig)
+        {
+            // Pick a random devastating sabotage
+            var available = RaidDevastatingPool.Where(cmd => _shop.ContainsKey(cmd)).ToList();
+            string bonusDesc = "chaos";
+            if (available.Count > 0)
+            {
+                var cmd = available[_raidRng.Next(available.Count)];
+                if (_shop.TryGetValue(cmd, out var def))
+                {
+                    def.Fire(raidLeader);
+                    bonusDesc = def.Name;
+                    _overlay?.PushFeedEvent(raidLeader, def.Name, def.Description, 0, "raid");
+                }
+            }
+
+            hudMsg  = $"🚨 {raidLeader} raided with {viewerCount}! {slimeMsg} + {bonusDesc}!";
+            chatMsg = $"🚨 MASSIVE RAID from {raidLeader} ({viewerCount} viewers)! {slimeMsg} AND {bonusDesc}! PogChamp";
+        }
+        else
+        {
+            hudMsg  = $"🚨 {raidLeader} raided with {viewerCount}! {slimeMsg} incoming!";
+            chatMsg = $"🚨 RAID from {raidLeader} ({viewerCount} viewers)! {slimeMsg} incoming!";
+        }
+
+        Game1.addHUDMessage(new HUDMessage(hudMsg, HUDMessage.error_type));
+        sendChatMessage(chatMsg);
+
+        _monitor.Log($"[RaidEvent] {raidLeader} — {viewerCount} viewers → {count} slimes{(isBig ? " + devastating sabotage" : "")}", LogLevel.Info);
     }
 
     public void TriggerBitEvent(string username, BitTier tier)

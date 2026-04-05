@@ -41,3 +41,4 @@ F:\Coding\SDVChatVsStreamer\obj\Release\net6.0\ChatVsSt.E2B2FB51.Up2Date
 F:\Coding\SDVChatVsStreamer\bin\Release\net6.0\runtimes\linux-musl-s390x\native\libe_sqlite3.so
 F:\Coding\SDVChatVsStreamer\bin\Release\net6.0\Overlay\mobile.html
 F:\Coding\SDVChatVsStreamer\bin\Release\net6.0\Overlay\chat.html
+F:\Coding\SDVChatVsStreamer\obj\Release\net6.0\ChatVsStreamer.sourcelink.json

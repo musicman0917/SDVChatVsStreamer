@@ -120,6 +120,13 @@ public class ModEntry : Mod
         _sabotage.Register(new SpawnIridiumGolemSabotage());
         _sabotage.Register(new SpawnSquidKidSabotage());
 
+        // ── Weapon sabotages ──
+        _sabotage.Register(new WeaponSabotageNormal());
+        _sabotage.Register(new WeaponSabotageRandom());
+        _sabotage.Register(new WeaponSabotageBetter());
+        _sabotage.Register(new WeaponSabotageEpic());
+        _sabotage.Register(new WeaponSabotageLegendary());
+
         // ── Blessings ──
         _sabotage.Register(new RestoreEnergyBlessing());
         _sabotage.Register(new RestoreHealthBlessing());

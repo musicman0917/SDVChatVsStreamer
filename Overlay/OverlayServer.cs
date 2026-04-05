@@ -278,6 +278,18 @@ public class OverlayServer
                 });
                 await SendToClientAsync(ws, payload, ct).ConfigureAwait(false);
             }
+            else if (type == "debug_raid")
+            {
+                var username    = root.TryGetProperty("username",    out var u) ? u.GetString() ?? "debugraid" : "debugraid";
+                var viewerCount = root.TryGetProperty("viewerCount", out var vc) ? vc.GetInt32() : 1;
+
+                _monitor.Log($"[OverlayServer] Debug raid: {username} with {viewerCount} viewers", LogLevel.Info);
+
+                ModEntry.PendingActions.Enqueue(() =>
+                    _sabotage.TriggerRaidEvent(username, viewerCount, msg => PushChatMessage(
+                        new UI.ChatMessage("Chat vs Streamer", msg, UI.ChatFeed.HtmlEscape(msg),
+                            UI.ChatPlatform.Twitch, DateTime.UtcNow))));
+            }
         }
         catch (Exception ex)
         {

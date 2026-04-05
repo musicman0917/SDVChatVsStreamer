@@ -6,20 +6,41 @@ Built by [NeighborhoodofMusic](https://twitch.tv/neighborhoodofmusic).
 
 ---
 
+## 🚀 Installation
+
+1. Go to [Releases](https://github.com/musicman0917/SDVChatVsStreamer/releases) and download the latest zip
+2. Unzip it anywhere
+3. Right-click `Install.ps1` and select **Run with PowerShell**
+4. If Windows blocks it, open PowerShell as admin and run:
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+Then try again
+
+The installer will:
+- Detect Stardew Valley automatically
+- Download and install SMAPI if it's missing
+- Copy the mod files to your Mods folder
+- Walk you through Twitch credential setup
+- Check for Tikfinity for TikTok integration
+- Show you the OBS browser source URLs
+
+---
+
 ## ✨ Features
 
 ### 💬 Twitch Integration
 - Viewers earn points by chatting, watching, subscribing, gifting subs, cheering bits, and raiding
 - Sub multipliers — higher tier subs earn passive points faster
 - Full command system: `!balance`, `!shop`, `!buy <command>`, `!info <command>`
-- Raid events scale to viewer count — chaos, blessings, or meta effects like double points
+- Raid events spawn slimes equal to the number of raiders — 20+ raiders also triggers a devastating sabotage
 - Bit events trigger sabotages based on cheer amount
 - Channel point redemptions award bonus points
-- Broadcaster ID auto-fetched on startup — no manual config needed
+- Broadcaster ID auto-fetched on startup
 - Ban, timeout, and message delete events clear the chat overlay automatically
 
 ### 🎵 TikTok Integration (via Tikfinity)
-- Connects to [Tikfinity](https://tikfinity.zerinity.com/)'s local WebSocket at `ws://localhost:21213/`
+- Connects to [Tikfinity](https://tikfinity.zerinity.com/)'s local WebSocket
 - Chat, follow, like, share, and subscribe events all award points
 - **Named gift overrides** with special in-game effects:
 
@@ -34,9 +55,9 @@ Built by [NeighborhoodofMusic](https://twitch.tv/neighborhoodofmusic).
 
 - **Diamond tier system** for all other gifts (Nuisance → Disruptive → Painful → Devastating → Blessing)
 
-### 👹 30+ Sabotages & Blessings
+### 👹 Sabotages & Blessings
 
-**Sabotages** (things chat can buy to ruin your day):
+**Sabotages:**
 - Weather chaos — rain, storm, snow, green rain, wind
 - Monster spawns — slimes, bugs, grubs, golems, frost bats, dust sprites, ghosts, serpents, shadow brutes, shadow shamans, iridium golems, squid kids
 - Farm destruction — kill crops, spawn weeds, steal gold, drain energy
@@ -44,78 +65,28 @@ Built by [NeighborhoodofMusic](https://twitch.tv/neighborhoodofmusic).
 - Tool sabotage — upgrade or downgrade any tool mid-session
 - Explosions — bombs and mega bombs
 
-**Blessings** (chat can also be nice, occasionally):
-- Restore energy and health
-- Water all crops
-- Fertilize crops
-- Clear debris
-- Give gold
-- Speed boost
-- Force sunny weather
+**Weapons (give the farmer a random weapon):**
+- `!buy weaponnormal` — early game weapons
+- `!buy weaponrandom` — truly random, every weapon including mods
+- `!buy weaponbetter` — mid-game weapons
+- `!buy weaponepic` — late game galaxy/obsidian tier
+- `!buy weaponlegendary` — Infinity weapons and Meowmere
 
-All monsters spawn on passable tiles — no enemies inside walls.
+**Blessings:**
+- Restore energy and health, water crops, fertilize, clear debris, give gold, speed boost, force sunny weather
 
 ### 💬 Chat Overlay
-- **In-game HUD** — live Twitch + TikTok chat in a configurable corner with TTL-based expiry
-- **OBS Browser Source** at `http://localhost:7373/chat` — real platform icons, Twitch emote images, emoji support, auto-reconnects
+- **In-game HUD** — live Twitch + TikTok chat in a configurable corner with TTL expiry
+- **OBS Browser Source** at `http://localhost:7373/chat` — Twitch emote images, emoji support, auto-reconnects
 
 ### 🖥️ OBS Overlays
-- **Sidebar** (`/`) — chaos feed, leaderboard, shop ticker
-- **Mobile shop** (`/mobile`) — full tiered shop with live cooldown countdowns
-- **TikTok gift guide** (`/tiktok`) — scrolling reference card with real gift images
 
-### 🛡️ Moderation
-- Content filter with unicode normalization, leet-speak detection, and configurable blocked keywords
-- Ban/timeout/message delete events remove messages from the overlay in real time
-
----
-
-## 📦 Requirements
-
-- [Stardew Valley](https://www.stardewvalley.net/) 1.6+
-- [SMAPI](https://smapi.io/) 4.0+
-- [Generic Mod Config Menu](https://www.nexusmods.com/stardewvalley/mods/5098) (optional, for in-game config)
-- [Tikfinity](https://tikfinity.zerinity.com/) (optional, for TikTok integration)
-
----
-
-## 🚀 Installation
-
-1. Install SMAPI and Stardew Valley 1.6
-2. Download the latest release and unzip into your `Mods` folder
-3. Launch the game through SMAPI
-4. On first launch, you'll need to add your Twitch credentials to the `TwitchAuth` folder — see the auth setup guide below
-
----
-
-## 🔑 Twitch Auth Setup
-
-The mod uses OAuth to connect to Twitch chat and PubSub. On first launch, a `TwitchAuth` folder will be created inside the mod folder. Add a `config.json` there with:
-
-```json
-{
-  "ClientId": "your_client_id",
-  "AccessToken": "your_oauth_token",
-  "BotUsername": "your_bot_or_channel_username"
-}
-```
-
-You can generate an OAuth token at [twitchtokengenerator.com](https://twitchtokengenerator.com). The token needs `chat:read`, `chat:edit`, and `channel:read:redemptions` scopes.
-
----
-
-## ⚙️ Configuration
-
-All settings are available via Generic Mod Config Menu in-game, including:
-
-- Points economy (base amounts, cooldowns, sub multipliers)
-- Event bonuses (bits, raids, subs, follows)
-- Bit thresholds for each sabotage tier
-- Channel point redemption point amounts
-- TikTok event bonuses
-- Chat overlay position, TTL, and max messages
-- Overlay theme and appearance
-- Feature toggles (enable/disable TikTok, chat overlay, raid events, etc.)
+| Source | URL |
+|---|---|
+| Chat overlay | `http://localhost:7373/chat` |
+| Shop sidebar | `http://localhost:7373/` |
+| Mobile shop | `http://localhost:7373/mobile` |
+| TikTok gift guide | `http://localhost:7373/tiktok` |
 
 ---
 
@@ -131,13 +102,34 @@ All settings are available via Generic Mod Config Menu in-game, including:
 
 ---
 
+## ⚙️ Configuration
+
+All settings are available via Generic Mod Config Menu (GMCM) in-game:
+- Points economy (base amounts, cooldowns, sub multipliers)
+- Event bonuses (bits, raids, subs, follows, TikTok events)
+- Channel point redemption amounts
+- Chat overlay position, TTL, and max messages
+- Overlay theme and appearance
+- Feature toggles (TikTok, chat overlay, raid events, etc.)
+
+---
+
+## 📦 Requirements
+
+- [Stardew Valley](https://www.stardewvalley.net/) 1.6+
+- [SMAPI](https://smapi.io/) 4.0+ *(the installer handles this)*
+- [Generic Mod Config Menu](https://www.nexusmods.com/stardewvalley/mods/5098) (optional, for in-game config)
+- [Tikfinity](https://tikfinity.zerinity.com/) (optional, for TikTok integration)
+
+---
+
 ## 🔧 Debug Tools
 
-Open `debug.html` directly in Chrome while the game is running for a live dashboard showing:
+Open `debug.html` directly in Chrome while the game is running for a live dashboard:
 - Twitch and TikTok connection status
 - Real-time event log with platform filtering
 - Sabotage and points tracking
-- Test event injection panel
+- Test event injection — including raid simulation with custom viewer counts
 
 ---
 

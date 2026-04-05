@@ -376,6 +376,19 @@
   <div class="panel-title">Inject Test Events</div>
   <div class="inject-form">
 
+    <div class="inject-section">Twitch Raid</div>
+    <input id="raid-user" placeholder="Raider username" value="testraid">
+    <input id="raid-count" placeholder="Viewer count" value="5" type="number" min="1" max="500">
+    <div class="row-2">
+      <button class="inject-btn twitch" onclick="injectRaid(5)">5 viewers</button>
+      <button class="inject-btn twitch" onclick="injectRaid(15)">15 viewers</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn twitch" onclick="injectRaid(20)">20 viewers</button>
+      <button class="inject-btn twitch" onclick="injectRaid(50)">50 viewers</button>
+    </div>
+    <button class="inject-btn twitch" onclick="injectRaidCustom()">Custom Raid</button>
+
     <div class="inject-section">Twitch Chat</div>
     <input id="tw-user" placeholder="Username" value="testviewer">
     <input id="tw-msg"  placeholder="Message"  value="!buy rain">
@@ -557,6 +570,34 @@
   }
 
   // ── Inject ────────────────────────────────────────────────────────────────
+  function injectRaid(viewerCount) {
+    const user = document.getElementById('raid-user').value || 'testraid';
+    sendRaid(user, viewerCount);
+  }
+
+  function injectRaidCustom() {
+    const user  = document.getElementById('raid-user').value || 'testraid';
+    const count = parseInt(document.getElementById('raid-count').value) || 5;
+    sendRaid(user, count);
+  }
+
+  function sendRaid(user, viewerCount) {
+    // Raids are triggered via the overlay WebSocket — send a fake raid message
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'debug_raid',
+        username: user,
+        viewerCount: viewerCount
+      }));
+      stats.events++;
+      document.getElementById('s-events').textContent = stats.events;
+      addEntry('raid', 'raid',
+        `<span class="user">${esc(user)}</span> raided with <span class="pts">${viewerCount} viewers</span> (injected)`);
+    } else {
+      addEntry('system', 'system', '⚠️ Not connected to overlay server');
+    }
+  }
+
   function injectTwitchChat() {
     const user = document.getElementById('tw-user').value || 'testviewer';
     const msg  = document.getElementById('tw-msg').value || 'test';

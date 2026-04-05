@@ -620,7 +620,8 @@ public class TwitchManager
             ("💀 Nuisance",    0,   100),
             ("😈 Disruptive",  101, 250),
             ("💥 Painful",     251, 400),
-            ("☠️ Devastating", 401, 99999),
+            ("☠️ Devastating", 401, 599),
+            ("🌠 Legendary",   600, 99999),
         };
 
         SendMessage("🛒 CHAOS SHOP — use !buy <command> | !info <command> for details");

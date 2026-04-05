@@ -114,6 +114,8 @@
   .shop-card.blessing    { border-left-color: var(--cyan); }
   .shop-card.tool        { border-left-color: var(--purple); }
 
+  .shop-card.legendary   { border-left-color: #ffd700; box-shadow: 0 0 8px rgba(255,215,0,0.2); }
+
   .shop-card.on-cooldown { opacity: 0.4; }
 
   .card-cmd {
@@ -201,7 +203,8 @@ const TIERS = [
   { label: '💀 Nuisance',    cls: 'nuisance',    min: 0,   max: 100,   blessingOnly: false },
   { label: '😈 Disruptive',  cls: 'disruptive',  min: 101, max: 250,   blessingOnly: false },
   { label: '💥 Painful',     cls: 'painful',     min: 251, max: 400,   blessingOnly: false },
-  { label: '☠️ Devastating', cls: 'devastating', min: 401, max: 99999, blessingOnly: false },
+  { label: '☠️ Devastating', cls: 'devastating', min: 401, max: 599,   blessingOnly: false },
+  { label: '🌠 Legendary',   cls: 'legendary',   min: 600, max: 99999, blessingOnly: false },
   { label: '🌟 Blessings',   cls: 'blessing',    min: 0,   max: 99999, blessingOnly: true  },
 ];
 

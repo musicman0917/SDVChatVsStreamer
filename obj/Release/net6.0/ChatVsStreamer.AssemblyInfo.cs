@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ChatVsStreamer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.2.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.2.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.2.0+908f3021088af7a4a70ce316a75ebe2b56ea7cae")]
 [assembly: System.Reflection.AssemblyProductAttribute("ChatVsStreamer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ChatVsStreamer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.2.0.0")]

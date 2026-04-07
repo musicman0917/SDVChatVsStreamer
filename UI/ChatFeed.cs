@@ -21,6 +21,7 @@ public class ChatFeed
     public event Action<ChatMessage>? OnNewMessage;
     public event Action<string>? OnRemoveUser;
     public event Action<string>? OnRemoveMessage;
+    public event Action? OnClear;
 
     public ChatFeed(int maxMessages = 100)
     {
@@ -56,6 +57,12 @@ public class ChatFeed
         while (_messages.TryDequeue(out _)) { }
         foreach (var m in remaining) _messages.Enqueue(m);
         OnRemoveMessage?.Invoke(messageId);
+    }
+
+    public void Clear()
+    {
+        while (_messages.TryDequeue(out _)) { }
+        OnClear?.Invoke();
     }
 
     public IReadOnlyList<ChatMessage> GetRecent(int count)

@@ -308,6 +308,15 @@ public class OverlayServer
             _ = SendToClientAsync(ws, json, _cts?.Token ?? CancellationToken.None);
     }
 
+    public void PushChatClear()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new { type = "clear_chat" });
+        List<WebSocket> snapshot;
+        lock (_clientLock) snapshot = new List<WebSocket>(_chatClients);
+        foreach (var ws in snapshot)
+            _ = SendToClientAsync(ws, json, _cts?.Token ?? CancellationToken.None);
+    }
+
     public void PushChatRemoveMessage(string messageId)
     {
         var json = System.Text.Json.JsonSerializer.Serialize(new { type = "remove_msg", id = messageId });

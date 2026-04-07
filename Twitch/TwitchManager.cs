@@ -120,6 +120,7 @@ public class TwitchManager
         _client.OnUserBanned            += OnUserBanned;
         _client.OnUserTimedout          += OnUserTimedout;
         _client.OnMessageCleared        += OnMessageCleared;
+        _client.OnChatCleared           += OnChatCleared;
 
         _client.Connect();
     }
@@ -190,6 +191,13 @@ public class TwitchManager
         {
             _monitor.Log($"[TwitchManager] Message clear handler error: {ex.Message}", LogLevel.Debug);
         }
+    }
+
+    private void OnChatCleared(object? sender, OnChatClearedArgs e)
+    {
+        _monitor.Log($"[TwitchManager] Chat cleared", LogLevel.Debug);
+        _chatFeed?.Clear();
+        _overlay?.PushChatClear();
     }
 
     private void OnMessageReceived(object? sender, OnMessageReceivedArgs e)

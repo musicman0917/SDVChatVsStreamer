@@ -150,6 +150,10 @@
     if (el) el.remove();
   }
 
+  function clearAll() {
+    document.getElementById('feed').innerHTML = '';
+  }
+
   // WebSocket connection
   const port = params.get('port') || location.port || '7373';
   let ws;
@@ -163,6 +167,7 @@
         if (data.type === 'chat') addMessage(data);
         else if (data.type === 'remove_user') removeByUser(data.username);
         else if (data.type === 'remove_msg')  removeById(data.id);
+        else if (data.type === 'clear_chat')  clearAll();
       } catch {}
     };
 

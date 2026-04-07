@@ -50,7 +50,12 @@ Write-Host ""
 $manifest = Get-Content (Join-Path $scriptDir "manifest.json") -Raw | ConvertFrom-Json
 $version  = $manifest.Version
 $zipName  = "ChatVsStreamer-v$version.zip"
-$zipPath  = Join-Path $scriptDir $zipName
+$zipPath  = Join-Path $scriptDir "Version zips\$zipName"
+
+# Create the folder if it doesn't exist
+if (-not (Test-Path (Join-Path $scriptDir "Version zips"))) {
+    New-Item -ItemType Directory -Path (Join-Path $scriptDir "Version zips") | Out-Null
+}
 
 Write-Host ""
 Write-Host "=================================================" -ForegroundColor Cyan
@@ -137,4 +142,4 @@ Write-Host "    5. Paste patch notes and publish" -ForegroundColor Gray
 Write-Host ""
 
 # Open the project folder so they can grab the zip easily
-Start-Process explorer.exe $scriptDir
+Start-Process explorer.exe (Join-Path $scriptDir "Version zips")

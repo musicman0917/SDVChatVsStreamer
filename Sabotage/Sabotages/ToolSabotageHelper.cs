@@ -82,6 +82,7 @@ public static class ToolSabotageHelper
         var tool     = tools[_rng.Next(tools.Count)];
         var oldLevel = tool.UpgradeLevel;
         var toolName = GetBaseName(tool);
+        var toolSlot = Game1.player.Items.IndexOf(tool);
 
         int newLevel = oldLevel;
 
@@ -158,15 +159,10 @@ public static class ToolSabotageHelper
 
         QueueAction(() =>
         {
-            for (int i = 0; i < Game1.player.Items.Count; i++)
+            if (toolSlot >= 0 && toolSlot < Game1.player.Items.Count)
             {
-                var item = Game1.player.Items[i];
-                if (item is Tool t && GetBaseName(t) == toolName)
-                {
-                    _monitor?.Log($"[ToolHelper] Main thread swap: slot {i}", LogLevel.Debug);
-                    Game1.player.Items[i] = newTool;
-                    break;
-                }
+                _monitor?.Log($"[ToolHelper] Main thread swap: slot {toolSlot}", LogLevel.Debug);
+                Game1.player.Items[toolSlot] = newTool;
             }
         });
 

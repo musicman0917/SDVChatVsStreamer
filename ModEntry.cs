@@ -127,6 +127,17 @@ public class ModEntry : Mod
         _sabotage.Register(new WeaponSabotageEpic());
         _sabotage.Register(new WeaponSabotageLegendary());
 
+        // ── Pokemon sabotages — batch 1 ──
+        _sabotage.Register(new TrickRoomSabotage());
+        _sabotage.Register(new MetronomeSabotage());
+        _sabotage.Register(new SoakSabotage());
+        _sabotage.Register(new TeleportSabotage());
+        _sabotage.Register(new TrashDaySabotage());
+
+        // ── Pokemon blessings — batch 1 ──
+        _sabotage.Register(new LuckyChantBlessing());
+        _sabotage.Register(new PayDayBlessing());
+
         // ── Blessings ──
         _sabotage.Register(new RestoreEnergyBlessing());
         _sabotage.Register(new RestoreHealthBlessing());

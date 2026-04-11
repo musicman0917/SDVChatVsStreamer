@@ -2,7 +2,7 @@
   "$schema": "https://smapi.io/schemas/manifest.json",
   "Name": "Chat vs Streamer",
   "Author": "NeighborhoodofMusic",
-  "Version": "0.3.3",
+  "Version": "0.3.4",
   "Description": "Twitch chat earns points and spends them to sabotage the streamer.",
   "UniqueID": "NeighborhoodofMusic.SDVChatVsStreamer",
   "EntryDll": "ChatVsStreamer.dll",

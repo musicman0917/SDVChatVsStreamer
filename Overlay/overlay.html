@@ -34,7 +34,27 @@ body.theme-custom {
   --green: #00c853; --red: #f44336; --blue: #2196f3; --gold: var(--custom-accent,#9147ff);
 }
 
-body { background: transparent; font-family: 'Press Start 2P', monospace; color: var(--text); font-size: 8px; }
+/* MINIMAL MODE */
+#minimal {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  width: 220px;
+  transition: opacity 0.6s ease;
+}
+body.mode-minimal #minimal { display: block; }
+.minimal-box {
+  background: var(--bg);
+  border: 3px solid var(--border);
+  box-shadow: inset 2px 2px 0 var(--surface), inset -2px -2px 0 rgba(0,0,0,0.4), 3px 3px 0 rgba(0,0,0,0.5);
+  padding: 10px 12px;
+}
+.minimal-label { font-size: 6px; color: var(--accent); margin-bottom: 6px; letter-spacing: 1px; }
+.minimal-event { font-size: 7px; color: var(--text); line-height: 1.6; }
+.minimal-prompt { font-size: 6px; color: var(--muted); line-height: 1.6; }
+
 
 /* SIDEBAR */
 #sidebar { display: none; flex-direction: column; gap: 8px; padding: 8px; }
@@ -129,13 +149,20 @@ body.ticker-fast   #ticker-track { animation-duration: 35s; }
 </div>
 
 <div id="ticker">
-  <div id="ticker-track"><span class="ticker-item">🛒 Connecting to chaos...</span></div>
+  <div id="ticker-track"><span class="ticker-item">Connecting to chaos...</span></div>
+</div>
+
+<div id="minimal">
+  <div class="minimal-box">
+    <div class="minimal-label">CHAT VS STREAMER</div>
+    <div id="minimal-content" class="minimal-prompt">Type !shop to see what you can do!</div>
+  </div>
 </div>
 
 <div id="settings-panel">
-  <div class="settings-title">⚙ OVERLAY SETTINGS</div>
+  <div class="settings-title">OVERLAY SETTINGS</div>
   <div class="settings-row"><label>Mode</label>
-    <select id="s-mode"><option value="Sidebar">Sidebar</option><option value="Ticker">Ticker</option></select></div>
+    <select id="s-mode"><option value="Sidebar">Sidebar</option><option value="Ticker">Ticker</option><option value="Minimal">Minimal</option></select></div>
   <div class="settings-row"><label>Theme</label>
     <select id="s-theme"><option value="Stardew">Stardew</option><option value="Dark">Dark</option><option value="Light">Light</option><option value="Custom">Custom</option></select></div>
   <div class="settings-row"><label>Width (sidebar px)</label><input type="number" id="s-width" value="280" min="200" max="500"></div>
@@ -197,7 +224,7 @@ function handle(msg) {
     renderShop(); renderTicker();
   } else if (msg.type==='feed') {
     feed.unshift(msg); if(feed.length>cfg.maxFeedItems) feed.pop();
-    renderFeed(); renderTicker();
+    renderFeed(); renderTicker(); renderMinimal();
   } else if (msg.type==='leaderboard') {
     leaderboard = msg.entries||[]; renderLeaderboard();
   } else if (msg.type==='meta') {
@@ -208,13 +235,19 @@ function handle(msg) {
 
 function mergeServerCfg(c) {
   Object.keys(c).forEach(k => { if (c[k]!==undefined) cfg[k]=c[k]; });
+  // Re-apply URL params so they always win over server config
+  const params = new URLSearchParams(location.search);
+  ['mode','theme','width','fontSize','tickerPosition','tickerSpeed'].forEach(k => {
+    if (params.has(k)) cfg[k] = params.get(k);
+  });
   applyConfig(cfg);
 }
 
 function applyConfig(c) {
   const b = document.body;
-  b.classList.toggle('mode-sidebar', c.mode!=='Ticker');
-  b.classList.toggle('mode-ticker',  c.mode==='Ticker');
+  b.classList.toggle('mode-sidebar',  c.mode==='Sidebar' || (!c.mode || c.mode===''));
+  b.classList.toggle('mode-ticker',   c.mode==='Ticker');
+  b.classList.toggle('mode-minimal',  c.mode==='Minimal');
   b.className = b.className.replace(/theme-\w+/,''); b.classList.add('theme-'+(c.theme||'Stardew').toLowerCase());
   b.classList.toggle('ticker-top',    c.tickerPosition==='Top');
   b.classList.toggle('ticker-bottom', c.tickerPosition!=='Top');
@@ -290,6 +323,37 @@ function renderMeta() {
     if(metaEffects.hcSecs<=0)metaEffects.halveCosts=false;
     renderMeta();
   },1000);
+}
+
+let minimalTimer = null;
+
+function renderMinimal() {
+  if (cfg.mode !== 'Minimal') return;
+  const el = document.getElementById('minimal');
+  const content = document.getElementById('minimal-content');
+  const lastEvent = feed[0];
+
+  if (!lastEvent) return;
+
+  const eventText = `${esc(lastEvent.username)}: ${esc(lastEvent.description)}`;
+
+  // Show event
+  el.style.opacity = '1';
+  content.className = 'minimal-event';
+  content.innerHTML = eventText;
+
+  // Clear any existing timer
+  if (minimalTimer) clearTimeout(minimalTimer);
+
+  // After 5 seconds fade out then show prompt
+  minimalTimer = setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => {
+      content.className = 'minimal-prompt';
+      content.innerHTML = 'Type !shop to see what you can do!';
+      el.style.opacity = '1';
+    }, 600);
+  }, 5000);
 }
 
 function renderTicker() {

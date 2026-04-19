@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework;
 using SDVChatVsStreamer.Economy;
 using SDVChatVsStreamer.Overlay;
 using SDVChatVsStreamer.Sabotage;
@@ -56,7 +57,8 @@ public class ModEntry : Mod
         // Chat feed
         _chatFeed = new UI.ChatFeed();
         _chatHud  = new UI.ChatHud(_config, _chatFeed, Monitor, helper);
-        helper.Events.Display.RenderedHud += _chatHud.OnRenderedHud;
+        helper.Events.Display.RenderedHud    += _chatHud.OnRenderedHud;
+        helper.Events.Display.RenderedWorld  += OnRenderedWorld;
 
         // Mr. Qi portrait
         MrQiDialogue.Init(helper);
@@ -126,6 +128,12 @@ public class ModEntry : Mod
         _sabotage.Register(new WeaponSabotageBetter());
         _sabotage.Register(new WeaponSabotageEpic());
         _sabotage.Register(new WeaponSabotageLegendary());
+
+        // ── New sabotages — batch 2 ──
+        _sabotage.Register(new InfestationSabotage());
+        _sabotage.Register(new BlindfoldSabotage());
+        _sabotage.Register(new ConfusedSabotage());
+        _sabotage.Register(new FreezeTimeSabotage());
 
         // ── New sabotages — batch 1 ──
         _sabotage.Register(new TaxManSabotage());
@@ -249,6 +257,11 @@ public class ModEntry : Mod
         _overlay.ProcessPendingNotifications();
         SDVChatVsStreamer.Sabotage.Sabotages.ToolSabotageHelper.ProcessPendingActions();
 
+        // Tick timed chaos effects
+        SDVChatVsStreamer.Sabotage.Sabotages.BlindfoldSabotage.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.ConfusedSabotage.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.FreezeTimeSabotage.Tick();
+
         // Drain general pending actions (e.g. TikTok emotes)
         while (PendingActions.Count > 0)
             PendingActions.Dequeue().Invoke();
@@ -321,8 +334,58 @@ public class ModEntry : Mod
         finally { CloseClipboard(); }
     }
 
+    private void OnRenderedWorld(object? sender, StardewModdingAPI.Events.RenderedWorldEventArgs e)
+    {
+        if (!Context.IsWorldReady) return;
+        BlindfoldSabotage.Draw(e.SpriteBatch);
+
+        var sb   = e.SpriteBatch;
+        var font = Game1.smallFont;
+
+        // Show freeze time indicator
+        if (FreezeTimeSabotage.IsActive)
+        {
+            var text = $"Time Frozen: {FreezeTimeSabotage.SecsLeft}s";
+            var pos  = new Vector2(16, 16);
+            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
+            sb.DrawString(font, text, pos, Color.Cyan);
+        }
+
+        // Show confused indicator
+        if (ConfusedSabotage.IsActive)
+        {
+            var text = $"Confused: {ConfusedSabotage.SecsLeft}s";
+            var pos  = new Vector2(16, 48);
+            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
+            sb.DrawString(font, text, pos, Color.Purple);
+        }
+    }
+
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
     {
+        // Invert movement controls when confused
+        if (SDVChatVsStreamer.Sabotage.Sabotages.ConfusedSabotage.IsActive && Context.IsWorldReady)
+        {
+            var opposite = e.Button switch
+            {
+                SButton.W     => SButton.S,
+                SButton.S     => SButton.W,
+                SButton.A     => SButton.D,
+                SButton.D     => SButton.A,
+                SButton.Up    => SButton.Down,
+                SButton.Down  => SButton.Up,
+                SButton.Left  => SButton.Right,
+                SButton.Right => SButton.Left,
+                _             => SButton.None
+            };
+
+            if (opposite != SButton.None)
+            {
+                Helper.Input.Suppress(e.Button);
+                return;
+            }
+        }
+
         if (e.Button == SButton.F9 && TwitchAuth._pendingAuth)
         {
             var token = GetClipboardText();

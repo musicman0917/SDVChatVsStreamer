@@ -62,16 +62,23 @@ public class FloorIsLavaSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        IsActive    = true;
-        ExpiresAt   = DateTime.UtcNow.AddMinutes(2);
-        _damageTick = 0;
         _triggeredBy = triggeredBy;
 
-        Game1.addHUDMessage(new HUDMessage(
-            $"🔥 {triggeredBy} activated Floor is Lava! Stay on the paths!",
-            HUDMessage.error_type));
-
-        Game1.playSound("fireball");
+        MrQiDialogue.Show(new[] {
+            $"The spirits are very displeased...$pause",
+            $"...and also very hot.$pause",
+            $"{triggeredBy} has spoken! THE FLOOR IS LAVA!$pause",
+            $"Get to the paths, farmer... if you can. Heh heh heh."
+        }, onDismissed: () =>
+        {
+            IsActive    = true;
+            ExpiresAt   = DateTime.UtcNow.AddMinutes(2);
+            _damageTick = 0;
+            Game1.playSound("fireball");
+            Game1.addHUDMessage(new HUDMessage(
+                $"🔥 {triggeredBy} activated Floor is Lava! Stay on the paths!",
+                HUDMessage.error_type));
+        });
     }
 
     public static void Tick()

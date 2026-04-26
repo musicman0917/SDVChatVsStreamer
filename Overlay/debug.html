@@ -394,6 +394,41 @@
     <input id="tw-msg"  placeholder="Message"  value="!buy rain">
     <button class="inject-btn twitch" onclick="injectTwitchChat()">Send Chat</button>
 
+    <div class="inject-section">Chaos Effects</div>
+    <input id="chaos-user" placeholder="Username" value="testviewer">
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('blindfold')">🙈 Blindfold</button>
+      <button class="inject-btn danger" onclick="buyChaos('confused')">🌀 Confused</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('freezetime')">❄️ Freeze Time</button>
+      <button class="inject-btn danger" onclick="buyChaos('floorislava')">🔥 Floor is Lava</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('infestation')">🐛 Infestation</button>
+      <button class="inject-btn danger" onclick="buyChaos('taxman')">💸 Tax Man</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('trashday')">🗑️ Trash Day</button>
+      <button class="inject-btn danger" onclick="buyChaos('metronome')">🎵 Metronome</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn twitch" onclick="buyChaos('sugarrush')">⚡ Sugar Rush</button>
+      <button class="inject-btn twitch" onclick="buyChaos('luckychant')">🍀 Lucky Chant</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn twitch" onclick="buyChaos('payday')">💰 Pay Day</button>
+      <button class="inject-btn twitch" onclick="buyChaos('giftingtree')">🎁 Gifting Tree</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('trickroom')">⏰ Trick Room</button>
+      <button class="inject-btn danger" onclick="buyChaos('soak')">💧 Soak</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('teleport')">✨ Teleport</button>
+      <button class="inject-btn danger" onclick="buyChaos('weaponlegendary')">⚔️ Weapon Legendary</button>
+    </div>
+
     <div class="inject-section">TikTok Events</div>
     <input id="tt-user" placeholder="Username" value="testviewer">
     <div class="row-2">
@@ -581,6 +616,16 @@
     sendRaid(user, count);
   }
 
+  function sendWS(payload) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(payload));
+      stats.events++;
+      document.getElementById('s-events').textContent = stats.events;
+    } else {
+      addEntry('system', 'system', '⚠️ Not connected to overlay server');
+    }
+  }
+
   function sendRaid(user, viewerCount) {
     // Raids are triggered via the overlay WebSocket — send a fake raid message
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -596,6 +641,13 @@
     } else {
       addEntry('system', 'system', '⚠️ Not connected to overlay server');
     }
+  }
+
+  function buyChaos(command) {
+    const user = document.getElementById('chaos-user').value || 'testviewer';
+    sendWS({ type: 'debug_buy', username: user, command: command });
+    addEntry('sabotage', 'sabotage',
+      `<span class="user">${esc(user)}</span> triggered !buy ${esc(command)}`);
   }
 
   function injectTwitchChat() {

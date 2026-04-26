@@ -133,7 +133,7 @@ public class OverlayServer
             {
                 "/mobile"      => _mobileHtmlPath,
                 "/chat"        => _chatHtmlPath,
-                "/tiktok-test" => _chatHtmlPath, // serves same page, WS handles the logic
+                "/tiktok-test" => _chatHtmlPath,
                 _              => _overlayHtmlPath
             };
 
@@ -289,6 +289,20 @@ public class OverlayServer
                     _sabotage.TriggerRaidEvent(username, viewerCount, msg => PushChatMessage(
                         new UI.ChatMessage("Chat vs Streamer", msg, UI.ChatFeed.HtmlEscape(msg),
                             UI.ChatPlatform.Twitch, DateTime.UtcNow))));
+            }
+            else if (type == "debug_buy")
+            {
+                var username = root.TryGetProperty("username", out var u) ? u.GetString() ?? "testviewer" : "testviewer";
+                var command  = root.TryGetProperty("command",  out var c) ? c.GetString() ?? "" : "";
+
+                _monitor.Log($"[OverlayServer] Debug buy: {username} !buy {command}", LogLevel.Info);
+
+                ModEntry.PendingActions.Enqueue(() =>
+                {
+                    bool fired = _sabotage.DebugBuy(username, command);
+                    if (!fired)
+                        _monitor.Log($"[OverlayServer] Debug buy: command '{command}' not found", LogLevel.Warn);
+                });
             }
         }
         catch (Exception ex)

@@ -23,6 +23,7 @@ public class ModEntry : Mod
     private SabotageEngine _sabotage = null!;
     private TwitchManager _twitch = null!;
     private OverlayServer _overlay = null!;
+    private ClipService _clipService = null!;
 
     private DateTime _lastLeaderboardPush = DateTime.MinValue;
     private readonly TimeSpan _leaderboardInterval = TimeSpan.FromSeconds(60);
@@ -47,7 +48,9 @@ public class ModEntry : Mod
         _points  = new PointsEngine(_ledger, Monitor, _config);
 
         // Sabotage
-        _sabotage = new SabotageEngine(_ledger, Monitor);
+        _sabotage = new SabotageEngine(_ledger, Monitor, _config);
+        _clipService = new ClipService(_config, Monitor);
+        _sabotage.SetClipService(_clipService);
         SDVChatVsStreamer.Sabotage.Sabotages.ToolSabotageHelper.SetMonitor(Monitor);
         RegisterSabotages();
 
@@ -134,6 +137,7 @@ public class ModEntry : Mod
         _sabotage.Register(new BlindfoldSabotage());
         _sabotage.Register(new ConfusedSabotage());
         _sabotage.Register(new FreezeTimeSabotage());
+        _sabotage.Register(new FloorIsLavaSabotage());
 
         // ── New sabotages — batch 1 ──
         _sabotage.Register(new TaxManSabotage());
@@ -155,6 +159,8 @@ public class ModEntry : Mod
         _sabotage.Register(new RestoreEnergyBlessing());
         _sabotage.Register(new RestoreHealthBlessing());
         _sabotage.Register(new GiveGoldBlessing());
+        _sabotage.Register(new GiveMoreGoldBlessing());
+        _sabotage.Register(new GiveMostGoldBlessing());
         _sabotage.Register(new WaterCropsBlessing());
         _sabotage.Register(new SpeedBoostBlessing());
         _sabotage.Register(new FertilizeCropsBlessing());
@@ -261,6 +267,7 @@ public class ModEntry : Mod
         SDVChatVsStreamer.Sabotage.Sabotages.BlindfoldSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.ConfusedSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.FreezeTimeSabotage.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.FloorIsLavaSabotage.Tick();
 
         // Drain general pending actions (e.g. TikTok emotes)
         while (PendingActions.Count > 0)
@@ -338,6 +345,7 @@ public class ModEntry : Mod
     {
         if (!Context.IsWorldReady) return;
         BlindfoldSabotage.Draw(e.SpriteBatch);
+        FloorIsLavaSabotage.Draw(e.SpriteBatch);
 
         var sb   = e.SpriteBatch;
         var font = Game1.smallFont;
@@ -382,6 +390,18 @@ public class ModEntry : Mod
             if (opposite != SButton.None)
             {
                 Helper.Input.Suppress(e.Button);
+                var farmer = Game1.player;
+                farmer.movementDirections.Clear();
+                int direction = opposite switch
+                {
+                    SButton.W or SButton.Up    => 0,
+                    SButton.D or SButton.Right => 1,
+                    SButton.S or SButton.Down  => 2,
+                    SButton.A or SButton.Left  => 3,
+                    _                          => -1
+                };
+                if (direction >= 0 && !farmer.movementDirections.Contains(direction))
+                    farmer.movementDirections.Add(direction);
                 return;
             }
         }

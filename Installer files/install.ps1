@@ -1,6 +1,6 @@
 # ================================================================
 #  Chat vs Streamer - Installer
-#  Version 0.3.1 by NeighborhoodofMusic
+#  Version 0.3.2 by NeighborhoodofMusic
 # ================================================================
 
 $ErrorActionPreference = "Stop"
@@ -16,7 +16,7 @@ function Write-Header {
     Write-Host ""
     Write-Host "  +======================================================+" -ForegroundColor Cyan
     Write-Host "  *          CHAT VS STREAMER - INSTALLER                *" -ForegroundColor Cyan
-    Write-Host "  *                    v0.3.1                            *" -ForegroundColor Cyan
+    Write-Host "  *                    v0.3.2                            *" -ForegroundColor Cyan
     Write-Host "  +======================================================+" -ForegroundColor Cyan
     Write-Host ""
     if ($Step -and $Total) {
@@ -567,11 +567,12 @@ function Setup-Twitch {
     Write-Host ""
     Write-Host "     CUSTOM SCOPE TOKEN  (recommended)" -ForegroundColor Green
     Write-Host "       Required for full functionality." -ForegroundColor Gray
-    Write-Host "       Enable these four scopes:" -ForegroundColor Gray
+    Write-Host "       Enable these five scopes:" -ForegroundColor Gray
     Write-Host "         [x] chat:read" -ForegroundColor Gray
     Write-Host "         [x] chat:edit" -ForegroundColor Gray
     Write-Host "         [x] channel:read:redemptions" -ForegroundColor Gray
     Write-Host "         [x] bits:read" -ForegroundColor Gray
+    Write-Host "         [x] clips:edit" -ForegroundColor Gray
     Write-Host ""
     Write-Host "  3. Click Generate Token and authorize the app." -ForegroundColor White
     Write-Host ""

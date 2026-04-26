@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using SDVChatVsStreamer.Economy;
+using SDVChatVsStreamer.Twitch;
 using StardewModdingAPI;
 using StardewValley;
 
@@ -8,7 +9,8 @@ namespace SDVChatVsStreamer.Sabotage;
 public class SabotageEngine
 {
     private readonly ViewerLedger _ledger;
-    private readonly IMonitor _monitor;
+    private readonly IMonitor     _monitor;
+    private readonly ModConfig    _config;
 
     private readonly Dictionary<string, SabotageDefinition> _shop = new();
     private readonly List<SabotageDefinition> _raidPool            = new();
@@ -20,18 +22,21 @@ public class SabotageEngine
 
     // Optional overlay reference for push updates
     private Overlay.OverlayServer? _overlay;
+    private ClipService?           _clipService;
 
     // Raid event system
     public RaidEventSystem RaidEvents { get; private set; }
 
-    public SabotageEngine(ViewerLedger ledger, IMonitor monitor)
+    public SabotageEngine(ViewerLedger ledger, IMonitor monitor, ModConfig config)
     {
         _ledger     = ledger;
         _monitor    = monitor;
+        _config     = config;
         RaidEvents  = new RaidEventSystem(monitor);
     }
 
     public void SetOverlay(Overlay.OverlayServer overlay) => _overlay = overlay;
+    public void SetClipService(ClipService clipService)   => _clipService = clipService;
 
     // ─── Registration ─────────────────────────────────────────────────────────
 
@@ -105,6 +110,9 @@ public class SabotageEngine
         }
 
         def.Fire(username);
+
+        // Auto-clip if configured for this tier
+        _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
 
         _overlay?.PushFeedEvent(username, def.Name, def.Description, effectiveCost, "buy");
         _overlay?.PushShopUpdate();
@@ -212,6 +220,20 @@ public class SabotageEngine
         Game1.addHUDMessage(new HUDMessage(
             $"💰 {username}'s bits triggered: {def.Description}!",
             HUDMessage.error_type));
+    }
+
+    public bool DebugBuy(string username, string buyCommand)
+    {
+        var def = _shop.Values.FirstOrDefault(d =>
+            d.BuyCommand.Equals(buyCommand, StringComparison.OrdinalIgnoreCase));
+
+        if (def == null) return false;
+
+        def.Fire(username);
+        _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "buy");
+        _overlay?.PushShopUpdate();
+        _monitor.Log($"[SabotageEngine] Debug buy: {username} triggered {buyCommand}", LogLevel.Info);
+        return true;
     }
 
     public bool TryFireByName(string name, string username)

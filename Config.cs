@@ -114,6 +114,19 @@ public class ModConfig
     public string OverlayCustomAccent { get; set; } = "#9147ff";
     public string OverlayCustomText { get; set; } = "#efeff1";
 
+    // ─── Auto Clipping ───────────────────────────────────────────────────────
+    public bool AutoClipEnabled                  { get; set; } = true;
+    public bool ClipNuisance                     { get; set; } = false;
+    public bool ClipDisruptive                   { get; set; } = false;
+    public bool ClipPainful                      { get; set; } = true;
+    public bool ClipDevastating                  { get; set; } = true;
+    public bool ClipBlessings                    { get; set; } = false;
+    public int  ClipDelaySeconds                 { get; set; } = 5;
+    public int  ClipNuisanceCooldownSeconds      { get; set; } = 300;
+    public int  ClipDisruptiveCooldownSeconds    { get; set; } = 180;
+    public int  ClipPainfulCooldownSeconds       { get; set; } = 120;
+    public int  ClipDevastatingCooldownSeconds   { get; set; } = 90;
+
     // ─── Database ────────────────────────────────────────────────────────────
     public string DatabaseFileName { get; set; } = "ViewerLedger.db";
 }

@@ -15,7 +15,7 @@ public static class TwitchAuth
     private static string _tokenPath   => Path.Combine(_configDir, "token.dat");
     private static IMonitor _monitor    = null!;
 
-    private const string RedirectUri = "https://localhost";
+    private const string RedirectUri = "http://localhost:7379/";
     private const string Scopes      =
         "chat:read " +
         "chat:edit " +
@@ -23,6 +23,7 @@ public static class TwitchAuth
         "channel:read:subscriptions " +
         "channel:read:redemptions " +
         "bits:read " +
+        "clips:edit " +
         "moderator:read:followers";
 
     public static bool HasToken   => LoadToken() != null;
@@ -50,8 +51,12 @@ public static class TwitchAuth
         if (!File.Exists(_secretsPath)) { CreateSecretsTemplate(); return; }
         try
         {
-            var json = File.ReadAllText(_secretsPath);
-            ClientId = ExtractJsonString(json, "client_id");
+            var json      = File.ReadAllText(_secretsPath);
+            ClientId      = ExtractJsonString(json, "client_id");
+            _clientSecret = ExtractJsonString(json, "client_secret");
+            var refresh   = ExtractJsonString(json, "RefreshToken");
+            if (!string.IsNullOrWhiteSpace(refresh))
+                SaveRefreshToken(refresh);
             _monitor.Log($"[TwitchAuth] Loaded Client ID: {ClientId.Substring(0, Math.Min(6, ClientId.Length))}...", LogLevel.Debug);
         }
         catch (Exception ex)
@@ -66,6 +71,9 @@ public static class TwitchAuth
         _monitor.Log($"[TwitchAuth] Created secrets.json template at: {_secretsPath}", LogLevel.Warn);
     }
 
+    private static string _clientSecret = "";
+    private static string _state        = "";
+
     // ─── OAuth Flow ───────────────────────────────────────────────────────────
 
     public static void StartAuth(Action<string> onSuccess, Action<string> onError)
@@ -76,68 +84,269 @@ public static class TwitchAuth
             return;
         }
 
-        string state = Guid.NewGuid().ToString("N");
+        _state = Guid.NewGuid().ToString("N");
 
         string url = "https://id.twitch.tv/oauth2/authorize"
                    + $"?client_id={ClientId}"
                    + $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}"
-                   + "&response_type=token"
+                   + "&response_type=code"
                    + $"&scope={Uri.EscapeDataString(Scopes)}"
-                   + $"&state={state}"
+                   + $"&state={_state}"
                    + "&force_verify=false";
-
-        _monitor.Log("[TwitchAuth] Opening browser for Twitch authorization...", LogLevel.Info);
-        Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
-
-        Game1.addHUDMessage(new HUDMessage(
-            "🟣 Authorize on Twitch — then press F9 to paste your token.",
-            HUDMessage.newQuest_type));
 
         _pendingAuth    = true;
         _pendingSuccess = onSuccess;
         _pendingError   = onError;
+
+        // Start local HTTP listener to catch the auth code
+        Task.Run(() => ListenForAuthCode(onSuccess, onError));
+
+        _monitor.Log("[TwitchAuth] Opening browser for Twitch authorization (code flow)...", LogLevel.Info);
+
+        // Try to open in Chrome incognito so bot account auth doesn't conflict with main account
+        bool opened = false;
+        foreach (var chrome in new[] {
+            @"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            Environment.ExpandEnvironmentVariables(@"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe")
+        })
+        {
+            if (!File.Exists(chrome)) continue;
+            Process.Start(new ProcessStartInfo
+            {
+                FileName         = chrome,
+                Arguments        = $"--incognito \"{url}\"",
+                UseShellExecute  = true
+            });
+            opened = true;
+            break;
+        }
+
+        if (!opened)
+        {
+            // Fall back to default browser if Chrome not found
+            _monitor.Log("[TwitchAuth] Chrome not found — opening in default browser. Sign in as bardbouncerbot!", LogLevel.Warn);
+            Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+        }
+
+        Game1.addHUDMessage(new HUDMessage(
+            "🟣 Authorize on Twitch in your browser — the mod will handle the rest.",
+            HUDMessage.newQuest_type));
     }
 
-    // ─── Token Submission ─────────────────────────────────────────────────────
+    private static async Task ListenForAuthCode(Action<string> onSuccess, Action<string> onError)
+    {
+        try
+        {
+            using var listener = new System.Net.HttpListener();
+            listener.Prefixes.Add("http://localhost:7379/");
+            listener.Start();
+            _monitor.Log("[TwitchAuth] Listening for OAuth callback on http://localhost:7379/", LogLevel.Info);
+
+            var context  = await listener.GetContextAsync();
+            var query    = context.Request.QueryString;
+            var code     = query["code"]  ?? "";
+            var state    = query["state"] ?? "";
+            var error    = query["error"] ?? "";
+
+            // Send a response to the browser
+            var response = context.Response;
+            string html  = error.Length > 0
+                ? "<html><body><h2>❌ Auth failed. You can close this tab.</h2></body></html>"
+                : "<html><body><h2>✅ Authorized! You can close this tab and return to Stardew Valley.</h2></body></html>";
+            var buffer = Encoding.UTF8.GetBytes(html);
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+            listener.Stop();
+
+            if (!string.IsNullOrEmpty(error))
+            {
+                onError?.Invoke($"Auth error: {error}");
+                return;
+            }
+
+            if (state != _state)
+            {
+                onError?.Invoke("State mismatch — possible CSRF. Please try again.");
+                return;
+            }
+
+            // Exchange code for token
+            await ExchangeCodeForToken(code, onSuccess, onError);
+        }
+        catch (Exception ex)
+        {
+            _monitor.Log($"[TwitchAuth] OAuth listener error: {ex.Message}", LogLevel.Error);
+            onError?.Invoke(ex.Message);
+        }
+    }
+
+    private static async Task ExchangeCodeForToken(string code, Action<string> onSuccess, Action<string> onError)
+    {
+        try
+        {
+            using var http = new System.Net.Http.HttpClient();
+            var body = new System.Net.Http.FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string,string>("client_id",     ClientId),
+                new KeyValuePair<string,string>("client_secret", _clientSecret),
+                new KeyValuePair<string,string>("code",          code),
+                new KeyValuePair<string,string>("grant_type",    "authorization_code"),
+                new KeyValuePair<string,string>("redirect_uri",  RedirectUri),
+            });
+
+            var resp = await http.PostAsync("https://id.twitch.tv/oauth2/token", body);
+            var json = await resp.Content.ReadAsStringAsync();
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                _monitor.Log($"[TwitchAuth] Token exchange failed: {json}", LogLevel.Error);
+                onError?.Invoke($"Token exchange failed: {json}");
+                return;
+            }
+
+            using var doc       = System.Text.Json.JsonDocument.Parse(json);
+            var accessToken     = doc.RootElement.GetProperty("access_token").GetString()  ?? "";
+            var refreshToken    = doc.RootElement.GetProperty("refresh_token").GetString() ?? "";
+
+            SaveToken(accessToken);
+            SaveRefreshToken(refreshToken);
+
+            _monitor.Log("[TwitchAuth] Authorization Code flow complete — tokens saved.", LogLevel.Info);
+            _pendingAuth = false;
+            onSuccess?.Invoke(accessToken);
+
+            Game1.addHUDMessage(new HUDMessage(
+                "✅ Twitch authorized successfully! Auto-refresh enabled.",
+                HUDMessage.newQuest_type));
+        }
+        catch (Exception ex)
+        {
+            _monitor.Log($"[TwitchAuth] Token exchange error: {ex.Message}", LogLevel.Error);
+            onError?.Invoke(ex.Message);
+        }
+    }
+
+    // ─── Token Submission (legacy — no longer needed with code flow) ──────────
 
     public static void SubmitToken(string raw)
     {
-        _pendingAuth = false;
-        string token = raw.Trim();
+        // No longer used — Authorization Code flow handles this automatically
+        _monitor.Log("[TwitchAuth] F9 token submission is no longer needed. Auth is handled automatically.", LogLevel.Info);
+        Game1.addHUDMessage(new HUDMessage(
+            "ℹ️ Token submission is automatic now — no need to press F9.",
+            HUDMessage.newQuest_type));
+    }
 
-        _monitor.Log($"[TwitchAuth] Raw input length={token.Length}", LogLevel.Debug);
+    private static string _refreshTokenPath => Path.Combine(_configDir, "refresh.dat");
 
-        if (token.Contains("#access_token="))
+    public static void SaveRefreshToken(string token)
+    {
+        try
         {
-            int idx = token.IndexOf("#access_token=") + "#access_token=".Length;
-            int end = token.IndexOf('&', idx);
-            token   = end > 0 ? token.Substring(idx, end - idx) : token.Substring(idx);
+            byte[] key   = GetMachineKey();
+            byte[] iv    = new byte[16];
+            using (var rng = RandomNumberGenerator.Create()) rng.GetBytes(iv);
+            byte[] plain = Encoding.UTF8.GetBytes(token);
+
+            using var aes = Aes.Create();
+            aes.Key = key; aes.IV = iv;
+            using var enc = aes.CreateEncryptor();
+            using var ms  = new MemoryStream();
+            ms.Write(iv, 0, iv.Length);
+            using (var cs = new CryptoStream(ms, enc, CryptoStreamMode.Write))
+                cs.Write(plain, 0, plain.Length);
+            File.WriteAllBytes(_refreshTokenPath, ms.ToArray());
+            _monitor.Log("[TwitchAuth] Refresh token saved.", LogLevel.Debug);
         }
-        else if (token.Contains("access_token="))
+        catch (Exception ex)
         {
-            int idx = token.IndexOf("access_token=") + "access_token=".Length;
-            int end = token.IndexOf('&', idx);
-            token   = end > 0 ? token.Substring(idx, end - idx) : token.Substring(idx);
+            _monitor.Log($"[TwitchAuth] Failed to save refresh token: {ex.Message}", LogLevel.Error);
         }
-        else if (token.StartsWith("oauth:"))
+    }
+
+    private static string? LoadRefreshToken()
+    {
+        // Try encrypted file first
+        if (File.Exists(_refreshTokenPath))
         {
-            token = token.Substring(6);
+            try
+            {
+                byte[] cipher = File.ReadAllBytes(_refreshTokenPath);
+                byte[] key    = GetMachineKey();
+                byte[] iv     = new byte[16];
+                Buffer.BlockCopy(cipher, 0, iv, 0, 16);
+                using var aes = Aes.Create();
+                aes.Key = key; aes.IV = iv;
+                using var dec = aes.CreateDecryptor();
+                using var ms  = new MemoryStream(cipher, 16, cipher.Length - 16);
+                using var cs  = new CryptoStream(ms, dec, CryptoStreamMode.Read);
+                using var sr  = new StreamReader(cs);
+                return sr.ReadToEnd();
+            }
+            catch { }
         }
 
-        token = Uri.UnescapeDataString(token).Trim();
-
-        if (token.Length < 20 || token.Length > 60 ||
-            !System.Text.RegularExpressions.Regex.IsMatch(token, @"^[a-zA-Z0-9]+$"))
+        // Fall back to secrets.json RefreshToken field
+        if (File.Exists(_secretsPath))
         {
-            Game1.addHUDMessage(new HUDMessage(
-                "❌ Invalid token. Copy the full URL from the browser and try F9 again.",
-                HUDMessage.error_type));
-            _pendingError?.Invoke("Invalid token format.");
-            return;
+            try
+            {
+                var json = File.ReadAllText(_secretsPath);
+                var token = ExtractJsonString(json, "RefreshToken");
+                if (!string.IsNullOrWhiteSpace(token)) return token;
+            }
+            catch { }
         }
 
-        SaveToken(token);
-        _pendingSuccess?.Invoke(token);
+        return null;
+    }
+
+    public static async Task<string?> RefreshAccessTokenAsync()
+    {
+        var refreshToken = LoadRefreshToken();
+        if (string.IsNullOrWhiteSpace(refreshToken) || string.IsNullOrWhiteSpace(ClientId) || string.IsNullOrWhiteSpace(_clientSecret))
+        {
+            _monitor.Log("[TwitchAuth] Cannot refresh — missing refresh token, client ID, or client secret.", LogLevel.Warn);
+            return null;
+        }
+
+        try
+        {
+            using var http = new System.Net.Http.HttpClient();
+            var body = new System.Net.Http.FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string,string>("grant_type",    "refresh_token"),
+                new KeyValuePair<string,string>("refresh_token", refreshToken),
+                new KeyValuePair<string,string>("client_id",     ClientId),
+                new KeyValuePair<string,string>("client_secret", _clientSecret),
+            });
+
+            var resp = await http.PostAsync("https://id.twitch.tv/oauth2/token", body);
+            var json = await resp.Content.ReadAsStringAsync();
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                _monitor.Log($"[TwitchAuth] Token refresh failed: {json}", LogLevel.Warn);
+                return null;
+            }
+
+            using var doc       = System.Text.Json.JsonDocument.Parse(json);
+            var newAccessToken  = doc.RootElement.GetProperty("access_token").GetString()  ?? "";
+            var newRefreshToken = doc.RootElement.TryGetProperty("refresh_token", out var rt)
+                                  ? rt.GetString() ?? refreshToken : refreshToken;
+
+            SaveToken(newAccessToken);
+            SaveRefreshToken(newRefreshToken);
+            _monitor.Log("[TwitchAuth] Token refreshed successfully.", LogLevel.Info);
+            return newAccessToken;
+        }
+        catch (Exception ex)
+        {
+            _monitor.Log($"[TwitchAuth] Token refresh error: {ex.Message}", LogLevel.Error);
+            return null;
+        }
     }
 
     // ─── Token Storage ────────────────────────────────────────────────────────

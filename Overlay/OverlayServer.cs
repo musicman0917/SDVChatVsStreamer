@@ -322,6 +322,21 @@ public class OverlayServer
             _ = SendToClientAsync(ws, json, _cts?.Token ?? CancellationToken.None);
     }
 
+    public void PushClipCreated(string url, string command, string triggeredBy)
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            type      = "clip_created",
+            url       = url,
+            command   = command,
+            username  = triggeredBy
+        });
+        List<WebSocket> snapshot;
+        lock (_clientLock) snapshot = new List<WebSocket>(_chatClients);
+        foreach (var ws in snapshot)
+            _ = SendToClientAsync(ws, json, _cts?.Token ?? CancellationToken.None);
+    }
+
     public void PushChatClear()
     {
         var json = System.Text.Json.JsonSerializer.Serialize(new { type = "clear_chat" });

@@ -72,6 +72,7 @@ public class TwitchManager
         {
             SetupIrcClient(token);
             SetupPubSub(token);
+            StartTokenRefreshTimer();
         }
         catch (Exception ex)
         {
@@ -86,6 +87,7 @@ public class TwitchManager
             if (_client?.IsConnected == true) _client.Disconnect();
             _pubCts?.Cancel();
             _pubSocket?.Dispose();
+            _refreshCts?.Cancel();
             _monitor.Log("[TwitchManager] Disconnected.", LogLevel.Info);
         }
         catch (Exception ex)
@@ -110,6 +112,7 @@ public class TwitchManager
 
         _client.OnConnected             += OnIrcConnected;
         _client.OnDisconnected          += OnIrcDisconnected;
+        _client.OnConnectionError       += OnIrcConnectionError;
         _client.OnMessageReceived       += OnMessageReceived;
         _client.OnNewSubscriber         += OnNewSubscriber;
         _client.OnReSubscriber          += OnReSubscriber;
@@ -133,9 +136,105 @@ public class TwitchManager
             HUDMessage.newQuest_type));
     }
 
+    private bool _reconnecting = false;
+    private DateTime _lastDisconnectEvent = DateTime.MinValue;
+
     private void OnIrcDisconnected(object? sender, OnDisconnectedEventArgs e)
     {
+        // Debounce — TwitchLib can fire multiple disconnect events for one underlying disconnect
+        if ((DateTime.UtcNow - _lastDisconnectEvent).TotalSeconds < 3)
+        {
+            _monitor.Log("[TwitchManager] Ignoring duplicate disconnect event.", LogLevel.Trace);
+            return;
+        }
+        _lastDisconnectEvent = DateTime.UtcNow;
         _monitor.Log("[TwitchManager] IRC disconnected.", LogLevel.Warn);
+
+        if (_reconnecting)
+        {
+            _monitor.Log("[TwitchManager] Reconnect already in progress — skipping.", LogLevel.Debug);
+            return;
+        }
+
+        _reconnecting = true; // set synchronously to close the race window
+        Task.Run(() => IrcReconnectLoop());
+    }
+
+    private void OnIrcConnectionError(object? sender, OnConnectionErrorArgs e)
+    {
+        if ((DateTime.UtcNow - _lastDisconnectEvent).TotalSeconds < 3)
+        {
+            _monitor.Log("[TwitchManager] Ignoring duplicate connection error event.", LogLevel.Trace);
+            return;
+        }
+        _lastDisconnectEvent = DateTime.UtcNow;
+        _monitor.Log($"[TwitchManager] IRC connection error: {e.Error.Message}", LogLevel.Warn);
+
+        if (_reconnecting)
+        {
+            _monitor.Log("[TwitchManager] Reconnect already in progress — skipping.", LogLevel.Debug);
+            return;
+        }
+
+        _reconnecting = true;
+        Task.Run(() => IrcReconnectLoop());
+    }
+
+    private async Task IrcReconnectLoop()
+    {
+        int attempt = 0;
+
+        // Give TwitchLib a moment — it sometimes reconnects internally right after firing disconnect
+        await Task.Delay(2000);
+        if (_client?.IsConnected ?? false)
+        {
+            _monitor.Log("[TwitchManager] IRC already reconnected on its own.", LogLevel.Info);
+            _reconnecting = false;
+            return;
+        }
+
+        while (!(_client?.IsConnected ?? false))
+        {
+            attempt++;
+            int delay = attempt <= 5
+                ? Math.Min(30, (int)Math.Pow(2, attempt)) * 1000
+                : 60000; // back off to a full minute after 5 tries to avoid hammering Twitch
+
+            _monitor.Log($"[TwitchManager] IRC reconnect attempt {attempt} in {delay / 1000}s...", LogLevel.Info);
+            await Task.Delay(delay);
+
+            if (_client?.IsConnected ?? false) break;
+
+            try
+            {
+                if (attempt % 3 == 0)
+                {
+                    _monitor.Log("[TwitchManager] Attempting token refresh before reconnect...", LogLevel.Info);
+                    var newToken = await TwitchAuth.RefreshAccessTokenAsync();
+                    if (newToken != null)
+                    {
+                        _monitor.Log("[TwitchManager] Token refreshed — reinitializing IRC...", LogLevel.Info);
+                        if (_client?.IsConnected == true) _client.Disconnect();
+                        await Task.Delay(1000);
+                        SetupIrcClient(newToken);
+                        await Task.Delay(4000);
+                        break;
+                    }
+                }
+                else
+                {
+                    _client?.Reconnect();
+                    await Task.Delay(4000);
+                }
+            }
+            catch (Exception ex)
+            {
+                _monitor.Log($"[TwitchManager] IRC reconnect attempt {attempt} failed: {ex.Message}", LogLevel.Warn);
+            }
+        }
+
+        _reconnecting = false;
+        _monitor.Log("[TwitchManager] IRC reconnected successfully.", LogLevel.Info);
     }
 
     private bool IsIgnored(string username)
@@ -271,7 +370,42 @@ public class TwitchManager
         if (message.StartsWith("!give ", StringComparison.OrdinalIgnoreCase))
         {
             HandleGive(username, e.ChatMessage.IsModerator, e.ChatMessage.IsBroadcaster, message);
+            return;
         }
+
+        if (message.StartsWith("!setpoints ", StringComparison.OrdinalIgnoreCase))
+        {
+            HandleSetPoints(username, e.ChatMessage.IsModerator, e.ChatMessage.IsBroadcaster, message);
+        }
+    }
+
+    private void HandleSetPoints(string sender, bool isMod, bool isBroadcaster, string message)
+    {
+        if (!isMod && !isBroadcaster)
+        {
+            SendMessage($"@{sender} only mods and the broadcaster can set points.");
+            return;
+        }
+
+        // Parse: !setpoints <username> <amount>
+        var parts = message.Substring(11).Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2)
+        {
+            SendMessage($"@{sender} usage: !setpoints <username> <amount>");
+            return;
+        }
+
+        var target = parts[0].TrimStart('@');
+        if (!int.TryParse(parts[1], out var amount) || amount < 0)
+        {
+            SendMessage($"@{sender} amount must be a non-negative number.");
+            return;
+        }
+
+        var current = _ledger.GetPoints(target);
+        _ledger.SetPoints(target, amount);
+        SendMessage($"✨ {sender} set @{target}'s chaos points to {amount}pts (was {current}pts)");
+        _monitor.Log($"[TwitchManager] {sender} set {target}'s points to {amount} (was {current})", LogLevel.Info);
     }
 
     private void HandleGive(string sender, bool isMod, bool isBroadcaster, string message)
@@ -364,6 +498,45 @@ public class TwitchManager
     }
 
     // ─── Raw PubSub WebSocket ─────────────────────────────────────────────────
+
+    private CancellationTokenSource? _refreshCts;
+
+    private void StartTokenRefreshTimer()
+    {
+        _refreshCts = new CancellationTokenSource();
+        Task.Run(() => TokenRefreshLoop(_refreshCts.Token));
+    }
+
+    private async Task TokenRefreshLoop(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            // Refresh every 24 hours proactively
+            await Task.Delay(TimeSpan.FromHours(24), ct);
+            if (ct.IsCancellationRequested) break;
+
+            _monitor.Log("[TwitchManager] Proactive token refresh starting...", LogLevel.Info);
+            var newToken = await TwitchAuth.RefreshAccessTokenAsync();
+            if (newToken != null)
+            {
+                _monitor.Log("[TwitchManager] Token refreshed — reinitializing IRC...", LogLevel.Info);
+                try
+                {
+                    if (_client?.IsConnected == true) _client.Disconnect();
+                    await Task.Delay(1000, ct);
+                    SetupIrcClient(newToken);
+                }
+                catch (Exception ex)
+                {
+                    _monitor.Log($"[TwitchManager] IRC reinit after refresh failed: {ex.Message}", LogLevel.Warn);
+                }
+            }
+            else
+            {
+                _monitor.Log("[TwitchManager] Proactive token refresh failed — will retry next cycle.", LogLevel.Warn);
+            }
+        }
+    }
 
     private void SetupPubSub(string token)
     {
@@ -582,9 +755,14 @@ public class TwitchManager
 
     // ─── Buy Handler ──────────────────────────────────────────────────────────
 
-    private void HandleBuy(string username, string sabotageName)
+    private void HandleBuy(string username, string fullCommand)
     {
-        var result = _sabotage.TryBuy(username, sabotageName);
+        // Split command from optional args: "renameanimal Pengu" -> command="renameanimal", args="Pengu"
+        var parts   = fullCommand.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        var command = parts[0].ToLower();
+        var args    = parts.Length > 1 ? parts[1].Trim() : "";
+
+        var result = _sabotage.TryBuy(username, command, args);
 
         switch (result.Status)
         {
@@ -592,13 +770,13 @@ public class TwitchManager
                 SendMessage($"@{username} spent {result.Cost} pts — {result.Description} 😈");
                 break;
             case BuyStatus.NotFound:
-                SendMessage($"@{username} '{sabotageName}' isn't in the shop. Type !shop to see options.");
+                SendMessage($"@{username} '{command}' isn't in the shop. Type !shop to see options.");
                 break;
             case BuyStatus.InsufficientFunds:
                 SendMessage($"@{username} you need {result.Cost} pts but only have {result.Balance} pts.");
                 break;
             case BuyStatus.OnCooldown:
-                SendMessage($"@{username} {sabotageName} is on cooldown for {result.CooldownRemaining}s.");
+                SendMessage($"@{username} {command} is on cooldown for {result.CooldownRemaining}s.");
                 break;
             case BuyStatus.Rejected:
                 SendMessage($"@{username} {result.Description} Your points have been refunded.");
@@ -711,7 +889,7 @@ public class TwitchManager
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    private void SendMessage(string message)
+    public void SendMessage(string message)
     {
         if (_client?.IsConnected == true)
             _client.SendMessage(_config.ChannelName, message);

@@ -64,6 +64,43 @@ internal static class MonsterSpawnHelper
         return results;
     }
 
+    private static readonly string[] MineLocations = {
+        "UndergroundMine", "Mine", "SkullCave", "Volcano"
+    };
+
+    public static bool IsMinesLocation(GameLocation loc) =>
+        MineLocations.Any(m => loc.Name.StartsWith(m, StringComparison.OrdinalIgnoreCase));
+
+    private static readonly Random _fallbackRng = new();
+
+    // Spawns a mines-only monster with a funny fallback message if not in mines
+    public static bool CheckMinesOrFallback(GameLocation loc, string monsterName, string triggeredBy, string friendlyName)
+    {
+        if (IsMinesLocation(loc)) return true;
+
+        // Not in mines — spawn a random surface-friendly monster instead
+        var fallbacks = new[] { "slime", "bat", "ghost", "shadowbrute" };
+        var fallback  = fallbacks[_fallbackRng.Next(fallbacks.Length)];
+
+        Game1.addHUDMessage(new HUDMessage(
+            $"🎲 {triggeredBy} tried to spawn a {friendlyName} but they can't survive here! A random monster showed up instead!",
+            HUDMessage.error_type));
+
+        // Spawn a fallback monster
+        var origin = Game1.player.Tile;
+        var pos    = FindSpawnTile(loc, origin, 2, 0);
+        StardewValley.Monsters.Monster? monster = fallback switch
+        {
+            "slime"       => new StardewValley.Monsters.GreenSlime(pos, Game1.CurrentMineLevel),
+            "bat"         => new StardewValley.Monsters.Bat(pos),
+            "ghost"       => new StardewValley.Monsters.Ghost(pos),
+            "shadowbrute" => new StardewValley.Monsters.ShadowBrute(pos),
+            _             => new StardewValley.Monsters.GreenSlime(pos, 1)
+        };
+        loc.characters.Add(monster);
+        return false;
+    }
+
     private static bool IsTilePassable(GameLocation loc, Vector2 tile)
     {
         try
@@ -157,6 +194,7 @@ public class SpawnFrostBatSabotage : ISabotage
     public void Execute(string triggeredBy)
     {
         var loc = Game1.player.currentLocation;
+        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "Bat", triggeredBy, "Frost Bat")) return;
         var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
         var pos = MonsterSpawnHelper.FindSpawnTile(loc, origin, 2, -2);
         loc.characters.Add(new Bat(pos, -555));
@@ -176,12 +214,12 @@ public class SpawnDustSpriteSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc    = Game1.player.currentLocation;
+        var loc = Game1.player.currentLocation;
+        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "DustSpirit", triggeredBy, "Dust Sprite")) return;
         var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
         var tiles  = MonsterSpawnHelper.FindSpawnTiles(loc, origin, 5);
         foreach (var pos in tiles)
             loc.characters.Add(new DustSpirit(pos, false));
-
         Game1.addHUDMessage(new HUDMessage(
             $"💨 {triggeredBy} summoned a dust sprite pack!",
             HUDMessage.error_type));
@@ -199,6 +237,7 @@ public class SpawnGhostSabotage : ISabotage
     public void Execute(string triggeredBy)
     {
         var loc = Game1.player.currentLocation;
+        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "Ghost", triggeredBy, "Ghost")) return;
         var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
         var pos = MonsterSpawnHelper.FindSpawnTile(loc, origin, 3, 0);
         loc.characters.Add(new Ghost(pos));
@@ -221,6 +260,7 @@ public class SpawnSerpentSabotage : ISabotage
     public void Execute(string triggeredBy)
     {
         var loc = Game1.player.currentLocation;
+        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "Serpent", triggeredBy, "Serpent")) return;
         var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
         var pos = MonsterSpawnHelper.FindSpawnTile(loc, origin, 3, 0);
         loc.characters.Add(new Serpent(pos));

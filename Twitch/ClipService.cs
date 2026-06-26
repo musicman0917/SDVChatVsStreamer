@@ -10,15 +10,19 @@ public class ClipService
     private readonly ModConfig  _config;
     private readonly IMonitor   _monitor;
     private readonly HttpClient _http = new();
+    private readonly string     _modDir;
+    private Overlay.OverlayServer? _overlay;
 
-    private DateTime _lastClipTime = DateTime.MinValue;
     private DateTime _clipCooldownUntil = DateTime.MinValue;
 
-    public ClipService(ModConfig config, IMonitor monitor)
+    public ClipService(ModConfig config, IMonitor monitor, string modDir)
     {
         _config  = config;
         _monitor = monitor;
+        _modDir  = modDir;
     }
+
+    public void SetOverlay(Overlay.OverlayServer overlay) => _overlay = overlay;
 
     public void TryClipForTier(SDVChatVsStreamer.Sabotage.SabotageTier tier, string command, string triggeredBy, ModConfig config)
     {
@@ -104,6 +108,9 @@ public class ClipService
                 var url  = $"https://clips.twitch.tv/{id}";
                 _monitor.Log($"[ClipService] Clip created for !buy {sabotageCommand} by {triggeredBy}: {url}", LogLevel.Info);
 
+                // Push clip URL to overlay debug feed
+                _overlay?.PushClipCreated(url, sabotageCommand, triggeredBy);
+
                 // Set custom clip title
                 await SetClipTitleAsync(id!, sabotageCommand, triggeredBy, token, clientId);
             }
@@ -150,9 +157,7 @@ public class ClipService
     {
         try
         {
-            var path = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "StardewValley", "Mods", "ChatVsStreamer", _config.AuthConfigDirName, "secrets.json");
+            var path = Path.Combine(_modDir, _config.AuthConfigDirName, "secrets.json");
             if (!File.Exists(path)) return "";
             var doc = JsonDocument.Parse(File.ReadAllText(path));
             return doc.RootElement.TryGetProperty("OAuthToken", out var t) ? t.GetString() ?? "" : "";
@@ -164,9 +169,7 @@ public class ClipService
     {
         try
         {
-            var path = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "StardewValley", "Mods", "ChatVsStreamer", _config.AuthConfigDirName, "secrets.json");
+            var path = Path.Combine(_modDir, _config.AuthConfigDirName, "secrets.json");
             if (!File.Exists(path)) return "";
             var doc = JsonDocument.Parse(File.ReadAllText(path));
             return doc.RootElement.TryGetProperty("ClientId", out var c) ? c.GetString() ?? "" : "";

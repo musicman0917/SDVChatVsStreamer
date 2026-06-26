@@ -99,6 +99,20 @@ public class ViewerLedger
         cmd.ExecuteNonQuery();
     }
 
+    public void SetPoints(string username, int amount)
+    {
+        EnsureViewer(username);
+        using var conn = GetConnection();
+        using var cmd  = conn.CreateCommand();
+        cmd.CommandText = @"
+            UPDATE viewers
+            SET points = $a
+            WHERE username = $u;";
+        cmd.Parameters.AddWithValue("$a", amount);
+        cmd.Parameters.AddWithValue("$u", username.ToLower());
+        cmd.ExecuteNonQuery();
+    }
+
     public void AddPoints(string username, int amount)
     {
         EnsureViewer(username);

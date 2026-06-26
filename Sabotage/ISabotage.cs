@@ -8,7 +8,6 @@ public interface ISabotage
     int Cost { get; }
     int CooldownSeconds { get; }
 
-    /// <summary>Tier used for auto-clipping decisions.</summary>
     SabotageTier Tier => Cost switch
     {
         <= 100  => SabotageTier.Nuisance,
@@ -18,13 +17,11 @@ public interface ISabotage
         _       => SabotageTier.Blessing
     };
 
-    /// <summary>
-    /// Optional pre-execution check. Return null if ok, or an error message to
-    /// reject the purchase and refund the points.
-    /// </summary>
-    string? Validate() => null;
+    string? Validate(string args = "") => null;
 
     void Execute(string triggeredBy);
+
+    void ExecuteWithArgs(string triggeredBy, string args) => Execute(triggeredBy);
 }
 
 public enum SabotageTier { Nuisance, Disruptive, Painful, Devastating, Blessing }

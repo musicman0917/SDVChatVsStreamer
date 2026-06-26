@@ -69,7 +69,7 @@ public class SabotageEngine
 
     // ─── Buy Flow ─────────────────────────────────────────────────────────────
 
-    public BuyResult TryBuy(string username, string buyCommand)
+    public BuyResult TryBuy(string username, string buyCommand, string args = "")
     {
         var key = buyCommand.ToLower().Trim();
 
@@ -84,7 +84,7 @@ public class SabotageEngine
                 Cost              = def.Cost
             };
 
-        var balance      = _ledger.GetPoints(username);
+        var balance       = _ledger.GetPoints(username);
         var effectiveCost = RaidEvents.ApplyCostModifier(def.Cost);
 
         if (balance < effectiveCost)
@@ -98,7 +98,7 @@ public class SabotageEngine
         _ledger.DeductPoints(username, effectiveCost);
 
         // Validate before executing — refund if rejected
-        var validationError = def.Sabotage.Validate();
+        var validationError = def.Sabotage.Validate(args);
         if (validationError != null)
         {
             _ledger.AddPoints(username, effectiveCost);
@@ -109,7 +109,9 @@ public class SabotageEngine
             };
         }
 
-        def.Fire(username);
+        def.Fire(username, args);
+
+        RecordSabotage();
 
         // Auto-clip if configured for this tier
         _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
@@ -220,6 +222,40 @@ public class SabotageEngine
         Game1.addHUDMessage(new HUDMessage(
             $"💰 {username}'s bits triggered: {def.Description}!",
             HUDMessage.error_type));
+    }
+
+    // ─── Auto Trigger ─────────────────────────────────────────────────────────
+
+    private DateTime _lastSabotageTime = DateTime.UtcNow;
+    private static readonly Random _autoRng = new();
+
+    public void RecordSabotage() => _lastSabotageTime = DateTime.UtcNow;
+
+    public void TickAutoTrigger(Action<string> sendChat)
+    {
+        if (!_config.AutoTriggerEnabled) return;
+        if (!StardewModdingAPI.Context.IsWorldReady) return;
+        if ((DateTime.UtcNow - _lastSabotageTime).TotalMinutes < _config.AutoTriggerMinutes) return;
+
+        var pool = _config.AutoTriggerPool
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim().ToLower())
+            .Where(s => _shop.ContainsKey(s))
+            .ToList();
+
+        if (pool.Count == 0) return;
+
+        var command = pool[_autoRng.Next(pool.Count)];
+        var def     = _shop[command];
+
+        _lastSabotageTime = DateTime.UtcNow;
+        def.Fire("The Chaos Gods");
+
+        _overlay?.PushFeedEvent("The Chaos Gods", def.Name, def.Description, 0, "buy");
+        _overlay?.PushShopUpdate();
+
+        sendChat($"🌩️ The Chaos Gods grow restless... !buy {command} was triggered automatically! Type !shop to join the chaos!");
+        _monitor.Log($"[SabotageEngine] Auto-trigger fired: {command}", LogLevel.Info);
     }
 
     public bool DebugBuy(string username, string buyCommand)

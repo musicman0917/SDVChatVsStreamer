@@ -474,6 +474,46 @@ public static class GmcmSetup
             setValue: v => config.IgnoreListKey = v,
             name: () => "Open Menu Key",
             tooltip: () => "Key to press in-game to open the Ignored Users manager (default: F8)");
+
+        // ─── Auto Trigger ─────────────────────────────────────────────────────
+
+        api.AddPageLink(manifest, "autotrigger", () => "Auto Trigger (Chaos Gods)");
+        api.AddPageLink(manifest, "youtube", () => "YouTube (via Streamer.bot) [BETA]");
+
+        api.AddPage(manifest, "youtube", () => "YouTube (via Streamer.bot) [BETA]");
+        api.AddSectionTitle(manifest, () => "YouTube Settings (BETA)");
+        api.AddParagraph(manifest, () => "⚠️ Experimental and not yet fully tested. Connects YouTube Live Chat via Streamer.bot. Make sure Streamer.bot is running and connected to YouTube before enabling.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.YouTubeEnabled,
+            setValue: v => config.YouTubeEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Enable YouTube Live Chat integration via Streamer.bot");
+        api.AddNumberOption(manifest,
+            getValue: () => config.StreamerbotPort,
+            setValue: v => config.StreamerbotPort = v,
+            name: () => "Streamer.bot Port",
+            tooltip: () => "Port Streamer.bot WebSocket is running on (default: 8080)",
+            min: 1024, max: 65535);
+
+        api.AddPage(manifest, "autotrigger", () => "Auto Trigger (Chaos Gods)");
+
+        api.AddSectionTitle(manifest, () => "Chaos Gods Settings");
+        api.AddBoolOption(manifest,
+            getValue: () => config.AutoTriggerEnabled,
+            setValue: v => config.AutoTriggerEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Automatically fire a random sabotage if chat goes quiet");
+        api.AddNumberOption(manifest,
+            getValue: () => config.AutoTriggerMinutes,
+            setValue: v => config.AutoTriggerMinutes = v,
+            name: () => "Quiet Period (minutes)",
+            tooltip: () => "How many minutes of no sabotages before auto-triggering",
+            min: 1, max: 30);
+        api.AddTextOption(manifest,
+            getValue: () => config.AutoTriggerPool,
+            setValue: v => config.AutoTriggerPool = v,
+            name: () => "Sabotage Pool",
+            tooltip: () => "Comma-separated list of !buy commands to pick from");
     }
 
     private static void ResetConfig(ModConfig config)

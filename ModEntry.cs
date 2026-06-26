@@ -7,6 +7,7 @@ using SDVChatVsStreamer.Twitch;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.Menus;
 using System.Runtime.InteropServices;
 
 namespace SDVChatVsStreamer;
@@ -16,12 +17,14 @@ public class ModEntry : Mod
     public static IMonitor? Logger { get; private set; }
     public static Queue<Action> PendingActions { get; } = new();
     public static Action? PendingDismissalAction { get; set; }
+    public static SDVChatVsStreamer.YouTube.YouTubeManager? YouTubeManager { get; private set; }
     private bool _dismissalWaitTick = false;
     private ModConfig _config = null!;
     private ViewerLedger _ledger = null!;
     private PointsEngine _points = null!;
     private SabotageEngine _sabotage = null!;
     private TwitchManager _twitch = null!;
+    private SDVChatVsStreamer.YouTube.YouTubeManager? _youtube;
     private OverlayServer _overlay = null!;
     private ClipService _clipService = null!;
 
@@ -49,8 +52,9 @@ public class ModEntry : Mod
 
         // Sabotage
         _sabotage = new SabotageEngine(_ledger, Monitor, _config);
-        _clipService = new ClipService(_config, Monitor);
+        _clipService = new ClipService(_config, Monitor, Helper.DirectoryPath);
         _sabotage.SetClipService(_clipService);
+        _clipService.SetOverlay(_overlay);
         SDVChatVsStreamer.Sabotage.Sabotages.ToolSabotageHelper.SetMonitor(Monitor);
         RegisterSabotages();
 
@@ -61,12 +65,14 @@ public class ModEntry : Mod
         _chatFeed = new UI.ChatFeed();
         _chatHud  = new UI.ChatHud(_config, _chatFeed, Monitor, helper);
         helper.Events.Display.RenderedHud    += _chatHud.OnRenderedHud;
-        helper.Events.Display.RenderedWorld  += OnRenderedWorld;
+        helper.Events.Display.MenuChanged        += OnMenuChanged;
+        helper.Events.Display.RenderedWorld     += OnRenderedWorld;
 
         // Mr. Qi portrait
         MrQiDialogue.Init(helper);
         _overlay = new OverlayServer(_config, _sabotage, _ledger, Monitor);
         _sabotage.SetOverlay(_overlay);
+        _clipService.SetOverlay(_overlay);
 
         // Twitch
         _twitch = new TwitchManager(_config, _points, _sabotage, _ledger, Monitor, _chatFeed, _overlay);
@@ -75,8 +81,10 @@ public class ModEntry : Mod
         helper.Events.GameLoop.GameLaunched    += OnGameLaunched;
         helper.Events.GameLoop.UpdateTicked    += OnUpdateTicked;
         helper.Events.GameLoop.SaveLoaded      += OnSaveLoaded;
+        helper.Events.GameLoop.DayStarted      += OnDayStarted;
         helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         helper.Events.Input.ButtonPressed      += OnButtonPressed;
+        helper.Events.Input.ButtonsChanged     += OnButtonsChanged;
 
         Monitor.Log("[ChatVsStreamer] Mod loaded.", LogLevel.Info);
     }
@@ -132,17 +140,42 @@ public class ModEntry : Mod
         _sabotage.Register(new WeaponSabotageEpic());
         _sabotage.Register(new WeaponSabotageLegendary());
 
+        // ── Economy sabotages ──
+        _sabotage.Register(new NarcolepsySabotage());
+        _sabotage.Register(new StickySabotage());
+        _sabotage.Register(new InflationSabotage());
+        _sabotage.Register(new DebtCollectorSabotage());
+
+        // ── Rename sabotages ──
+        _sabotage.Register(new RenameAnimalSabotage());
+        _sabotage.Register(new RenamePetSabotage());
+
+        // ── Ban sabotages — batch 1 ──
+        _sabotage.Register(new BanInventorySabotage());
+        _sabotage.Register(new BanHotbarSabotage());
+        _sabotage.Register(new BanTalkSabotage());
+        _sabotage.Register(new BanRunningSabotage());
+        _sabotage.Register(new BanShoppingSabotage());
+
         // ── New sabotages — batch 2 ──
         _sabotage.Register(new InfestationSabotage());
         _sabotage.Register(new BlindfoldSabotage());
         _sabotage.Register(new ConfusedSabotage());
+        _sabotage.Register(new MashedSabotage());
         _sabotage.Register(new FreezeTimeSabotage());
         _sabotage.Register(new FloorIsLavaSabotage());
+        //_sabotage.Register(new SlipNSlideSabotage()); // removed — too unstable
+        _sabotage.Register(new WarpWhistleSabotage());
+        _sabotage.Register(new WarpWhistlePlusSabotage());
+        _sabotage.Register(new WarpWhistleMaxSabotage());
+        _sabotage.Register(new WarpWhistleMaxPlusSabotage());
 
         // ── New sabotages — batch 1 ──
         _sabotage.Register(new TaxManSabotage());
         _sabotage.Register(new SugarRushBlessing());
         _sabotage.Register(new GiftingTreeBlessing());
+        _sabotage.Register(new BankruptcySabotage());
+        _sabotage.Register(new PoltergeistSabotage());
 
         // ── Pokemon sabotages — batch 1 ──
         _sabotage.Register(new TrickRoomSabotage());
@@ -235,6 +268,15 @@ public class ModEntry : Mod
         _chatFeed.OnRemoveMessage += id  => _overlay.PushChatRemoveMessage(id);
         _twitch.Connect();
 
+        // YouTube via Streamer.bot
+        if (_config.YouTubeEnabled)
+        {
+            _youtube = new SDVChatVsStreamer.YouTube.YouTubeManager(
+                _config, _points, _sabotage, _ledger, Monitor, _chatFeed, _overlay);
+            YouTubeManager = _youtube;
+            _youtube.Connect();
+        }
+
         // TikTok via Tikfinity
         // Always create TikTokManager so /tiktok-test endpoint works even without EnableTikTok
         _tiktok = new TikTok.TikTokManager(_config, _points, _ledger, Monitor, _chatFeed, _sabotage);
@@ -244,15 +286,23 @@ public class ModEntry : Mod
             _tiktok.Connect();
     }
 
+    private void OnDayStarted(object? sender, StardewModdingAPI.Events.DayStartedEventArgs e)
+    {
+        SDVChatVsStreamer.Sabotage.Sabotages.WarpWhistleState.OnDayStarted();
+        SDVChatVsStreamer.Sabotage.Sabotages.InflationSabotage.OnDayStarted();
+    }
+
     private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
     {
         _twitch.SetGameActive(true);
+        _youtube?.SetGameActive(true);
         Monitor.Log("[ChatVsStreamer] Save loaded — sabotages enabled.", LogLevel.Info);
     }
 
     private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
     {
         _twitch.SetGameActive(false);
+        _youtube?.SetGameActive(false);
         Monitor.Log("[ChatVsStreamer] Returned to title — sabotages disabled.", LogLevel.Info);
     }
 
@@ -263,11 +313,19 @@ public class ModEntry : Mod
         _overlay.ProcessPendingNotifications();
         SDVChatVsStreamer.Sabotage.Sabotages.ToolSabotageHelper.ProcessPendingActions();
 
-        // Tick timed chaos effects
+        // Auto-trigger check every 60 seconds
+        if (e.IsMultipleOf(3600))
+            _sabotage.TickAutoTrigger(msg => _twitch.SendMessage(msg));
         SDVChatVsStreamer.Sabotage.Sabotages.BlindfoldSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.ConfusedSabotage.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.MashedSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.FreezeTimeSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.FloorIsLavaSabotage.Tick();
+        //SDVChatVsStreamer.Sabotage.Sabotages.SlipNSlideSabotage.Tick(); // removed
+        SDVChatVsStreamer.Sabotage.Sabotages.WarpWhistleState.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.BanState.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.NarcolepsySabotage.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.StickySabotage.Tick();
 
         // Drain general pending actions (e.g. TikTok emotes)
         while (PendingActions.Count > 0)
@@ -341,11 +399,77 @@ public class ModEntry : Mod
         finally { CloseClipboard(); }
     }
 
+    private void OnButtonsChanged(object? sender, StardewModdingAPI.Events.ButtonsChangedEventArgs e)
+    {
+        if (!ConfusedSabotage.IsActive || !Context.IsWorldReady) return;
+
+        // Sticky — suppress item switching and dropping
+        if (StickySabotage.IsActive)
+        {
+            foreach (var btn in e.Pressed)
+            {
+                bool isHotbarKey = btn >= SButton.D0 && btn <= SButton.D9;
+                bool isDropKey   = btn == SButton.Q;
+                if (isHotbarKey || isDropKey)
+                    Helper.Input.Suppress(btn);
+            }
+        }
+
+        var moveButtons = new[] {
+            SButton.W, SButton.S, SButton.A, SButton.D,
+            SButton.Up, SButton.Down, SButton.Left, SButton.Right
+        };
+
+        foreach (var btn in moveButtons)
+        {
+            if (Helper.Input.IsDown(btn))
+            {
+                Helper.Input.Suppress(btn);
+                var opposite = btn switch
+                {
+                    SButton.W    or SButton.Up    => 2, // down
+                    SButton.S    or SButton.Down  => 0, // up
+                    SButton.A    or SButton.Left  => 1, // right
+                    SButton.D    or SButton.Right => 3, // left
+                    _                             => -1
+                };
+                if (opposite >= 0 && !Game1.player.movementDirections.Contains(opposite))
+                    Game1.player.movementDirections.Add(opposite);
+            }
+        }
+    }
+
+    private void OnMenuChanged(object? sender, StardewModdingAPI.Events.MenuChangedEventArgs e)
+    {
+        if (!InflationSabotage.IsActive) return;
+        if (e.NewMenu is not ShopMenu shop) return;
+
+        // Apply inflation multiplier to all shop items
+        foreach (var entry in shop.itemPriceAndStock)
+        {
+            var priceData = entry.Value;
+            if (priceData.Price > 0)
+                priceData.Price = (int)(priceData.Price * InflationSabotage.Multiplier);
+        }
+
+        int pct = (int)((InflationSabotage.Multiplier - 1f) * 100);
+        Game1.addHUDMessage(new HUDMessage(
+            $"📈 Inflation is active! Prices are {pct}% higher!",
+            HUDMessage.error_type));
+    }
+
+    private void OnWarped(object? sender, StardewModdingAPI.Events.WarpedEventArgs e)
+    {
+        SDVChatVsStreamer.Sabotage.Sabotages.WarpWhistleState.OnWarped(e.NewLocation.Name);
+    }
+
     private void OnRenderedWorld(object? sender, StardewModdingAPI.Events.RenderedWorldEventArgs e)
     {
         if (!Context.IsWorldReady) return;
         BlindfoldSabotage.Draw(e.SpriteBatch);
         FloorIsLavaSabotage.Draw(e.SpriteBatch);
+        WarpWhistleState.Draw(e.SpriteBatch);
+        BanState.Draw(e.SpriteBatch);
 
         var sb   = e.SpriteBatch;
         var font = Game1.smallFont;
@@ -367,45 +491,94 @@ public class ModEntry : Mod
             sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
             sb.DrawString(font, text, pos, Color.Purple);
         }
+
+        // Show mashed indicator
+        if (MashedSabotage.IsActive)
+        {
+            var text = $"Mashed: {MashedSabotage.SecsLeft}s";
+            var pos  = new Vector2(16, 80);
+            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
+            sb.DrawString(font, text, pos, Color.HotPink);
+        }
+
+        // Show narcolepsy indicator
+        if (NarcolepsySabotage.IsActive)
+        {
+            var text = $"Narcolepsy: {NarcolepsySabotage.SecsLeft}s";
+            var pos  = new Vector2(16, 112);
+            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
+            sb.DrawString(font, text, pos, Color.LightBlue);
+        }
+
+        // Show sticky indicator
+        if (StickySabotage.IsActive)
+        {
+            var text = $"Sticky: {StickySabotage.SecsLeft}s";
+            var pos  = new Vector2(16, 144);
+            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
+            sb.DrawString(font, text, pos, Color.Goldenrod);
+        }
+
+        // Show inflation indicator
+        if (InflationSabotage.IsActive)
+        {
+            int pct  = (int)((InflationSabotage.Multiplier - 1f) * 100);
+            var text = $"Inflation: +{pct}% prices";
+            var pos  = new Vector2(16, 176);
+            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
+            sb.DrawString(font, text, pos, Color.Red);
+        }
     }
 
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
     {
-        // Invert movement controls when confused
-        if (SDVChatVsStreamer.Sabotage.Sabotages.ConfusedSabotage.IsActive && Context.IsWorldReady)
+        // Ban state input suppression
+        if (Context.IsWorldReady && SDVChatVsStreamer.Sabotage.Sabotages.BanState.BanInventory)
         {
-            var opposite = e.Button switch
+            if (e.Button == SButton.E || e.Button == SButton.Escape)
             {
-                SButton.W     => SButton.S,
-                SButton.S     => SButton.W,
-                SButton.A     => SButton.D,
-                SButton.D     => SButton.A,
-                SButton.Up    => SButton.Down,
-                SButton.Down  => SButton.Up,
-                SButton.Left  => SButton.Right,
-                SButton.Right => SButton.Left,
-                _             => SButton.None
-            };
-
-            if (opposite != SButton.None)
-            {
-                Helper.Input.Suppress(e.Button);
-                var farmer = Game1.player;
-                farmer.movementDirections.Clear();
-                int direction = opposite switch
+                // Menu isn't open yet — this press is trying to OPEN it, so block it
+                if (Game1.activeClickableMenu == null)
                 {
-                    SButton.W or SButton.Up    => 0,
-                    SButton.D or SButton.Right => 1,
-                    SButton.S or SButton.Down  => 2,
-                    SButton.A or SButton.Left  => 3,
-                    _                          => -1
-                };
-                if (direction >= 0 && !farmer.movementDirections.Contains(direction))
-                    farmer.movementDirections.Add(direction);
-                return;
+                    Helper.Input.Suppress(e.Button);
+                    return;
+                }
             }
         }
 
+        if (Context.IsWorldReady && SDVChatVsStreamer.Sabotage.Sabotages.BanState.BanHotbar)
+        {
+            bool isHotbarKey =
+                (e.Button >= SButton.D0 && e.Button <= SButton.D9) ||
+                e.Button == SButton.OemMinus || e.Button == SButton.OemPlus;
+            if (isHotbarKey) { Helper.Input.Suppress(e.Button); return; }
+        }
+
+        if (Context.IsWorldReady && SDVChatVsStreamer.Sabotage.Sabotages.BanState.BanTalk)
+        {
+            if (e.Button == SButton.MouseRight || e.Button == SButton.X || e.Button == SButton.ControllerA)
+            {
+                var facing  = Game1.player.FacingDirection;
+                var tile    = Game1.player.TilePoint;
+                var checkTile = facing switch {
+                    0 => new Point(tile.X, tile.Y - 1),
+                    1 => new Point(tile.X + 1, tile.Y),
+                    2 => new Point(tile.X, tile.Y + 1),
+                    3 => new Point(tile.X - 1, tile.Y),
+                    _ => tile
+                };
+                var npc = Game1.player.currentLocation.isCharacterAtTile(checkTile.ToVector2());
+                if (npc != null) { Helper.Input.Suppress(e.Button); return; }
+            }
+        }
+
+        if (Context.IsWorldReady && SDVChatVsStreamer.Sabotage.Sabotages.BanState.BanShopping)
+        {
+            // Suppress action key near shop counters
+            if (e.Button == SButton.MouseLeft || e.Button == SButton.ControllerA)
+                if (Game1.activeClickableMenu is ShopMenu)
+                { Helper.Input.Suppress(e.Button); return; }
+        }
         if (e.Button == SButton.F9 && TwitchAuth._pendingAuth)
         {
             var token = GetClipboardText();

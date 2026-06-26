@@ -16,9 +16,9 @@ public class SabotageDefinition
     public int CooldownRemaining =>
         Math.Max(0, Sabotage.CooldownSeconds - (int)(DateTime.UtcNow - LastFired).TotalSeconds);
 
-    public void Fire(string triggeredBy)
+    public void Fire(string triggeredBy, string args = "")
     {
-        Sabotage.Execute(triggeredBy);
+        Sabotage.ExecuteWithArgs(triggeredBy, args);
         LastFired = DateTime.UtcNow;
     }
 }

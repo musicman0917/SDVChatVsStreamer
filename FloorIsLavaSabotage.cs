@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
-using xTile.Layers;
 
 namespace SDVChatVsStreamer.Sabotage.Sabotages;
 
@@ -9,7 +8,7 @@ public class FloorIsLavaSabotage : ISabotage
 {
     public string Name         => "Floor is Lava";
     public string BuyCommand   => "floorislava";
-    public string Description  => "natural tiles deal damage — stay on paths to survive!";
+    public string Description  => "natural ground deals damage on your farm — only placed paths/floors are safe!";
     public int Cost            => 400;
     public int CooldownSeconds => 240;
 
@@ -18,45 +17,15 @@ public class FloorIsLavaSabotage : ISabotage
     private static int _damageTick   = 0;
     private static string? _triggeredBy;
 
-    // Tile indexes that count as safe flooring on the Back layer
-    // Wood path, stone path, gravel path, brick floor, wood floor, straw floor,
-    // crystal path, cobblestone, stepping stone
-    private static readonly HashSet<int> SafeTileIndexes = new()
+    public string? Validate(string args = "")
     {
-        328, 329, 330,   // Wood path
-        331, 332, 333,   // Stone path
-        334, 335, 336,   // Gravel path
-        401, 402, 403,   // Brick floor
-        404, 405, 406,   // Wood floor
-        407, 408, 409,   // Straw floor
-        411, 412, 413,   // Crystal path
-        415, 416, 417,   // Cobblestone
-        419, 420, 421,   // Stepping stone
-        // Indoor floors — always safe
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    };
+        var loc = Game1.player.currentLocation;
 
-    // Locations where Floor is Lava makes sense — player can build paths here
-    private static readonly HashSet<string> AllowedLocations = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Farm", "FarmHouse", "Greenhouse",
-        "Town", "Beach", "Mountain", "Forest",
-        "BusStop", "Desert", "Railroad",
-        "Woods", "AnimalShop", "SeedShop",
-        "Saloon", "Hospital", "Blacksmith",
-        "FishShop", "WizardHouse", "ManorHouse",
-        "ArchaeologyHouse", "LeahHouse", "SamHouse",
-        "HaleyHouse", "SebastianRoom", "JoshHouse",
-        "ElliottHouse", "MarnieRanch", "HarveyRoom",
-        "ScienceHouse", "Trailer", "AdventureGuild",
-        "Bathhouse_Entry", "LeoTreeHouse"
-    };
+        if (loc is not StardewValley.Farm)
+        {
+            return "Floor is Lava only works on your farm — points refunded!";
+        }
 
-    public string? Validate()
-    {
-        var locName = Game1.player.currentLocation?.Name ?? "";
-        if (!AllowedLocations.Contains(locName))
-            return "Floor is Lava only works on the farm and in town — no cheating in the mines!";
         return null;
     }
 
@@ -68,7 +37,8 @@ public class FloorIsLavaSabotage : ISabotage
             $"The spirits are very displeased...$pause",
             $"...and also very hot.$pause",
             $"{triggeredBy} has spoken! THE FLOOR IS LAVA!$pause",
-            $"Get to the paths, farmer... if you can. Heh heh heh."
+            $"Grass, dirt, and crops will burn you. Only placed paths and floors are safe.$pause",
+            $"If you haven't built any... well. Heh heh heh."
         }, onDismissed: () =>
         {
             IsActive    = true;
@@ -76,7 +46,7 @@ public class FloorIsLavaSabotage : ISabotage
             _damageTick = 0;
             Game1.playSound("fireball");
             Game1.addHUDMessage(new HUDMessage(
-                $"🔥 {triggeredBy} activated Floor is Lava! Stay on the paths!",
+                $"🔥 {triggeredBy} activated Floor is Lava! Only placed paths/floors are safe — everything else burns!",
                 HUDMessage.error_type));
         });
     }
@@ -121,23 +91,26 @@ public class FloorIsLavaSabotage : ISabotage
 
     private static bool IsOnLava()
     {
-        var loc    = Game1.player.currentLocation;
-        var tile   = Game1.player.TilePoint;
+        var loc  = Game1.player.currentLocation;
+        var tile = Game1.player.TilePoint;
+        var tileVec = new Vector2(tile.X, tile.Y);
 
-        // Indoors is always safe
+        // Safety net — if the player somehow left the farm after triggering
+        // (warp whistle, etc.), don't damage them in unrelated locations
+        if (loc is not StardewValley.Farm) return false;
         if (!loc.IsOutdoors) return false;
 
-        try
+        // Player-placed paths/floors are TerrainFeatures, not Back-layer tiles —
+        // this is the only reliable cross-tilesheet way to detect "safe ground"
+        if (loc.terrainFeatures.TryGetValue(tileVec, out var feature) &&
+            feature is StardewValley.TerrainFeatures.Flooring)
         {
-            var backLayer = loc.Map.GetLayer("Back");
-            if (backLayer == null) return false;
-
-            var tileObj = backLayer.Tiles[tile.X, tile.Y];
-            if (tileObj == null) return true; // No tile = natural ground = lava
-
-            return !SafeTileIndexes.Contains(tileObj.TileIndex);
+            return false;
         }
-        catch { return false; }
+
+        // Anything else on the farm (grass, dirt, HoeDirt, crops, decorative
+        // map tiles) counts as natural ground = lava
+        return true;
     }
 
     public static int SecsLeft =>

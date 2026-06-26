@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 
 namespace SDVChatVsStreamer.UI;
 
-public enum ChatPlatform { Twitch, TikTok }
+public enum ChatPlatform { Twitch, TikTok, YouTube }
 
 public record ChatMessage(
     string Username,

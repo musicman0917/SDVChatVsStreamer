@@ -132,3 +132,92 @@ public class GiftingTreeBlessing : ISabotage
         }
     }
 }
+
+// ─── BANKRUPTCY — sets gold to 1g ────────────────────────────────────────────
+
+public class BankruptcySabotage : ISabotage
+{
+    public string Name         => "Bankruptcy";
+    public string BuyCommand   => "bankruptcy";
+    public string Description  => "sets your gold to 1g. Just 1.";
+    public int Cost            => 5000;
+    public int CooldownSeconds => 600;
+
+    private static readonly string[] Messages = {
+        "have filed you for bankruptcy. You have 1g to your name. Spend it wisely.",
+        "have consulted with your financial advisor. The news is not good. You have 1g.",
+        "have reviewed your portfolio. It's giving 1g.",
+        "have declared you officially broke. Pierre won't even look at you. You have 1g.",
+        "have liquidated your assets. All of them. You have 1g remaining.",
+        "have spoken with your accountant. You're down to 1g. Maybe sell a parsnip.",
+        "have restructured your finances. The new balance is 1g. Good luck out there.",
+        "have notified the Ferngill Revenue Service. They have taken everything. You have 1g.",
+        "have filed a report with the FRS. An audit has been completed. Balance: 1g.",
+        "have contacted the FRS. They say this is actually an improvement. You have 1g.",
+        "have alerted the Ferngill Revenue Service. They said to tell you: 'You're welcome.' You have 1g.",
+        "have submitted your tax return to the FRS. The refund is 0g. You owe 1g. Net balance: 1g.",
+    };
+
+    private static readonly Random _rng = new();
+
+    public void Execute(string triggeredBy)
+    {
+        Game1.player.Money = 1;
+        var msg = Messages[_rng.Next(Messages.Length)];
+        Game1.addHUDMessage(new HUDMessage(
+            $"💸 {triggeredBy} {msg}",
+            HUDMessage.error_type));
+    }
+}
+
+// ─── POLTERGEIST — shifts all furniture one tile in a random direction ────────
+
+public class PoltergeistSabotage : ISabotage
+{
+    public string Name         => "Poltergeist";
+    public string BuyCommand   => "poltergeist";
+    public string Description  => "shifts all furniture in the farmhouse one tile randomly";
+    public int Cost            => 175;
+    public int CooldownSeconds => 120;
+
+    private static readonly Random _rng = new();
+    private static readonly Vector2[] Directions = {
+        new(-1, 0), new(1, 0), new(0, -1), new(0, 1)
+    };
+
+    public void Execute(string triggeredBy)
+    {
+        var house = Game1.getLocationFromName("FarmHouse");
+        var furniture = house.furniture.ToList();
+        var occupied  = new HashSet<Vector2>(furniture.Select(f => f.TileLocation));
+        int moved     = 0;
+
+        // Shuffle order so we don't always move the same piece first
+        furniture = furniture.OrderBy(_ => _rng.Next()).ToList();
+
+        foreach (var f in furniture)
+        {
+            var dirs = Directions.OrderBy(_ => _rng.Next()).ToList();
+            foreach (var dir in dirs)
+            {
+                var newPos = f.TileLocation + dir;
+
+                // Check bounds and no overlap
+                if (newPos.X < 0 || newPos.Y < 0) continue;
+                if (occupied.Contains(newPos)) continue;
+
+                occupied.Remove(f.TileLocation);
+                f.TileLocation = newPos;
+                f.boundingBox.X = (int)newPos.X * 64;
+                f.boundingBox.Y = (int)newPos.Y * 64;
+                occupied.Add(newPos);
+                moved++;
+                break;
+            }
+        }
+
+        Game1.addHUDMessage(new HUDMessage(
+            $"👻 {triggeredBy} sent a poltergeist! {moved} pieces of furniture moved!",
+            HUDMessage.error_type));
+    }
+}

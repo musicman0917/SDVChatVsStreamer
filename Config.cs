@@ -114,6 +114,16 @@ public class ModConfig
     public string OverlayCustomAccent { get; set; } = "#9147ff";
     public string OverlayCustomText { get; set; } = "#efeff1";
 
+    // ─── YouTube / Streamer.bot ──────────────────────────────────────────────
+    public bool YouTubeEnabled       { get; set; } = false;
+    public int  StreamerbotPort      { get; set; } = 8080;
+
+    // ─── Auto Trigger ────────────────────────────────────────────────────────
+    public bool AutoTriggerEnabled          { get; set; } = true;
+    public int  AutoTriggerMinutes          { get; set; } = 5;
+    public string AutoTriggerPool           { get; set; } =
+        "serpent,slime,bat,bomb,rain,storm,confused,blindfold,metronome,trickroom,trashday,taxman,freezetime,infestation";
+
     // ─── Auto Clipping ───────────────────────────────────────────────────────
     public bool AutoClipEnabled                  { get; set; } = true;
     public bool ClipNuisance                     { get; set; } = false;

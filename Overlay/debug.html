@@ -95,6 +95,8 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    height: calc(100vh - 52px);
+    max-height: calc(100vh - 52px);
   }
 
   .panel-title {
@@ -109,9 +111,11 @@
   }
 
   .stat-list {
-    flex: 1;
+    flex: 1 1 auto;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 10px 12px;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -169,6 +173,8 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    height: calc(100vh - 52px);
+    max-height: calc(100vh - 52px);
   }
 
   .log-header {
@@ -201,8 +207,10 @@
   .filter-btn.active { border-color: var(--purple); color: var(--text); background: rgba(145,70,255,0.1); }
 
   .log {
-    flex: 1;
+    flex: 1 1 auto;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    min-height: 0;
     padding: 8px 12px;
     display: flex;
     flex-direction: column;
@@ -267,16 +275,22 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    height: calc(100vh - 52px);
+    max-height: calc(100vh - 52px);
   }
 
   .inject-form {
-    flex: 1;
+    flex: 1 1 auto;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    min-height: 0;
   }
+  .inject-form::-webkit-scrollbar { width: 6px; }
+  .inject-form::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   .inject-section {
     font-size: 10px;
@@ -316,6 +330,10 @@
 
   .inject-btn.twitch { background: rgba(145,70,255,0.15); color: var(--purple); border-color: rgba(145,70,255,0.3); }
   .inject-btn.twitch:hover { background: rgba(145,70,255,0.25); }
+  .inject-btn.youtube { background: rgba(255,0,0,0.12); color: #ff4444; border-color: rgba(255,0,0,0.25); }
+  .inject-btn.youtube:hover { background: rgba(255,0,0,0.22); }
+  .log-entry.youtube { background: rgba(255,0,0,0.06); border-color: rgba(255,0,0,0.15); }
+  .badge-youtube { background: rgba(255,0,0,0.2); color: #ff4444; }
   .inject-btn.tiktok { background: rgba(255,45,85,0.12); color: var(--red); border-color: rgba(255,45,85,0.25); }
   .inject-btn.tiktok:hover { background: rgba(255,45,85,0.22); }
 
@@ -341,6 +359,7 @@
   <div class="stat-list">
     <div class="stat-row"><span class="stat-label">Twitch</span><span class="stat-value green" id="s-twitch">—</span></div>
     <div class="stat-row"><span class="stat-label">TikTok</span><span class="stat-value red" id="s-tiktok">—</span></div>
+    <div class="stat-row"><span class="stat-label">YouTube</span><span class="stat-value red" id="s-youtube">—</span></div>
     <div class="stat-row"><span class="stat-label">Events Today</span><span class="stat-value purple" id="s-events">0</span></div>
     <div class="stat-row"><span class="stat-label">Sabotages Fired</span><span class="stat-value orange" id="s-sabotages">0</span></div>
     <div class="stat-row"><span class="stat-label">Points Awarded</span><span class="stat-value gold" id="s-points">0</span></div>
@@ -364,6 +383,7 @@
       <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
       <button class="filter-btn" onclick="setFilter('twitch', this)">Twitch</button>
       <button class="filter-btn" onclick="setFilter('tiktok', this)">TikTok</button>
+      <button class="filter-btn" onclick="setFilter('youtube', this)">YouTube</button>
       <button class="filter-btn" onclick="setFilter('sabotage', this)">Sabotage</button>
       <button class="filter-btn" onclick="setFilter('raid', this)">Raid</button>
     </div>
@@ -394,31 +414,47 @@
     <input id="tw-msg"  placeholder="Message"  value="!buy rain">
     <button class="inject-btn twitch" onclick="injectTwitchChat()">Send Chat</button>
 
-    <div class="inject-section">Chaos Effects</div>
+    <div class="inject-section">Sabotage Testing</div>
     <input id="chaos-user" placeholder="Username" value="testviewer">
+
+    <div class="inject-section" style="font-size:11px;opacity:0.7;margin-top:4px">💀 Nuisance</div>
     <div class="row-2">
-      <button class="inject-btn danger" onclick="buyChaos('blindfold')">🙈 Blindfold</button>
-      <button class="inject-btn danger" onclick="buyChaos('confused')">🌀 Confused</button>
+      <button class="inject-btn danger" onclick="buyChaos('rain')">🌧️ Rain</button>
+      <button class="inject-btn danger" onclick="buyChaos('wind')">💨 Wind</button>
     </div>
     <div class="row-2">
-      <button class="inject-btn danger" onclick="buyChaos('freezetime')">❄️ Freeze Time</button>
-      <button class="inject-btn danger" onclick="buyChaos('floorislava')">🔥 Floor is Lava</button>
+      <button class="inject-btn danger" onclick="buyChaos('storm')">⛈️ Storm</button>
+      <button class="inject-btn danger" onclick="buyChaos('snow')">❄️ Snow</button>
     </div>
     <div class="row-2">
-      <button class="inject-btn danger" onclick="buyChaos('infestation')">🐛 Infestation</button>
-      <button class="inject-btn danger" onclick="buyChaos('taxman')">💸 Tax Man</button>
+      <button class="inject-btn danger" onclick="buyChaos('drain')">⚡ Drain Energy</button>
+      <button class="inject-btn danger" onclick="buyChaos('dizzy')">😵 Dizzy</button>
     </div>
     <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('speedup')">🏃 Speed Up</button>
       <button class="inject-btn danger" onclick="buyChaos('trashday')">🗑️ Trash Day</button>
+    </div>
+    <div class="row-2">
       <button class="inject-btn danger" onclick="buyChaos('metronome')">🎵 Metronome</button>
+      <button class="inject-btn danger" onclick="buyChaos('bugs')">🐛 Spawn Bugs</button>
     </div>
     <div class="row-2">
-      <button class="inject-btn twitch" onclick="buyChaos('sugarrush')">⚡ Sugar Rush</button>
-      <button class="inject-btn twitch" onclick="buyChaos('luckychant')">🍀 Lucky Chant</button>
+      <button class="inject-btn danger" onclick="buyChaos('grubs')">🐛 Spawn Grubs</button>
+      <button class="inject-btn danger" onclick="buyChaos('golem')">🪨 Spawn Golem</button>
+    </div>
+
+    <div class="inject-section" style="font-size:11px;opacity:0.7;margin-top:4px">😈 Disruptive</div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('slime')">🟢 Slime</button>
+      <button class="inject-btn danger" onclick="buyChaos('bat')">🦇 Bat</button>
     </div>
     <div class="row-2">
-      <button class="inject-btn twitch" onclick="buyChaos('payday')">💰 Pay Day</button>
-      <button class="inject-btn twitch" onclick="buyChaos('giftingtree')">🎁 Gifting Tree</button>
+      <button class="inject-btn danger" onclick="buyChaos('crows')">🐦 Crows</button>
+      <button class="inject-btn danger" onclick="buyChaos('steal')">💰 Steal</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('drunk')">🍺 Drunk</button>
+      <button class="inject-btn danger" onclick="buyChaos('weeds')">🌿 Weeds</button>
     </div>
     <div class="row-2">
       <button class="inject-btn danger" onclick="buyChaos('trickroom')">⏰ Trick Room</button>
@@ -426,7 +462,153 @@
     </div>
     <div class="row-2">
       <button class="inject-btn danger" onclick="buyChaos('teleport')">✨ Teleport</button>
-      <button class="inject-btn danger" onclick="buyChaos('weaponlegendary')">⚔️ Weapon Legendary</button>
+      <button class="inject-btn danger" onclick="buyChaos('taxman')">💸 Tax Man</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('freezetime')">🧊 Freeze Time</button>
+      <button class="inject-btn danger" onclick="buyChaos('poltergeist')">👻 Poltergeist</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('warpwhistle')">🎺 Warp Whistle</button>
+      <button class="inject-btn danger" onclick="buyChaos('frostbat')">🦇 Frost Bat</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('dust')">💨 Dust Sprites</button>
+      <button class="inject-btn danger" onclick="buyChaos('ghost')">👻 Ghost</button>
+    </div>
+
+    <div class="inject-section" style="font-size:11px;opacity:0.7;margin-top:4px">💥 Painful</div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('bomb')">💣 Bomb</button>
+      <button class="inject-btn danger" onclick="buyChaos('sleep')">😴 Sleep</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('warp')">🌀 Warp</button>
+      <button class="inject-btn danger" onclick="buyChaos('blindfold')">🙈 Blindfold</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('confused')">🌀 Confused</button>
+      <button class="inject-btn danger" onclick="buyChaos('mashed')">🎮 Mashed</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('serpent')">🐍 Serpent</button>
+      <button class="inject-btn danger" onclick="buyChaos('shadowbrute')">👤 Shadow Brute</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('baninventory')">🎒 Ban Inventory</button>
+      <button class="inject-btn danger" onclick="buyChaos('banhotbar')">🔒 Ban Hotbar</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('bantalk')">🤐 Ban Talk</button>
+      <button class="inject-btn danger" onclick="buyChaos('banrunning')">🚶 Ban Running</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('banshopping')">🛒 Ban Shopping</button>
+      <button class="inject-btn danger" onclick="buyChaos('narcolepsy')">😴 Narcolepsy</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('sticky')">🍯 Sticky</button>
+      <button class="inject-btn danger" onclick="buyChaos('inflation')">📈 Inflation</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('debtcollector')">💼 Debt Collector</button>
+    </div>
+
+    <div class="inject-section" style="font-size:11px;opacity:0.7;margin-top:4px">☠️ Devastating</div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('killfarm')">💀 Kill Farm</button>
+      <button class="inject-btn danger" onclick="buyChaos('greenrain')">🌿 Green Rain</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('infestation')">🐛 Infestation</button>
+      <button class="inject-btn danger" onclick="buyChaos('floorislava')">🔥 Floor is Lava</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('iridiumgolem')">💎 Iridium Golem</button>
+      <button class="inject-btn danger" onclick="buyChaos('warpwhistleplus')">🎺 Warp Whistle+</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('warpwhistlemax')">🎺 Warp MAX</button>
+      <button class="inject-btn danger" onclick="buyChaos('shadowbrute')">👤 Shadow Shaman</button>
+    </div>
+
+    <div class="inject-section" style="font-size:11px;opacity:0.7;margin-top:4px">💀 Nuclear</div>
+    <button class="inject-btn danger" onclick="buyChaos('bankruptcy')" style="width:100%;background:rgba(255,0,0,0.2)">☠️ BANKRUPTCY (5000pts)</button>
+    <button class="inject-btn danger" onclick="buyChaos('warpwhistlemaxplus')" style="width:100%">🎺 Warp MAX+ (All Day)</button>
+
+    <div class="inject-section" style="font-size:11px;opacity:0.7;margin-top:4px">⚔️ Weapons</div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('weaponnormal')">⚔️ Normal</button>
+      <button class="inject-btn danger" onclick="buyChaos('weaponrandom')">🎲 Random</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('weaponbetter')">⚔️ Better</button>
+      <button class="inject-btn danger" onclick="buyChaos('weaponepic')">🌟 Epic</button>
+    </div>
+    <button class="inject-btn danger" onclick="buyChaos('weaponlegendary')" style="width:100%">👑 Legendary</button>
+
+    <div class="inject-section" style="font-size:11px;opacity:0.7;margin-top:4px">🔧 Tools</div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('upgraderandom')">⬆️ Upgrade Random</button>
+      <button class="inject-btn danger" onclick="buyChaos('downgraderandom')">⬇️ Downgrade Random</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('upgradeaxe')">⬆️ Axe</button>
+      <button class="inject-btn danger" onclick="buyChaos('downgradeaxe')">⬇️ Axe</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('upgradepickaxe')">⬆️ Pickaxe</button>
+      <button class="inject-btn danger" onclick="buyChaos('downgradepickaxe')">⬇️ Pickaxe</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaos('upgradewateringcan')">⬆️ Watering Can</button>
+      <button class="inject-btn danger" onclick="buyChaos('downgradewateringcan')">⬇️ Watering Can</button>
+    </div>
+
+    <div class="inject-section" style="font-size:11px;opacity:0.7;margin-top:4px">🌟 Blessings</div>
+    <div class="row-2">
+      <button class="inject-btn twitch" onclick="buyChaos('sunny')">☀️ Sunny</button>
+      <button class="inject-btn twitch" onclick="buyChaos('restoreenergy')">⚡ Restore Energy</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn twitch" onclick="buyChaos('restorehealth')">❤️ Restore Health</button>
+      <button class="inject-btn twitch" onclick="buyChaos('speedboost')">🏃 Speed Boost</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn twitch" onclick="buyChaos('givegold')">💰 Give Gold</button>
+      <button class="inject-btn twitch" onclick="buyChaos('givemoregold')">💰 Give More Gold</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn twitch" onclick="buyChaos('givemostgold')">💰 Give Most Gold</button>
+      <button class="inject-btn twitch" onclick="buyChaos('watercrops')">💧 Water Crops</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn twitch" onclick="buyChaos('fertilize')">🌱 Fertilize</button>
+      <button class="inject-btn twitch" onclick="buyChaos('cleardebris')">🧹 Clear Debris</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn twitch" onclick="buyChaos('luckychant')">🍀 Lucky Chant</button>
+      <button class="inject-btn twitch" onclick="buyChaos('payday')">💰 Pay Day</button>
+    </div>
+    <div class="row-2">
+      <button class="inject-btn twitch" onclick="buyChaos('sugarrush')">⚡ Sugar Rush</button>
+      <button class="inject-btn twitch" onclick="buyChaos('giftingtree')">🎁 Gifting Tree</button>
+    </div>
+
+    <div class="inject-section" style="font-size:11px;opacity:0.7;margin-top:4px">🔤 Rename (needs args)</div>
+    <input id="rename-arg" placeholder="New name" value="Pengu">
+    <div class="row-2">
+      <button class="inject-btn danger" onclick="buyChaosArgs('renameanimal', document.getElementById('rename-arg').value)">🐄 Rename Animal</button>
+      <button class="inject-btn danger" onclick="buyChaosArgs('renamepet', document.getElementById('rename-arg').value)">🐾 Rename Pet</button>
+    </div>
+
+    <div class="inject-section">YouTube Chat</div>
+    <input id="yt-user" placeholder="Username" value="testviewer">
+    <input id="yt-msg"  placeholder="Message"  value="!buy rain">
+    <button class="inject-btn youtube" onclick="injectYouTubeChat()">Send Chat</button>
+    <div class="row-2">
+      <button class="inject-btn youtube" onclick="injectYTEvent('membership')">⭐ Membership</button>
+      <button class="inject-btn youtube" onclick="injectYTEvent('superchat')">💛 Super Chat</button>
     </div>
 
     <div class="inject-section">TikTok Events</div>
@@ -477,7 +659,7 @@
   function connect() {
     ws = new WebSocket(`ws://localhost:${PORT}/`);
     ws.onopen  = () => setStatus(true);
-    ws.onclose = () => { setStatus(false); setTimeout(connect, 3000); };
+    ws.onclose = () => { setStatus(false); window._hasConnected = false; setTimeout(connect, 3000); };
     ws.onmessage = e => {
       try { handleOverlay(JSON.parse(e.data)); } catch(_) {}
     };
@@ -494,7 +676,18 @@
       case 'init':
         updateStats(msg);
         updateLeaderboard(msg.leaderboard || []);
-        addEntry('system', 'system', '✅ Connected to mod overlay server');
+        if (!window._hasConnected) {
+          addEntry('system', 'system', '✅ Connected to mod overlay server');
+          window._hasConnected = true;
+        }
+        // Update YouTube connection status
+        if (msg.youtubeConnected !== undefined) {
+          const ytEl = document.getElementById('s-youtube');
+          if (ytEl) {
+            ytEl.textContent    = msg.youtubeConnected ? 'Connected' : 'Disconnected';
+            ytEl.style.color    = msg.youtubeConnected ? 'var(--green)' : 'var(--red)';
+          }
+        }
         break;
       case 'feed':
         stats.sabotages++;
@@ -514,6 +707,10 @@
         const userCls = msg.platform === 'tiktok' ? 'tiktok-user' : 'user';
         addEntry(cls, cls === 'tiktok' ? 'tiktok' : 'chat',
           `<span class="${userCls}">${esc(msg.username)}</span>: ${esc(msg.text)}`);
+        break;
+      case 'clip_created':
+        addEntry('twitch', 'clip',
+          `🎬 Clip created — <span class="user">${esc(msg.username)}</span> !buy ${esc(msg.command)}: <a href="${esc(msg.url)}" target="_blank" style="color:var(--accent)">${esc(msg.url)}</a>`);
         break;
     }
 
@@ -643,11 +840,38 @@
     }
   }
 
+  function buyChaosArgs(command, args) {
+    const user = document.getElementById('chaos-user').value || 'testviewer';
+    sendWS({ type: 'debug_buy', username: user, command: command, args: args });
+    addEntry('sabotage', 'system',
+      `🎮 Debug: <span class="user">${esc(user)}</span> bought <b>${esc(command)}</b> (args: ${esc(args)})`);
+  }
+
   function buyChaos(command) {
     const user = document.getElementById('chaos-user').value || 'testviewer';
     sendWS({ type: 'debug_buy', username: user, command: command });
     addEntry('sabotage', 'sabotage',
       `<span class="user">${esc(user)}</span> triggered !buy ${esc(command)}`);
+  }
+
+  function injectYouTubeChat() {
+    const user = document.getElementById('yt-user').value || 'testviewer';
+    const msg  = document.getElementById('yt-msg').value  || '!buy rain';
+    // Simulate Streamer.bot YouTube chat payload
+    sendWS({
+      type: 'debug_youtube_chat',
+      username: user,
+      message: msg
+    });
+    addEntry('youtube', 'youtube',
+      `<span class="user" style="color:#ff4444">${esc(user)}</span>: ${esc(msg)} <span style="color:var(--muted)">(YouTube simulated)</span>`);
+  }
+
+  function injectYTEvent(type) {
+    const user = document.getElementById('yt-user').value || 'testviewer';
+    sendWS({ type: 'debug_youtube_event', eventType: type, username: user });
+    const label = type === 'membership' ? '⭐ New YouTube Member' : '💛 Super Chat ($5.00)';
+    addEntry('youtube', 'youtube', `<span class="user" style="color:#ff4444">${esc(user)}</span>: ${label} (simulated)`);
   }
 
   function injectTwitchChat() {

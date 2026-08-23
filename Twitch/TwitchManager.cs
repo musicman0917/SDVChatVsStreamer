@@ -21,6 +21,7 @@ public class TwitchManager
     private readonly IMonitor _monitor;
 
     private TwitchClient _client = null!;
+    private string _currentToken = "";
     private ClientWebSocket? _pubSocket;
     private CancellationTokenSource? _pubCts;
 
@@ -63,7 +64,28 @@ public class TwitchManager
             );
             return;
         }
-        ConnectWithToken(token);
+
+        // Validate before connecting — an expired token will otherwise let
+        // IRC's socket "reconnect" successfully while auth silently fails
+        Task.Run(async () =>
+        {
+            bool valid = await TwitchAuth.IsTokenValidAsync(token);
+            if (!valid)
+            {
+                _monitor.Log("[TwitchManager] Stored token is expired — refreshing before connecting...", LogLevel.Warn);
+                var refreshed = await TwitchAuth.RefreshAccessTokenAsync();
+                if (refreshed != null)
+                {
+                    token = refreshed;
+                    _monitor.Log("[TwitchManager] Token refreshed successfully before initial connect.", LogLevel.Info);
+                }
+                else
+                {
+                    _monitor.Log("[TwitchManager] Refresh failed — re-authentication may be required.", LogLevel.Error);
+                }
+            }
+            ConnectWithToken(token);
+        });
     }
 
     private void ConnectWithToken(string token)
@@ -106,6 +128,7 @@ public class TwitchManager
 
     private void SetupIrcClient(string token)
     {
+        _currentToken = token;
         var credentials = new ConnectionCredentials(_config.BotUsername, $"oauth:{token}");
         _client = new TwitchClient();
         _client.Initialize(credentials, _config.ChannelName);
@@ -183,12 +206,37 @@ public class TwitchManager
     private async Task IrcReconnectLoop()
     {
         int attempt = 0;
+        bool justRecreatedClient = false;
 
-        // Give TwitchLib a moment — it sometimes reconnects internally right after firing disconnect
+        // Give TwitchLib a moment to settle, then check the SOCKET state —
+        // but don't trust this as proof of a working login. A socket can
+        // reconnect successfully even while the underlying token is expired,
+        // since auth failure doesn't always tear the connection back down
+        // immediately. Validate the actual token against Twitch's API instead.
         await Task.Delay(2000);
-        if (_client?.IsConnected ?? false)
+
+        bool tokenValid = await TwitchAuth.IsTokenValidAsync(_currentToken);
+        if (!tokenValid)
         {
-            _monitor.Log("[TwitchManager] IRC already reconnected on its own.", LogLevel.Info);
+            _monitor.Log("[TwitchManager] Current token is invalid/expired — refreshing immediately...", LogLevel.Warn);
+            var refreshed = await TwitchAuth.RefreshAccessTokenAsync();
+            if (refreshed != null)
+            {
+                _monitor.Log("[TwitchManager] Token refreshed — reinitializing IRC...", LogLevel.Info);
+                try { if (_client?.IsConnected == true) _client.Disconnect(); } catch { }
+                await Task.Delay(1000);
+                SetupIrcClient(refreshed);
+                await Task.Delay(4000);
+                justRecreatedClient = true;
+            }
+            else
+            {
+                _monitor.Log("[TwitchManager] Refresh failed — falling back to standard reconnect attempts.", LogLevel.Error);
+            }
+        }
+        else if (_client?.IsConnected ?? false)
+        {
+            _monitor.Log("[TwitchManager] IRC already reconnected on its own and token is valid.", LogLevel.Info);
             _reconnecting = false;
             return;
         }
@@ -204,6 +252,15 @@ public class TwitchManager
             await Task.Delay(delay);
 
             if (_client?.IsConnected ?? false) break;
+
+            // The client we just created above may still be mid-handshake —
+            // give it this extra delay to finish instead of calling Reconnect()
+            // on a connection attempt that's already in flight.
+            if (justRecreatedClient)
+            {
+                justRecreatedClient = false;
+                continue;
+            }
 
             try
             {

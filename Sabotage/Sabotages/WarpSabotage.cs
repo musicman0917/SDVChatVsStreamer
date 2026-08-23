@@ -1,4 +1,7 @@
 using StardewValley;
+using SDVChatVsStreamer.Sabotage;
+using StardewModdingAPI;
+using System.Linq;
 
 namespace SDVChatVsStreamer.Sabotage.Sabotages;
 
@@ -24,11 +27,26 @@ public class WarpSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var dest = _destinations[_rng.Next(_destinations.Length)];
-        Game1.warpFarmer(dest.Location, dest.X, dest.Y, false);
+        ModEntry.Logger?.Log($"[WarpSabotage] Execute called by {triggeredBy}. Current location: {Game1.player.currentLocation?.Name ?? "null"}", LogLevel.Info);
 
+        // Try each destination in random order until one actually warps successfully
+        var shuffled = _destinations.OrderBy(_ => _rng.Next()).ToList();
+        foreach (var dest in shuffled)
+        {
+            ModEntry.Logger?.Log($"[WarpSabotage] Trying destination: {dest.Location} ({dest.X},{dest.Y})", LogLevel.Info);
+            if (WarpHelper.SafeWarp(dest.Location, dest.X, dest.Y))
+            {
+                ModEntry.Logger?.Log($"[WarpSabotage] Successfully warped to {dest.Location}.", LogLevel.Info);
+                Game1.addHUDMessage(new HUDMessage(
+                    $"🌀 {triggeredBy} warped you to {dest.Location}!",
+                    HUDMessage.error_type));
+                return;
+            }
+        }
+
+        ModEntry.Logger?.Log("[WarpSabotage] All destinations failed SafeWarp.", LogLevel.Warn);
         Game1.addHUDMessage(new HUDMessage(
-            $"🌀 {triggeredBy} warped you to {dest.Location}!",
+            $"🌀 {triggeredBy} tried to warp you, but nowhere safe was found!",
             HUDMessage.error_type));
     }
 }

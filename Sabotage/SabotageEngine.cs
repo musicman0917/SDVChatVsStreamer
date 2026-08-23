@@ -268,6 +268,7 @@ public class SabotageEngine
         def.Fire(username);
         _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "buy");
         _overlay?.PushShopUpdate();
+        _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         _monitor.Log($"[SabotageEngine] Debug buy: {username} triggered {buyCommand}", LogLevel.Info);
         return true;
     }

@@ -116,8 +116,9 @@ public class FloorIsLavaSabotage : ISabotage
     public static int SecsLeft =>
         IsActive ? Math.Max(0, (int)(ExpiresAt - DateTime.UtcNow).TotalSeconds) : 0;
 
-    // Draw orange haze overlay + countdown
-    public static void Draw(SpriteBatch sb)
+    // Draw orange haze overlay + countdown. Caller controls the stacking
+    // Y position via 'y' so multiple active effects never overlap on screen.
+    public static void Draw(SpriteBatch sb, ref float y)
     {
         if (!IsActive) return;
 
@@ -128,11 +129,12 @@ public class FloorIsLavaSabotage : ISabotage
         float alpha = IsOnLava() ? 0.35f : 0.12f;
         sb.Draw(Game1.fadeToBlackRect, rect, Color.OrangeRed * alpha);
 
-        // Countdown
+        // Countdown — uses the shared stacking position
         var text = $"Floor is Lava: {SecsLeft}s";
         var font = Game1.smallFont;
-        var pos  = new Vector2(16, 80);
+        var pos  = new Vector2(16, y);
         sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
         sb.DrawString(font, text, pos, Color.OrangeRed);
+        y += 32f;
     }
 }

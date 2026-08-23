@@ -67,17 +67,17 @@ public static class BanState
     private static void Notify(string msg) =>
         Game1.addHUDMessage(new HUDMessage($"✅ {msg}", HUDMessage.newQuest_type));
 
-    public static void Draw(SpriteBatch sb)
+    public static void Draw(SpriteBatch sb, ref float y)
     {
         var font = Game1.smallFont;
-        float y  = 144f;
+        float localY = y;
 
         void DrawIndicator(string label, Color color)
         {
-            var pos = new Vector2(16, y);
+            var pos = new Vector2(16, localY);
             sb.DrawString(font, label, pos + new Vector2(2, 2), Color.Black);
             sb.DrawString(font, label, pos, color);
-            y += 32f;
+            localY += 32f;
         }
 
         if (BanInventory) DrawIndicator($"🚫 Inventory Banned: {SecsLeft("inventory")}s", Color.OrangeRed);
@@ -85,6 +85,8 @@ public static class BanState
         if (BanTalk)      DrawIndicator($"🚫 Talking Banned: {SecsLeft("talk")}s",         Color.OrangeRed);
         if (BanRunning)   DrawIndicator($"🚫 Running Banned: {SecsLeft("running")}s",      Color.OrangeRed);
         if (BanShopping)  DrawIndicator($"🚫 Shopping Banned: {SecsLeft("shopping")}s",    Color.OrangeRed);
+
+        y = localY;
     }
 }
 

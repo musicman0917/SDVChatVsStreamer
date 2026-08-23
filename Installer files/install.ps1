@@ -1,6 +1,6 @@
 # ================================================================
 #  Chat vs Streamer - Installer
-#  Version 0.3.2 by NeighborhoodofMusic
+#  Version 0.4.0 by NeighborhoodofMusic
 # ================================================================
 
 $ErrorActionPreference = "Stop"
@@ -16,7 +16,7 @@ function Write-Header {
     Write-Host ""
     Write-Host "  +======================================================+" -ForegroundColor Cyan
     Write-Host "  *          CHAT VS STREAMER - INSTALLER                *" -ForegroundColor Cyan
-    Write-Host "  *                    v0.3.2                            *" -ForegroundColor Cyan
+    Write-Host "  *                    v0.4.0                            *" -ForegroundColor Cyan
     Write-Host "  +======================================================+" -ForegroundColor Cyan
     Write-Host ""
     if ($Step -and $Total) {
@@ -62,9 +62,11 @@ function Show-Welcome {
     Write-Header "Welcome"
     Write-Host "  Welcome to the Chat vs Streamer installer!" -ForegroundColor White
     Write-Host ""
-    Write-Host "  This mod lets your Twitch and TikTok viewers earn chaos" -ForegroundColor Gray
-    Write-Host "  points just by watching - then spend them to sabotage" -ForegroundColor Gray
+    Write-Host "  This mod lets your Twitch viewers earn chaos points" -ForegroundColor Gray
+    Write-Host "  just by watching - then spend them to sabotage" -ForegroundColor Gray
     Write-Host "  (or bless) your Stardew Valley farm in real time." -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  YouTube Live support is also included (beta)." -ForegroundColor Gray
     Write-Host ""
     Write-Host "  Built by NeighborhoodofMusic" -ForegroundColor DarkGray
     Write-Host "  twitch.tv/neighborhoodofmusic" -ForegroundColor DarkGray
@@ -72,31 +74,35 @@ function Show-Welcome {
     Write-Host "  This installer will:" -ForegroundColor White
     Write-Host "    - Check for Stardew Valley and install SMAPI if needed" -ForegroundColor Gray
     Write-Host "    - Install the mod to your Mods folder" -ForegroundColor Gray
-    Write-Host "    - Set up your Twitch credentials" -ForegroundColor Gray
-    Write-Host "    - Optionally configure TikTok integration" -ForegroundColor Gray
-    Write-Host "    - Show you how to set up OBS browser sources" -ForegroundColor Gray
+    Write-Host "    - Set up your Twitch app credentials" -ForegroundColor Gray
+    Write-Host "    - Walk you through the in-game auth flow" -ForegroundColor Gray
+    Write-Host "    - Optionally set up TikTok integration (use at your own risk)" -ForegroundColor DarkGray
     Write-Host ""
     Prompt-Continue
 }
 
+# -- Screen 2: Platform Selection ---------------------------------
+
 function Get-StreamingPlatform {
-    Write-Header "Streaming Platform" "2" "11"
+    Write-Header "Streaming Platform" "2" "10"
 
     Write-Host "  Where do you plan on streaming?" -ForegroundColor White
     Write-Host ""
     Write-Host "    1. Twitch only" -ForegroundColor Cyan
-    Write-Host "    2. TikTok only" -ForegroundColor Cyan
-    Write-Host "    3. Both Twitch and TikTok" -ForegroundColor Cyan
+    Write-Host "    2. Twitch + TikTok" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  NOTE: TikTok integration uses Tikfinity and is provided" -ForegroundColor DarkGray
+    Write-Host "  as-is. USE AT YOUR OWN RISK. TikTok's API policies may" -ForegroundColor DarkGray
+    Write-Host "  change at any time and could break this feature." -ForegroundColor DarkGray
     Write-Host ""
 
-    $choice = Read-Host "  Enter 1, 2, or 3"
+    $choice = Read-Host "  Enter 1 or 2"
     switch ($choice.Trim()) {
         "1" { return "twitch" }
-        "2" { return "tiktok" }
-        "3" { return "both"   }
+        "2" { return "both"   }
         default {
-            Write-Warn "Invalid choice - defaulting to Both."
-            return "both"
+            Write-Warn "Invalid choice - defaulting to Twitch only."
+            return "twitch"
         }
     }
 }
@@ -104,7 +110,7 @@ function Get-StreamingPlatform {
 # -- Screen 3: License ---------------------------------------------
 
 function Show-License {
-    Write-Header "License Agreement" "3" "11"
+    Write-Header "License Agreement" "3" "10"
     Write-Host "  MIT License" -ForegroundColor White
     Write-Host ""
     Write-Host "  Copyright (c) 2026 NeighborhoodofMusic" -ForegroundColor Gray
@@ -134,7 +140,7 @@ function Show-License {
 # -- Screen 3: Find Stardew Valley --------------------------------
 
 function Find-StardewValley {
-    Write-Header "Checking Prerequisites" "4" "11"
+    Write-Header "Checking Prerequisites" "4" "10"
     Write-Step "Looking for Stardew Valley..."
     Write-Host ""
 
@@ -146,7 +152,6 @@ function Find-StardewValley {
         "$env:USERPROFILE\AppData\Local\Programs\Stardew Valley"
     )
 
-    # Check Steam registry for custom install path
     try {
         $steamPath = (Get-ItemProperty "HKCU:\Software\Valve\Steam" -ErrorAction SilentlyContinue).SteamPath
         if ($steamPath) {
@@ -170,7 +175,6 @@ function Find-StardewValley {
         Write-Host ""
         Read-Host "  Press ENTER to open the folder browser"
 
-        # Open Windows folder browser dialog
         Add-Type -AssemblyName System.Windows.Forms
         $browser = New-Object System.Windows.Forms.FolderBrowserDialog
         $browser.Description   = "Select your Stardew Valley install folder"
@@ -185,7 +189,6 @@ function Find-StardewValley {
                 $gamePath = $selected
             } else {
                 Write-Err "Stardew Valley.exe not found in that folder."
-                Write-Info "Please make sure you selected the Stardew Valley game folder."
                 Read-Host "Press Enter to exit"
                 exit 1
             }
@@ -204,7 +207,7 @@ function Find-StardewValley {
 
 function Install-SMAPI {
     param([string]$GamePath)
-    Write-Header "SMAPI Check" "5" "11"
+    Write-Header "SMAPI Check" "5" "10"
 
     $smapiExe = Join-Path $GamePath "StardewModdingAPI.exe"
 
@@ -253,9 +256,8 @@ function Install-SMAPI {
         Write-Host ""
         Write-Host "  +-------------------------------------------------+" -ForegroundColor Yellow
         Write-Host "  *  The SMAPI installer will open in a new window.  *" -ForegroundColor Yellow
-        Write-Host "  *                                                   *" -ForegroundColor Yellow
-        Write-Host "  *  Follow the prompts in that window, then come     *" -ForegroundColor Yellow
-        Write-Host "  *  back here and press ENTER to continue.           *" -ForegroundColor Yellow
+        Write-Host "  *  Follow the prompts, then come back here and      *" -ForegroundColor Yellow
+        Write-Host "  *  press ENTER to continue.                         *" -ForegroundColor Yellow
         Write-Host "  +-------------------------------------------------+" -ForegroundColor Yellow
         Write-Host ""
         Read-Host "  Press ENTER to launch the SMAPI installer"
@@ -285,11 +287,10 @@ function Install-SMAPI {
 
 function Get-ModsFolder {
     param([string]$GamePath)
-    Write-Header "Mod Manager" "6" "11"
+    Write-Header "Mod Manager" "6" "10"
 
     $GamePath = $GamePath.Trim()
 
-    # Check if Stardrop is installed
     $stardropPath = "$env:APPDATA\Stardrop\Data\Selected Mods"
     $stardropExe  = "$env:LOCALAPPDATA\Programs\Stardrop\Stardrop.exe"
     $stardropFound = (Test-Path $stardropExe) -or (Test-Path $stardropPath)
@@ -358,7 +359,7 @@ function Get-ModsFolder {
 
 function Install-ModFiles {
     param([string]$ModsFolder)
-    Write-Header "Downloading & Installing" "7" "11"
+    Write-Header "Downloading & Installing" "7" "10"
 
     $ModsFolder  = $ModsFolder.Trim()
     $destFolder  = Join-Path $ModsFolder "ChatVsStreamer"
@@ -372,7 +373,6 @@ function Install-ModFiles {
         }
     }
 
-    # -- Fetch latest release from GitHub -------------------------
     Write-Host ""
     Write-Step "Checking for latest version on GitHub..."
 
@@ -395,19 +395,15 @@ function Install-ModFiles {
         Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zipPath -UseBasicParsing
         Write-Host ""
 
-        # -- Extract -----------------------------------------------
         Write-Step "Extracting..."
         if (Test-Path $extractPath) { Remove-Item $extractPath -Recurse -Force }
         Expand-Archive -Path $zipPath -DestinationPath $extractPath
 
-        # Find the ChatVsStreamer folder inside the zip
         $modSource = Get-ChildItem -Path $extractPath -Filter "ChatVsStreamer" -Directory -Recurse | Select-Object -First 1
         if (-not $modSource) {
-            # Zip might extract directly as the folder
             $modSource = Get-Item $extractPath
         }
 
-        # -- Copy to Mods folder -----------------------------------
         Write-Step "Installing to Mods folder..."
         New-Item -ItemType Directory -Path $destFolder -Force | Out-Null
 
@@ -430,7 +426,6 @@ function Install-ModFiles {
         Write-Host ""
         Write-Host ""
 
-        # -- Cleanup -----------------------------------------------
         Remove-Item $zipPath     -Force -ErrorAction SilentlyContinue
         Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
 
@@ -448,11 +443,11 @@ function Install-ModFiles {
     return $destFolder
 }
 
-# -- Screen 8: GMCM -----------------------------------------------
+# -- Screen 7: GMCM -----------------------------------------------
 
 function Install-GMCM {
     param([string]$ModsFolder)
-    Write-Header "Generic Mod Config Menu" "8" "11"
+    Write-Header "Generic Mod Config Menu" "8" "10"
 
     $ModsFolder = $ModsFolder.Trim()
     $gmcmFolder = Join-Path $ModsFolder "GenericModConfigMenu"
@@ -494,11 +489,11 @@ function Install-GMCM {
     Read-Host "  Press ENTER once you've installed GMCM to continue"
 }
 
-# -- Screen 9: Twitch Setup ----------------------------------------
+# -- Screen 8: Twitch Setup ----------------------------------------
 
 function Setup-Twitch {
     param([string]$ModFolder)
-    Write-Header "Twitch Setup" "9" "11"
+    Write-Header "Twitch Setup" "9" "10"
 
     $authDir    = Join-Path $ModFolder "TwitchAuth"
     $configFile = Join-Path $authDir "secrets.json"
@@ -511,18 +506,18 @@ function Setup-Twitch {
         if (-not $reconfigure) { return }
     }
 
-    Write-Host "  We need two things from Twitch to connect the mod:" -ForegroundColor White
-    Write-Host "  a Client ID and an OAuth Token." -ForegroundColor White
+    Write-Host "  We need to set up a Twitch application so the mod can" -ForegroundColor White
+    Write-Host "  connect to your chat automatically." -ForegroundColor White
     Write-Host ""
-    Write-Host "  Don't worry - we'll walk you through both." -ForegroundColor Gray
+    Write-Host "  This only needs to be done once." -ForegroundColor Gray
     Write-Host ""
     Prompt-Continue
 
-    # -- Step 1: Client ID -----------------------------------------
+    # -- Step 1: Create Twitch App ---------------------------------
     Clear-Screen
-    Write-Header "Twitch Setup - Client ID" "9" "11"
+    Write-Header "Twitch Setup - Create App" "8" "9"
 
-    Write-Host "  STEP 1 OF 2 - Get your Twitch Client ID" -ForegroundColor Cyan
+    Write-Host "  STEP 1 - Create a Twitch Application" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  1. We'll open the Twitch Developer Console." -ForegroundColor White
     Write-Host "     Sign in with your Twitch account if prompted." -ForegroundColor Gray
@@ -530,98 +525,72 @@ function Setup-Twitch {
     Write-Host "  2. Click 'Register Your Application'" -ForegroundColor White
     Write-Host ""
     Write-Host "  3. Fill in the form:" -ForegroundColor White
-    Write-Host "       Name:          anything (e.g. ChatVsStreamer)" -ForegroundColor Gray
-    Write-Host "       OAuth Redirect: http://localhost" -ForegroundColor Gray
-    Write-Host "       Category:      Chat Bot" -ForegroundColor Gray
+    Write-Host "       Name:          SDV - ChatVsStreamer (or anything you like)" -ForegroundColor Gray
+    Write-Host "       OAuth Redirect: http://localhost:7379/" -ForegroundColor Yellow
+    Write-Host "       Category:      Game Integration" -ForegroundColor Gray
+    Write-Host "       Client Type:   Confidential" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "  4. Click 'Create'" -ForegroundColor White
+    Write-Host "  4. Click 'Create', then 'Manage' on your new app." -ForegroundColor White
     Write-Host ""
-    Write-Host "  5. Copy the Client ID shown on the next page." -ForegroundColor White
+    Write-Host "  5. Copy the Client ID shown on the page." -ForegroundColor White
+    Write-Host ""
+    Write-Host "  6. Click 'New Secret', copy the Client Secret." -ForegroundColor White
+    Write-Host "     IMPORTANT: Save this secret - it's only shown once!" -ForegroundColor Yellow
     Write-Host ""
     Read-Host "  Press ENTER to open the Twitch Developer Console"
     Start-Process "https://dev.twitch.tv/console/apps/create"
 
     Write-Host ""
-    $clientId = Read-Host "  Paste your Client ID here"
+    $clientId     = Read-Host "  Paste your Client ID here"
+    $clientSecret = Read-Host "  Paste your Client Secret here"
 
-    # -- Step 2: OAuth Token ---------------------------------------
-    Clear-Screen
-    Write-Header "Twitch Setup - OAuth Token" "9" "11"
-
-    Write-Host "  STEP 2 OF 2 - Get your OAuth Token" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "  BOT ACCOUNT NOTE:" -ForegroundColor Yellow
-    Write-Host "  If you want a separate bot account to post messages in chat" -ForegroundColor Gray
-    Write-Host "  (e.g. bardbouncerbot), sign into Twitch on the token generator" -ForegroundColor Gray
-    Write-Host "  AS THAT BOT ACCOUNT before generating the token." -ForegroundColor Gray
-    Write-Host "  Otherwise, sign in as your main channel account." -ForegroundColor Gray
-    Write-Host ""
-    Write-Host "  1. We'll open the Twitch Token Generator." -ForegroundColor White
-    Write-Host "     Sign in with whichever account you want posting in chat." -ForegroundColor Gray
-    Write-Host ""
-    Write-Host "  2. A dialog will ask what type of token you want:" -ForegroundColor White
-    Write-Host ""
-    Write-Host "     BOT CHAT TOKEN" -ForegroundColor Yellow
-    Write-Host "       Simpler setup. Covers chat only." -ForegroundColor Gray
-    Write-Host "       Channel points and bits will NOT work." -ForegroundColor Gray
-    Write-Host ""
-    Write-Host "     CUSTOM SCOPE TOKEN  (recommended)" -ForegroundColor Green
-    Write-Host "       Required for full functionality." -ForegroundColor Gray
-    Write-Host "       Enable these five scopes:" -ForegroundColor Gray
-    Write-Host "         [x] chat:read" -ForegroundColor Gray
-    Write-Host "         [x] chat:edit" -ForegroundColor Gray
-    Write-Host "         [x] channel:read:redemptions" -ForegroundColor Gray
-    Write-Host "         [x] bits:read" -ForegroundColor Gray
-    Write-Host "         [x] clips:edit" -ForegroundColor Gray
-    Write-Host ""
-    Write-Host "  3. Click Generate Token and authorize the app." -ForegroundColor White
-    Write-Host ""
-    Write-Host "  4. Copy the ACCESS TOKEN (not the refresh token)." -ForegroundColor White
-    Write-Host ""
-    Read-Host "  Press ENTER to open the Token Generator"
-    Start-Process "https://twitchtokengenerator.com"
-
-    Write-Host ""
-    $accessToken = Read-Host "  Paste your Access Token here"
-    $accessToken  = $accessToken -replace "^oauth:", ""
-
-    # -- Bot username ----------------------------------------------
-    Clear-Screen
-    Write-Header "Twitch Setup - Username" "9" "11"
-
-    Write-Host "  LAST STEP - Enter the username of the account you just" -ForegroundColor Cyan
-    Write-Host "  generated the token for." -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "  If you used your MAIN CHANNEL account on the token generator," -ForegroundColor Gray
-    Write-Host "  enter your channel name here." -ForegroundColor Gray
-    Write-Host ""
-    Write-Host "  If you used a SEPARATE BOT ACCOUNT, enter that bot's" -ForegroundColor Gray
-    Write-Host "  username here (e.g. bardbouncerbot)." -ForegroundColor Gray
-    Write-Host ""
-
-    $botUsername = Read-Host "  Twitch username (lowercase)"
-
-    # -- Save ------------------------------------------------------
-    $config = @{
-        client_id    = $clientId.Trim()
-        access_token = $accessToken.Trim()
-        bot_username = $botUsername.Trim().ToLower()
+    # -- Save secrets.json -----------------------------------------
+    $secrets = @{
+        client_id     = $clientId.Trim()
+        ClientId      = $clientId.Trim()
+        client_secret = $clientSecret.Trim()
     } | ConvertTo-Json -Depth 2
 
-    Set-Content -Path $configFile -Value $config -Encoding UTF8
+    Set-Content -Path $configFile -Value $secrets -Encoding UTF8
+
+    Clear-Screen
+    Write-Header "Twitch Setup - Authorization" "8" "9"
+
+    Write-Host "  STEP 2 - Authorize the mod with your bot account" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  When you first launch the game, the mod will automatically" -ForegroundColor White
+    Write-Host "  open Chrome in incognito mode and ask you to authorize." -ForegroundColor White
+    Write-Host ""
+    Write-Host "  Sign in as your BOT ACCOUNT (e.g. bardbouncerbot) when" -ForegroundColor Yellow
+    Write-Host "  prompted -- NOT your main channel account." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  After you click Authorize, the browser will show:" -ForegroundColor White
+    Write-Host "    'Authorized! You can close this tab.'" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  The mod will handle everything else automatically." -ForegroundColor Gray
+    Write-Host "  Your token will refresh in the background - no manual" -ForegroundColor Gray
+    Write-Host "  token updates needed ever again." -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  Check the SMAPI console for:" -ForegroundColor White
+    Write-Host "    [TwitchManager] IRC connected as <botname>" -ForegroundColor DarkGreen
+    Write-Host "    [TwitchManager] PubSub connected" -ForegroundColor DarkGreen
     Write-Host ""
     Write-Success "Twitch credentials saved!"
-    Write-Host ""
-    Write-Info "When you launch the game check the SMAPI console for:"
-    Write-Host "    [TwitchManager] IRC connected" -ForegroundColor DarkGreen
-    Write-Host "    [TwitchManager] PubSub connected" -ForegroundColor DarkGreen
-    Start-Sleep -Seconds 2
+    Prompt-Continue
 }
 
-# -- Screen 8: TikTok Setup ----------------------------------------
+# -- Screen 10: TikTok Setup ----------------------------------------
 
 function Setup-TikTok {
-    Write-Header "TikTok Integration" "10" "11"
+    Write-Header "TikTok Integration (USE AT YOUR OWN RISK)" "10" "10"
+
+    Write-Host "  +--------------------------------------------------+" -ForegroundColor Yellow
+    Write-Host "  *  WARNING: TikTok integration is unsupported and  *" -ForegroundColor Yellow
+    Write-Host "  *  provided as-is. TikTok's API policies may break *" -ForegroundColor Yellow
+    Write-Host "  *  this feature at any time without notice.        *" -ForegroundColor Yellow
+    Write-Host "  *  USE AT YOUR OWN RISK.                           *" -ForegroundColor Yellow
+    Write-Host "  +--------------------------------------------------+" -ForegroundColor Yellow
+    Write-Host ""
 
     $tikfinityPaths = @(
         "$env:LOCALAPPDATA\Programs\Tikfinity\Tikfinity.exe",
@@ -639,24 +608,18 @@ function Setup-TikTok {
         Write-Host ""
         Write-Info "To enable TikTok integration:"
         Write-Info "  1. Launch Stardew Valley through SMAPI"
-        Write-Info "  2. Open the in-game menu > Mod Config (GMCM)"
-        Write-Info "  3. Find Chat vs Streamer > TikTok tab"
-        Write-Info "  4. Enable TikTok Integration"
-        Write-Info "  5. Launch Tikfinity and connect to TikTok LIVE before streaming"
+        Write-Info "  2. Open GMCM > Chat vs Streamer > TikTok (Tikfinity)"
+        Write-Info "  3. Enable TikTok Integration"
+        Write-Info "  4. Launch Tikfinity and connect to TikTok LIVE before streaming"
         Prompt-Continue
         return
     }
 
     Write-Warn "Tikfinity is not installed."
     Write-Host ""
-    Write-Host "  Tikfinity is required for TikTok integration." -ForegroundColor White
-    Write-Host "  It connects your TikTok LIVE events to the mod." -ForegroundColor Gray
-    Write-Host ""
-
     $install = Prompt-YesNo "Download and install Tikfinity now?"
 
     if (-not $install) {
-        Write-Host ""
         Write-Info "You can install Tikfinity later from:"
         Write-Host "    https://tikfinity.zerody.one/app/" -ForegroundColor Cyan
         Write-Info "Then enable TikTok in the mod's GMCM settings."
@@ -684,7 +647,6 @@ function Setup-TikTok {
         Start-Process -FilePath $installerPath -Wait
         Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
 
-        # Check if it installed successfully
         $installedNow = $false
         foreach ($path in $tikfinityPaths) {
             if (Test-Path $path) { $installedNow = $true; break }
@@ -694,7 +656,6 @@ function Setup-TikTok {
             Write-Success "Tikfinity installed successfully!"
         } else {
             Write-Warn "Tikfinity installer ran but could not verify installation."
-            Write-Info "Please check that Tikfinity is installed before streaming."
         }
     }
     catch {
@@ -706,17 +667,17 @@ function Setup-TikTok {
     Write-Host ""
     Write-Info "To enable TikTok integration after install:"
     Write-Info "  1. Launch Stardew Valley through SMAPI"
-    Write-Info "  2. Open Mod Config (GMCM) > Chat vs Streamer > TikTok tab"
+    Write-Info "  2. Open GMCM > Chat vs Streamer > TikTok (Tikfinity)"
     Write-Info "  3. Enable TikTok Integration"
     Write-Info "  4. Launch Tikfinity and connect to TikTok LIVE before streaming"
     Prompt-Continue
 }
 
-# -- Screen 9: Complete --------------------------------------------
+# -- Screen 10: Complete -------------------------------------------
 
 function Show-Complete {
-    param([string]$Platform = "both")
-    Write-Header "Installation Complete!" "11" "11"
+    param([string]$Platform = "twitch")
+    Write-Header "Installation Complete!" "10" "10"
 
     Write-Host "  +======================================================+" -ForegroundColor Green
     Write-Host "  *           Chat vs Streamer is installed!             *" -ForegroundColor Green
@@ -726,18 +687,19 @@ function Show-Complete {
     Write-Host ""
     Write-Host "    1. Launch Stardew Valley through SMAPI" -ForegroundColor Gray
     Write-Host "    2. Load a save file" -ForegroundColor Gray
+    Write-Host "    3. An incognito Chrome window will open automatically" -ForegroundColor Gray
+    Write-Host "       Sign in as your BOT ACCOUNT and click Authorize" -ForegroundColor Yellow
+    Write-Host "    4. Check SMAPI console for:" -ForegroundColor Gray
+    Write-Host "         [TwitchManager] IRC connected" -ForegroundColor DarkGreen
+    Write-Host "         [TwitchManager] PubSub connected" -ForegroundColor DarkGreen
+    Write-Host "    5. Type !shop in your Twitch chat to test it" -ForegroundColor Gray
 
-    if ($Platform -eq "twitch" -or $Platform -eq "both") {
-        Write-Host "    3. Check the SMAPI console for:" -ForegroundColor Gray
-        Write-Host "         [TwitchManager] IRC connected" -ForegroundColor DarkGreen
-        Write-Host "         [TwitchManager] PubSub connected" -ForegroundColor DarkGreen
-        Write-Host "    4. Type !shop in your Twitch chat to test it" -ForegroundColor Gray
-    }
-
-    if ($Platform -eq "tiktok" -or $Platform -eq "both") {
-        Write-Host "    5. Launch Tikfinity and connect to TikTok LIVE before streaming" -ForegroundColor Gray
-        Write-Host "       Check SMAPI console for:" -ForegroundColor Gray
-        Write-Host "         [TikTokManager] Connected to Tikfinity" -ForegroundColor DarkGreen
+    if ($Platform -eq "both") {
+        Write-Host ""
+        Write-Host "  TikTok:" -ForegroundColor Yellow
+        Write-Host "    6. Launch Tikfinity and connect to TikTok LIVE" -ForegroundColor DarkGray
+        Write-Host "    7. Enable TikTok in GMCM > Chat vs Streamer > TikTok" -ForegroundColor DarkGray
+        Write-Host "       (USE AT YOUR OWN RISK)" -ForegroundColor DarkGray
     }
 
     Write-Host ""
@@ -745,12 +707,7 @@ function Show-Complete {
     Write-Host ""
     Write-Host "    Chat overlay  -->  http://localhost:7373/chat" -ForegroundColor Cyan
     Write-Host "    Shop sidebar  -->  http://localhost:7373/" -ForegroundColor Cyan
-    Write-Host "    Mobile shop   -->  http://localhost:7373/mobile" -ForegroundColor Cyan
-
-    if ($Platform -eq "tiktok" -or $Platform -eq "both") {
-        Write-Host "    TikTok guide  -->  http://localhost:7373/tiktok" -ForegroundColor Cyan
-    }
-
+    Write-Host "    Debug panel   -->  http://localhost:7373/debug" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  GitHub:  github.com/musicman0917/SDVChatVsStreamer" -ForegroundColor DarkGray
     Write-Host "  Twitch:  twitch.tv/neighborhoodofmusic" -ForegroundColor DarkGray
@@ -772,12 +729,9 @@ try {
     $modsFolder = $modsFolder.Trim()
     $modFolder  = Install-ModFiles -ModsFolder $modsFolder
     Install-GMCM -ModsFolder $modsFolder
+    Setup-Twitch -ModFolder $modFolder
 
-    if ($platform -eq "twitch" -or $platform -eq "both") {
-        Setup-Twitch -ModFolder $modFolder
-    }
-
-    if ($platform -eq "tiktok" -or $platform -eq "both") {
+    if ($platform -eq "both") {
         Setup-TikTok
     }
 

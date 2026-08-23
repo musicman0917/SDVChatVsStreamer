@@ -85,6 +85,7 @@ public class ModEntry : Mod
         helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         helper.Events.Input.ButtonPressed      += OnButtonPressed;
         helper.Events.Input.ButtonsChanged     += OnButtonsChanged;
+        helper.Events.Player.Warped            += OnWarped;
 
         Monitor.Log("[ChatVsStreamer] Mod loaded.", LogLevel.Info);
     }
@@ -145,6 +146,15 @@ public class ModEntry : Mod
         _sabotage.Register(new StickySabotage());
         _sabotage.Register(new InflationSabotage());
         _sabotage.Register(new DebtCollectorSabotage());
+
+        // ── Misc sabotages (Batch 1) ──
+        _sabotage.Register(new AutoPetterSabotage());
+        _sabotage.Register(new CarePackageSabotage());
+        _sabotage.Register(new AirdropSabotage());
+        //_sabotage.Register(new GeodeCrackSabotage()); // removed for now
+        _sabotage.Register(new HiccupsSabotage());
+        _sabotage.Register(new ParanoiaSabotage());
+        _sabotage.Register(new HeavyPocketsSabotage());
 
         // ── Rename sabotages ──
         _sabotage.Register(new RenameAnimalSabotage());
@@ -326,6 +336,9 @@ public class ModEntry : Mod
         SDVChatVsStreamer.Sabotage.Sabotages.BanState.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.NarcolepsySabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.StickySabotage.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.HiccupsSabotage.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.ParanoiaSabotage.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.HeavyPocketsSabotage.Tick();
 
         // Drain general pending actions (e.g. TikTok emotes)
         while (PendingActions.Count > 0)
@@ -466,68 +479,63 @@ public class ModEntry : Mod
     private void OnRenderedWorld(object? sender, StardewModdingAPI.Events.RenderedWorldEventArgs e)
     {
         if (!Context.IsWorldReady) return;
-        BlindfoldSabotage.Draw(e.SpriteBatch);
-        FloorIsLavaSabotage.Draw(e.SpriteBatch);
-        WarpWhistleState.Draw(e.SpriteBatch);
-        BanState.Draw(e.SpriteBatch);
 
         var sb   = e.SpriteBatch;
         var font = Game1.smallFont;
+        float y  = 16f;
+
+        void DrawLine(string text, Color color)
+        {
+            var pos = new Vector2(16, y);
+            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
+            sb.DrawString(font, text, pos, color);
+            y += 32f;
+        }
 
         // Show freeze time indicator
         if (FreezeTimeSabotage.IsActive)
-        {
-            var text = $"Time Frozen: {FreezeTimeSabotage.SecsLeft}s";
-            var pos  = new Vector2(16, 16);
-            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
-            sb.DrawString(font, text, pos, Color.Cyan);
-        }
+            DrawLine($"Time Frozen: {FreezeTimeSabotage.SecsLeft}s", Color.Cyan);
 
         // Show confused indicator
         if (ConfusedSabotage.IsActive)
-        {
-            var text = $"Confused: {ConfusedSabotage.SecsLeft}s";
-            var pos  = new Vector2(16, 48);
-            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
-            sb.DrawString(font, text, pos, Color.Purple);
-        }
+            DrawLine($"Confused: {ConfusedSabotage.SecsLeft}s", Color.Purple);
 
         // Show mashed indicator
         if (MashedSabotage.IsActive)
-        {
-            var text = $"Mashed: {MashedSabotage.SecsLeft}s";
-            var pos  = new Vector2(16, 80);
-            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
-            sb.DrawString(font, text, pos, Color.HotPink);
-        }
+            DrawLine($"Mashed: {MashedSabotage.SecsLeft}s", Color.HotPink);
 
         // Show narcolepsy indicator
         if (NarcolepsySabotage.IsActive)
-        {
-            var text = $"Narcolepsy: {NarcolepsySabotage.SecsLeft}s";
-            var pos  = new Vector2(16, 112);
-            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
-            sb.DrawString(font, text, pos, Color.LightBlue);
-        }
+            DrawLine($"Narcolepsy: {NarcolepsySabotage.SecsLeft}s", Color.LightBlue);
 
         // Show sticky indicator
         if (StickySabotage.IsActive)
-        {
-            var text = $"Sticky: {StickySabotage.SecsLeft}s";
-            var pos  = new Vector2(16, 144);
-            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
-            sb.DrawString(font, text, pos, Color.Goldenrod);
-        }
+            DrawLine($"Sticky: {StickySabotage.SecsLeft}s", Color.Goldenrod);
 
         // Show inflation indicator
         if (InflationSabotage.IsActive)
         {
-            int pct  = (int)((InflationSabotage.Multiplier - 1f) * 100);
-            var text = $"Inflation: +{pct}% prices";
-            var pos  = new Vector2(16, 176);
-            sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
-            sb.DrawString(font, text, pos, Color.Red);
+            int pct = (int)((InflationSabotage.Multiplier - 1f) * 100);
+            DrawLine($"Inflation: +{pct}% prices", Color.Red);
         }
+
+        // Show hiccups indicator
+        if (HiccupsSabotage.IsActive)
+            DrawLine($"Hiccups: {HiccupsSabotage.SecsLeft}s", Color.LightYellow);
+
+        // Note: Paranoia intentionally has NO on-screen indicator — the whole
+        // point is it's a surprise with no warning.
+
+        // Show heavy pockets indicator
+        if (HeavyPocketsSabotage.IsActive)
+            DrawLine($"Heavy Pockets: {HeavyPocketsSabotage.SecsLeft}s", Color.SaddleBrown);
+
+        // External effect indicators — all share the same 'y' counter above
+        // so nothing ever overlaps regardless of how many are active at once
+        BlindfoldSabotage.Draw(sb);          // full-screen overlay, not a stacking line
+        FloorIsLavaSabotage.Draw(sb, ref y); // haze overlay + stacking countdown line
+        WarpWhistleState.Draw(sb, ref y);
+        BanState.Draw(sb, ref y);
     }
 
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)

@@ -303,6 +303,18 @@ public static class TwitchAuth
         return null;
     }
 
+    public static async Task<bool> IsTokenValidAsync(string token)
+    {
+        try
+        {
+            using var http = new System.Net.Http.HttpClient();
+            http.DefaultRequestHeaders.Add("Authorization", $"OAuth {token}");
+            var resp = await http.GetAsync("https://id.twitch.tv/oauth2/validate");
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
     public static async Task<string?> RefreshAccessTokenAsync()
     {
         var refreshToken = LoadRefreshToken();

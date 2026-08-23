@@ -2,6 +2,8 @@ using Microsoft.Xna.Framework;
 using StardewValley;
 using StardewValley.TerrainFeatures;
 using StardewValley.Buildings;
+using StardewModdingAPI;
+using System.Linq;
 
 namespace SDVChatVsStreamer.Sabotage.Sabotages;
 
@@ -205,23 +207,43 @@ public class TeleportSabotage : ISabotage
         var npcName = NPCs[_rng.Next(NPCs.Length)];
         var npc = Game1.getCharacterFromName(npcName);
 
-        if (npc != null)
+        ModEntry.Logger?.Log($"[TeleportSabotage] Chosen NPC: {npcName}. Found: {npc != null}. Location: {npc?.currentLocation?.Name ?? "null"}", LogLevel.Info);
+
+        bool warped = false;
+        if (npc?.currentLocation != null)
         {
-            Game1.warpFarmer(npc.currentLocation.Name,
-                (int)npc.Tile.X, (int)npc.Tile.Y + 1, false);
+            warped = SDVChatVsStreamer.Sabotage.WarpHelper.SafeWarp(
+                npc.currentLocation.Name, (int)npc.Tile.X, (int)npc.Tile.Y + 1);
+        }
+
+        if (warped)
+        {
+            ModEntry.Logger?.Log($"[TeleportSabotage] Successfully warped to {npcName}'s location.", LogLevel.Info);
             Game1.addHUDMessage(new HUDMessage(
                 $"✨ {triggeredBy} used Teleport! Warped to {npcName}!",
                 HUDMessage.error_type));
+            return;
         }
-        else
+
+        ModEntry.Logger?.Log("[TeleportSabotage] NPC warp failed — trying fallback locations.", LogLevel.Warn);
+
+        // Fallback to a random town-area location
+        var dests = new[] { ("Town", 50, 80), ("Beach", 30, 5), ("Mountain", 30, 20) };
+        foreach (var dest in dests.OrderBy(_ => _rng.Next()))
         {
-            // Fallback to random town location
-            var dests = new[] { ("Town", 50, 80), ("Beach", 30, 5), ("Mountain", 30, 20) };
-            var dest = dests[_rng.Next(dests.Length)];
-            Game1.warpFarmer(dest.Item1, dest.Item2, dest.Item3, false);
-            Game1.addHUDMessage(new HUDMessage(
-                $"✨ {triggeredBy} used Teleport! You were warped away!",
-                HUDMessage.error_type));
+            if (SDVChatVsStreamer.Sabotage.WarpHelper.SafeWarp(dest.Item1, dest.Item2, dest.Item3))
+            {
+                ModEntry.Logger?.Log($"[TeleportSabotage] Fallback warp succeeded to {dest.Item1}.", LogLevel.Info);
+                Game1.addHUDMessage(new HUDMessage(
+                    $"✨ {triggeredBy} used Teleport! You were warped away!",
+                    HUDMessage.error_type));
+                return;
+            }
         }
+
+        ModEntry.Logger?.Log("[TeleportSabotage] All fallback warps failed.", LogLevel.Warn);
+        Game1.addHUDMessage(new HUDMessage(
+            $"✨ {triggeredBy} tried to Teleport you, but nowhere safe was found!",
+            HUDMessage.error_type));
     }
 }

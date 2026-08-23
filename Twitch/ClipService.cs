@@ -93,6 +93,8 @@ public class ClipService
                 return;
             }
 
+            _monitor.Log($"[ClipService] Attempting clip creation for !buy {sabotageCommand} (broadcaster: {broadcasterId})...", LogLevel.Info);
+
             var request = new HttpRequestMessage(HttpMethod.Post,
                 $"https://api.twitch.tv/helix/clips?broadcaster_id={broadcasterId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -155,25 +157,14 @@ public class ClipService
 
     private string LoadToken()
     {
-        try
-        {
-            var path = Path.Combine(_modDir, _config.AuthConfigDirName, "secrets.json");
-            if (!File.Exists(path)) return "";
-            var doc = JsonDocument.Parse(File.ReadAllText(path));
-            return doc.RootElement.TryGetProperty("OAuthToken", out var t) ? t.GetString() ?? "" : "";
-        }
-        catch { return ""; }
+        // Use the same auto-refreshed token TwitchManager/IRC uses, rather than
+        // re-reading secrets.json directly — that file is never updated after
+        // a background token refresh, so it can go stale while IRC stays connected.
+        return SDVChatVsStreamer.Twitch.TwitchAuth.LoadToken() ?? "";
     }
 
     private string LoadClientId()
     {
-        try
-        {
-            var path = Path.Combine(_modDir, _config.AuthConfigDirName, "secrets.json");
-            if (!File.Exists(path)) return "";
-            var doc = JsonDocument.Parse(File.ReadAllText(path));
-            return doc.RootElement.TryGetProperty("ClientId", out var c) ? c.GetString() ?? "" : "";
-        }
-        catch { return ""; }
+        return SDVChatVsStreamer.Twitch.TwitchAuth.ClientId;
     }
 }

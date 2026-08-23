@@ -4,6 +4,7 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Monsters;
+using System.Linq;
 
 namespace SDVChatVsStreamer.Sabotage.Sabotages;
 
@@ -377,7 +378,6 @@ public static class WarpWhistleState
         ("ManorHouse",      9,  7),
         ("ArchaeologyHouse",4,  9),
         ("ScienceHouse",    8,  10),
-        ("Saloon",          11, 20),
         ("AdventureGuild",  5,  9),
         ("FarmHouse",       6,  4),
         ("Greenhouse",      3,  6),
@@ -389,6 +389,7 @@ public static class WarpWhistleState
         ExpiresAt   = expiresAt;
         TriggeredBy = triggeredBy;
         Chance      = chance;
+        ModEntry.Logger?.Log($"[WarpWhistleState] Activated by {triggeredBy}, chance={chance:P0}, expires={expiresAt}", LogLevel.Info);
     }
 
     public static void OnDayStarted()
@@ -414,30 +415,48 @@ public static class WarpWhistleState
         if (!IsActive) return;
         if (DateTime.UtcNow >= ExpiresAt) { IsActive = false; return; }
 
+        ModEntry.Logger?.Log($"[WarpWhistleState] OnWarped fired. New location: {newLocation}", LogLevel.Debug);
+
         // Only trigger when entering a building (not outdoors)
         var loc = Game1.getLocationFromName(newLocation);
-        if (loc == null || loc.IsOutdoors) return;
+        if (loc == null || loc.IsOutdoors)
+        {
+            ModEntry.Logger?.Log($"[WarpWhistleState] Skipped — location is null or outdoors (IsOutdoors={loc?.IsOutdoors}).", LogLevel.Debug);
+            return;
+        }
 
         // Roll based on current chance
-        if (_rng.NextDouble() > Chance) return;
+        double roll = _rng.NextDouble();
+        ModEntry.Logger?.Log($"[WarpWhistleState] Roll: {roll:P1} vs chance {Chance:P1}", LogLevel.Debug);
+        if (roll > Chance) return;
 
-        // Pick a random different building
-        var options = Buildings.Where(b =>
-            !b.Location.Equals(newLocation, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (options.Count == 0) return;
+        // Pick a random different building, trying each until one safely warps
+        var options = Buildings
+            .Where(b => !b.Location.Equals(newLocation, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(_ => _rng.Next())
+            .ToList();
 
-        var dest = options[_rng.Next(options.Count)];
-        Game1.warpFarmer(dest.Location, dest.X, dest.Y, false);
-        Game1.addHUDMessage(new HUDMessage(
-            $"🎺 The Warp Whistle activated! You ended up in {dest.Location}!",
-            HUDMessage.error_type));
-        Game1.playSound("wand");
+        foreach (var dest in options)
+        {
+            ModEntry.Logger?.Log($"[WarpWhistleState] Trying warp to {dest.Location} ({dest.X},{dest.Y})", LogLevel.Info);
+            if (SDVChatVsStreamer.Sabotage.WarpHelper.SafeWarp(dest.Location, dest.X, dest.Y))
+            {
+                ModEntry.Logger?.Log($"[WarpWhistleState] Successfully warped to {dest.Location}.", LogLevel.Info);
+                Game1.addHUDMessage(new HUDMessage(
+                    $"🎺 The Warp Whistle activated! You ended up in {dest.Location}!",
+                    HUDMessage.error_type));
+                Game1.playSound("wand");
+                return;
+            }
+        }
+
+        ModEntry.Logger?.Log("[WarpWhistleState] All building destinations failed SafeWarp.", LogLevel.Warn);
     }
 
     public static int SecsLeft =>
         IsActive ? Math.Max(0, (int)(ExpiresAt - DateTime.UtcNow).TotalSeconds) : 0;
 
-    public static void Draw(SpriteBatch sb)
+    public static void Draw(SpriteBatch sb, ref float y)
     {
         if (!IsActive) return;
         var chance = (int)(Chance * 100);
@@ -445,8 +464,9 @@ public static class WarpWhistleState
             ? $"Warp Whistle ({chance}%): All day"
             : $"Warp Whistle ({chance}%): {SecsLeft}s";
         var font = Game1.smallFont;
-        var pos  = new Vector2(16, 112);
+        var pos  = new Vector2(16, y);
         sb.DrawString(font, text, pos + new Vector2(2, 2), Color.Black);
         sb.DrawString(font, text, pos, Color.Gold);
+        y += 32f;
     }
 }

@@ -4,19 +4,20 @@
 <meta charset="UTF-8">
 <title>Chaos Shop — Twitch</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Space+Mono:wght@400;700&display=swap');
 
   :root {
-    --purple: #9146ff;
-    --cyan:   #00f2ea;
-    --dark:   #0d0d14;
-    --card:   #161620;
-    --border: #222233;
-    --text:   #f0f0f5;
-    --muted:  #6a6a88;
-    --green:  #3ddc84;
-    --red:    #ff2d55;
-    --gold:   #ffd700;
+    --wood:      #5b3a21;
+    --wood-deep: #3a2314;
+    --gold-trim: #cf9f37;
+    --parchment: #f4e8c1;
+    --parchment-2: #e8d59f;
+    --ink:       #3c2712;
+    --muted:     #7a5a34;
+    --green:     #3f8768;
+    --red:       #a23a26;
+    --gold:      #d8a52c;
+    --blue:      #3c6e8f;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -24,9 +25,9 @@
   body {
     width: 1080px;
     min-height: 587px;
-    background: var(--dark);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
+    background: transparent;
+    color: var(--ink);
+    font-family: 'Space Mono', monospace;
     display: flex;
     flex-direction: column;
   }
@@ -36,33 +37,33 @@
     align-items: center;
     gap: 14px;
     padding: 14px 28px;
-    background: linear-gradient(90deg, rgba(145,70,255,0.2), rgba(0,242,234,0.06));
-    border-bottom: 1px solid var(--border);
+    background: var(--wood);
+    border-bottom: 4px solid var(--gold-trim);
     flex-shrink: 0;
   }
 
   .header svg { width: 28px; height: 28px; flex-shrink: 0; }
 
   .header-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 32px;
-    letter-spacing: 3px;
-    background: linear-gradient(90deg, #fff, var(--purple));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-family: 'Pixelify Sans', monospace;
+    font-weight: 600;
+    font-size: 30px;
+    letter-spacing: 2px;
+    color: var(--parchment);
+    text-shadow: 2px 2px 0 var(--wood-deep);
   }
 
   .header-sub {
     margin-left: auto;
     font-size: 13px;
-    color: var(--muted);
+    color: var(--parchment-2);
   }
 
   .content {
     flex: 1;
     overflow: hidden;
     position: relative;
+    background: var(--parchment);
   }
 
   .content-inner {
@@ -82,9 +83,10 @@
   }
 
   .section {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 5px;
+    font-family: 'Pixelify Sans', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--muted);
     padding: 4px 0 2px;
@@ -100,29 +102,30 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    background: var(--parchment-2);
+    border: 2px solid var(--wood);
+    border-radius: 5px;
     padding: 10px 16px;
-    border-left: 3px solid transparent;
+    border-left: 5px solid var(--wood);
   }
 
-  .shop-card.nuisance    { border-left-color: #778899; }
-  .shop-card.disruptive  { border-left-color: #f0a500; }
-  .shop-card.painful     { border-left-color: #ff6b35; }
+  .shop-card.nuisance    { border-left-color: #8a8f6b; }
+  .shop-card.disruptive  { border-left-color: var(--gold); }
+  .shop-card.painful     { border-left-color: #c56a2e; }
   .shop-card.devastating { border-left-color: var(--red); }
-  .shop-card.blessing    { border-left-color: var(--cyan); }
-  .shop-card.tool        { border-left-color: var(--purple); }
+  .shop-card.blessing    { border-left-color: var(--green); }
+  .shop-card.tool        { border-left-color: var(--blue); }
 
-  .shop-card.legendary   { border-left-color: #ffd700; box-shadow: 0 0 8px rgba(255,215,0,0.2); }
+  .shop-card.legendary   { border-left-color: var(--gold-trim); box-shadow: inset 0 0 0 1px var(--gold-trim); }
 
-  .shop-card.on-cooldown { opacity: 0.4; }
+  .shop-card.on-cooldown { opacity: 0.45; }
 
   .card-cmd {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 20px;
-    letter-spacing: 1px;
-    color: var(--green);
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--ink);
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -152,17 +155,18 @@
     justify-content: center;
     gap: 12px;
     padding: 10px 28px;
-    border-top: 1px solid var(--border);
-    background: rgba(145,70,255,0.08);
+    background: var(--wood);
+    border-top: 4px solid var(--gold-trim);
     flex-shrink: 0;
   }
 
-  .footer-text { font-size: 13px; color: var(--muted); }
+  .footer-text { font-size: 13px; color: var(--parchment-2); }
   .footer-cmd  {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 20px;
-    letter-spacing: 1px;
-    color: var(--purple);
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--gold);
   }
 </style>
 </head>
@@ -170,7 +174,7 @@
 
   <div class="header">
     <!-- Twitch glitch logo -->
-    <svg viewBox="0 0 24 24" fill="#9146ff">
+    <svg viewBox="0 0 24 24" fill="#cf9f37">
       <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
     </svg>
     <div class="header-title">CHAOS SHOP</div>
@@ -196,7 +200,12 @@ let shop = [], cdInterval = null;
 
 const BLESSINGS = new Set([
   'sunny','restoreenergy','restorehealth','speedboost',
-  'givegold','watercrops','fertilize','cleardebris'
+  'givegold','givemoregold','givemostgold',
+  'watercrops','fertilize','cleardebris',
+  'luckychant','payday','sugarrush','giftingtree',
+  'autopetter','carepackage','airdrop',
+  'upgraderandom','upgradeaxe','upgradepickaxe','upgradehoe','upgradewateringcan','upgraderod',
+  'iridiumrandom','iridiumaxe','iridiumpickaxe','iridiumhoe','iridiumwateringcan','iridiumrod'
 ]);
 
 const TIERS = [

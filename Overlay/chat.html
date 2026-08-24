@@ -5,11 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chat vs Streamer — Chat</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Space+Mono:wght@400;700&display=swap');
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     background: transparent;
-    font-family: 'Press Start 2P', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', monospace;
+    font-family: 'Space Mono', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', monospace;
     font-size: 12px;
     overflow: hidden;
     width: 100vw;
@@ -32,16 +34,18 @@
     display: flex;
     align-items: flex-start;
     gap: 6px;
-    background: rgba(0, 0, 0, 0.65);
+    background: #f4e8c1;
+    border: 2px solid #5b3a21;
     border-radius: 4px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
     padding: 5px 8px;
     animation: fadeIn 0.3s ease;
     line-height: 1.4;
     word-break: break-word;
   }
 
-  .msg.twitch { border-left: 3px solid #9146ff; }
-  .msg.tiktok { border-left: 3px solid #ff2d55; }
+  .msg.twitch { border-left: 5px solid #9146ff; }
+  .msg.tiktok { border-left: 5px solid #ff2d55; }
 
   .icon {
     font-size: 10px;
@@ -53,16 +57,17 @@
   .msg.tiktok .icon { color: #ff2d55; }
 
   .username {
-    font-weight: bold;
+    font-family: 'Pixelify Sans', 'Courier New', monospace;
+    font-weight: 700;
     flex-shrink: 0;
   }
 
-  .msg.twitch .username { color: #bf94ff; }
-  .msg.tiktok .username { color: #ff6b8a; }
+  .msg.twitch .username { color: #6b2fbf; }
+  .msg.tiktok .username { color: #b0173f; }
 
-  .sep { color: #888; flex-shrink: 0; }
+  .sep { color: #7a5a34; flex-shrink: 0; }
 
-  .text { color: #ffffff; flex: 1; }
+  .text { color: #3c2712; flex: 1; }
 
   .text img.emote {
     height: 1.8em;

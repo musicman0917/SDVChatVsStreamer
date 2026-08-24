@@ -124,6 +124,15 @@ public class PointsEngine
         _monitor.Log($"[PointsEngine] +{points}pts ({bitCount} bits) → {username}", LogLevel.Info);
     }
 
+    public void OnDonation(string username, double amountDollars)
+    {
+        _ledger.EnsureViewer(username);
+        var cents  = (int)Math.Round(amountDollars * 100);
+        var points = cents * _config.DonationPointsPerCent;
+        _ledger.AddPoints(username, points);
+        _monitor.Log($"[PointsEngine] +{points}pts (${amountDollars:F2} donation) → {username}", LogLevel.Info);
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     public int GetBalance(string username) => _ledger.GetPoints(username);

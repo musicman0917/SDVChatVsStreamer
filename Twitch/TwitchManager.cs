@@ -845,64 +845,9 @@ public class TwitchManager
 
     private void SendShopList()
     {
-        var items = _sabotage.GetShopList();
-        if (!items.Any()) { SendMessage("The chaos shop is empty!"); return; }
+        if (!_sabotage.GetShopList().Any()) { SendMessage("The chaos shop is empty!"); return; }
 
-        // Blessings are identified by their buy commands
-        var blessingCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            "sunny", "restoreenergy", "restorehealth", "speedboost",
-            "givegold", "watercrops", "fertilize", "cleardebris"
-        };
-
-        var sabotages = items.Where(i => !blessingCommands.Contains(i.BuyCommand)).ToList();
-        var blessings = items.Where(i =>  blessingCommands.Contains(i.BuyCommand)).ToList();
-
-        var sabotageTiers = new (string Label, int Min, int Max)[]
-        {
-            ("💀 Nuisance",    0,   100),
-            ("😈 Disruptive",  101, 250),
-            ("💥 Painful",     251, 400),
-            ("☠️ Devastating", 401, 599),
-            ("🌠 Legendary",   600, 99999),
-        };
-
-        SendMessage("🛒 CHAOS SHOP — use !buy <command> | !info <command> for details");
-
-        foreach (var tier in sabotageTiers)
-        {
-            var group = sabotages
-                .Where(i => i.Cost >= tier.Min && i.Cost <= tier.Max)
-                .Select(i => $"!buy {i.BuyCommand} ({i.Cost}pts)")
-                .ToList();
-
-            if (!group.Any()) continue;
-            SendTieredMessage(tier.Label, group);
-        }
-
-        if (blessings.Any())
-        {
-            var group = blessings
-                .Select(i => $"!buy {i.BuyCommand} ({i.Cost}pts)")
-                .ToList();
-            SendTieredMessage("🌟 Blessings", group);
-        }
-    }
-
-    private void SendTieredMessage(string label, List<string> entries)
-    {
-        var current = $"{label}: ";
-        foreach (var entry in entries)
-        {
-            if (current.Length + entry.Length + 3 > 500)
-            {
-                SendMessage(current.TrimEnd(' ', '|'));
-                current = $"{label} (cont): ";
-            }
-            current += entry + " | ";
-        }
-        if (!string.IsNullOrWhiteSpace(current))
-            SendMessage(current.TrimEnd(' ', '|'));
+        SendMessage($"🛒 Full chaos shop & prices: {_config.ShopUrl} — !buy <command> | !info <command> for details");
     }
 
     // ─── Active Viewer Tracking ───────────────────────────────────────────────

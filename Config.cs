@@ -15,6 +15,10 @@ public class ModConfig
     public string BotUsername { get; set; } = "bardbouncerbot";
     public string BroadcasterUserId { get; set; } = "your_broadcaster_user_id";
 
+    // ─── Shop ────────────────────────────────────────────────────────────────
+    /// <summary>Full command/price reference linked by !shop instead of dumping every item into chat.</summary>
+    public string ShopUrl { get; set; } = "https://musicman0917.github.io/SDVChatVsStreamer/";
+
     // ─── Feature Toggles ─────────────────────────────────────────────────────
     public bool EnableChatCommands { get; set; } = true;
     public bool EnableChannelPoints { get; set; } = true;
@@ -49,6 +53,20 @@ public class ModConfig
     public int SmallBitThreshold { get; set; } = 100;
     public int MediumBitThreshold { get; set; } = 500;
     public int LargeBitThreshold { get; set; } = 1000;
+
+    // ─── DonorDrive ──────────────────────────────────────────────────────────
+    public bool   DonorDriveEnabled       { get; set; } = false;
+    /// <summary>Base URL of your org's DonorDrive site, e.g. https://www.extra-life.org</summary>
+    public string DonorDriveApiBaseUrl    { get; set; } = "https://www.extra-life.org";
+    public string DonorDriveParticipantId { get; set; } = "";
+    public int    DonorDrivePollSeconds   { get; set; } = 30;
+    /// <summary>Points awarded per cent donated — same shape as BitsPerPoint, but donations pay double.</summary>
+    public int    DonationPointsPerCent   { get; set; } = 2;
+    // Donation size tiers (dollars) — bigger tiers roll from a more dramatic effect pool
+    public int    DonationSmallThreshold   { get; set; } = 5;
+    public int    DonationMediumThreshold  { get; set; } = 25;
+    public int    DonationLargeThreshold   { get; set; } = 100;
+    public int    DonationMassiveThreshold { get; set; } = 500;
 
     // ─── Key Bindings ────────────────────────────────────────────────────────
     public string PasteTokenKey { get; set; } = "F9";

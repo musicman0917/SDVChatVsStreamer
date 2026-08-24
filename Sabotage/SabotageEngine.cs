@@ -17,6 +17,10 @@ public class SabotageEngine
     private readonly List<SabotageDefinition> _smallBitPool        = new();
     private readonly List<SabotageDefinition> _mediumBitPool       = new();
     private readonly List<SabotageDefinition> _largeBitPool        = new();
+    private readonly List<SabotageDefinition> _smallDonationPool   = new();
+    private readonly List<SabotageDefinition> _mediumDonationPool  = new();
+    private readonly List<SabotageDefinition> _largeDonationPool   = new();
+    private readonly List<SabotageDefinition> _massiveDonationPool = new();
 
     private readonly Random _rng = new();
 
@@ -65,6 +69,21 @@ public class SabotageEngine
         };
         pool.Add(def);
         _monitor.Log($"[SabotageEngine] Registered bit event ({tier}): {sabotage.Name}", LogLevel.Debug);
+    }
+
+    public void RegisterDonationEvent(ISabotage sabotage, DonationTier tier)
+    {
+        var def  = new SabotageDefinition { Sabotage = sabotage };
+        var pool = tier switch
+        {
+            DonationTier.Small   => _smallDonationPool,
+            DonationTier.Medium  => _mediumDonationPool,
+            DonationTier.Large   => _largeDonationPool,
+            DonationTier.Massive => _massiveDonationPool,
+            _                    => _smallDonationPool
+        };
+        pool.Add(def);
+        _monitor.Log($"[SabotageEngine] Registered donation event ({tier}): {sabotage.Name}", LogLevel.Debug);
     }
 
     // ─── Buy Flow ─────────────────────────────────────────────────────────────
@@ -224,6 +243,49 @@ public class SabotageEngine
             HUDMessage.error_type));
     }
 
+    public void TriggerDonationEvent(string username, DonationTier tier, double amount)
+    {
+        ModEntry.PendingActions.Enqueue(() => FireDonationEvent(username, tier, amount));
+    }
+
+    private void FireDonationEvent(string username, DonationTier tier, double amount)
+    {
+        var pool = tier switch
+        {
+            DonationTier.Small   => _smallDonationPool,
+            DonationTier.Medium  => _mediumDonationPool,
+            DonationTier.Large   => _largeDonationPool,
+            DonationTier.Massive => _massiveDonationPool,
+            _                    => _smallDonationPool
+        };
+
+        if (pool.Count == 0)
+        {
+            _monitor.Log($"[SabotageEngine] Donation pool ({tier}) is empty.", LogLevel.Warn);
+            return;
+        }
+
+        // Massive donations fire two effects instead of one — same "extra bang" idea as a big raid
+        int fires = tier == DonationTier.Massive ? 2 : 1;
+        var chosen = pool.OrderBy(_ => _rng.Next()).Take(Math.Min(fires, pool.Count)).ToList();
+
+        var names = new List<string>();
+        foreach (var def in chosen)
+        {
+            def.Fire(username);
+            names.Add(def.Name);
+            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "donation");
+        }
+        _overlay?.PushShopUpdate();
+
+        var desc = string.Join(" + ", names);
+        _monitor.Log($"[SabotageEngine] Donation event ({tier}, ${amount:F2}): {desc} for {username}", LogLevel.Info);
+
+        Game1.addHUDMessage(new HUDMessage(
+            $"💸 {username} donated ${amount:F2}! Triggered: {desc}!",
+            HUDMessage.error_type));
+    }
+
     // ─── Auto Trigger ─────────────────────────────────────────────────────────
 
     private DateTime _lastSabotageTime = DateTime.UtcNow;
@@ -350,6 +412,8 @@ public class SabotageEngine
 // ─── Supporting types ─────────────────────────────────────────────────────────
 
 public enum BitTier { Small, Medium, Large }
+
+public enum DonationTier { Small, Medium, Large, Massive }
 
 public enum BuyStatus { Success, NotFound, InsufficientFunds, OnCooldown, GameNotActive, Rejected }
 

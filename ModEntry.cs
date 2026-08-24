@@ -33,6 +33,7 @@ public class ModEntry : Mod
     private TikTok.TikTokManager?  _tiktok;
     private UI.ChatFeed            _chatFeed = null!;
     private UI.ChatHud             _chatHud  = null!;
+    private SDVChatVsStreamer.DonorDrive.DonorDriveManager? _donorDrive;
 
     // ─── Entry Point ──────────────────────────────────────────────────────────
 
@@ -76,6 +77,10 @@ public class ModEntry : Mod
 
         // Twitch
         _twitch = new TwitchManager(_config, _points, _sabotage, _ledger, Monitor, _chatFeed, _overlay);
+
+        // DonorDrive
+        _donorDrive = new SDVChatVsStreamer.DonorDrive.DonorDriveManager(_config, _points, _sabotage, Monitor);
+        _donorDrive.SetChatSender(_twitch.SendMessage);
 
         // SMAPI events
         helper.Events.GameLoop.GameLaunched    += OnGameLaunched;
@@ -257,6 +262,32 @@ public class ModEntry : Mod
         _sabotage.RegisterBitEvent(new SpawnSquidKidSabotage(),   BitTier.Large);
         _sabotage.RegisterBitEvent(new SpawnShadowBruteSabotage(), BitTier.Large);
 
+        // ── Donation pools ──
+        _sabotage.RegisterDonationEvent(new DrainEnergySabotage(), DonationTier.Small);
+        _sabotage.RegisterDonationEvent(new RainSabotage(),        DonationTier.Small);
+        _sabotage.RegisterDonationEvent(new DizzySabotage(),       DonationTier.Small);
+        _sabotage.RegisterDonationEvent(new GiveGoldBlessing(),    DonationTier.Small);
+        _sabotage.RegisterDonationEvent(new RestoreEnergyBlessing(), DonationTier.Small);
+
+        _sabotage.RegisterDonationEvent(new SpawnMonsterSabotage(), DonationTier.Medium);
+        _sabotage.RegisterDonationEvent(new CrowsSabotage(),        DonationTier.Medium);
+        _sabotage.RegisterDonationEvent(new SpeedUpSabotage(),      DonationTier.Medium);
+        _sabotage.RegisterDonationEvent(new GiveMoreGoldBlessing(), DonationTier.Medium);
+        _sabotage.RegisterDonationEvent(new WaterCropsBlessing(),   DonationTier.Medium);
+        _sabotage.RegisterDonationEvent(new SpawnGolemSabotage(),   DonationTier.Medium);
+
+        _sabotage.RegisterDonationEvent(new WarpSabotage(),          DonationTier.Large);
+        _sabotage.RegisterDonationEvent(new SwarmSabotage(),         DonationTier.Large);
+        _sabotage.RegisterDonationEvent(new BombSabotage(),          DonationTier.Large);
+        _sabotage.RegisterDonationEvent(new SpawnSerpentSabotage(),  DonationTier.Large);
+        _sabotage.RegisterDonationEvent(new AirdropSabotage(),       DonationTier.Large);
+        _sabotage.RegisterDonationEvent(new SpawnShadowBruteSabotage(), DonationTier.Large);
+
+        _sabotage.RegisterDonationEvent(new KillFarmSabotage(),         DonationTier.Massive);
+        _sabotage.RegisterDonationEvent(new SpawnIridiumGolemSabotage(), DonationTier.Massive);
+        _sabotage.RegisterDonationEvent(new GiveMostGoldBlessing(),      DonationTier.Massive);
+        _sabotage.RegisterDonationEvent(new BankruptcySabotage(),        DonationTier.Massive);
+
         Monitor.Log("[ChatVsStreamer] Sabotages registered.", LogLevel.Debug);
     }
 
@@ -277,6 +308,7 @@ public class ModEntry : Mod
         _chatFeed.OnRemoveUser   += user => _overlay.PushChatRemoveUser(user);
         _chatFeed.OnRemoveMessage += id  => _overlay.PushChatRemoveMessage(id);
         _twitch.Connect();
+        _donorDrive?.Start();
 
         // YouTube via Streamer.bot
         if (_config.YouTubeEnabled)
@@ -306,6 +338,7 @@ public class ModEntry : Mod
     {
         _twitch.SetGameActive(true);
         _youtube?.SetGameActive(true);
+        _donorDrive?.SetGameActive(true);
         Monitor.Log("[ChatVsStreamer] Save loaded — sabotages enabled.", LogLevel.Info);
     }
 
@@ -313,6 +346,7 @@ public class ModEntry : Mod
     {
         _twitch.SetGameActive(false);
         _youtube?.SetGameActive(false);
+        _donorDrive?.SetGameActive(false);
         Monitor.Log("[ChatVsStreamer] Returned to title — sabotages disabled.", LogLevel.Info);
     }
 

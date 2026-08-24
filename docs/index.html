@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Chaos Almanac</title>
+<meta name="description" content="Every Chat vs Streamer shop command, its cost and cooldown, and how chaos points are earned.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    /* ambient backdrop behind the menu — this is the only thing that changes with theme */
+    --ambient: #d9b586;
+    --ambient-2: #c89f68;
+
+    /* the menu box itself — wood frame + parchment interior, same day or night,
+       exactly like Stardew's own dialogue/inventory box never changes color at night */
+    --wood: #5b3a21;
+    --wood-deep: #3a2314;
+    --gold-trim: #cf9f37;
+    --parchment: #f4e8c1;
+    --parchment-2: #e8d59f;
+    --ink: #43290f;
+    --ink-soft: #7a5a34;
+
+    --chaos: #a23a26;
+    --blessing: #3f8768;
+    --coin: #d8a52c;
+    --coin-deep: #8a6512;
+    --shadow: rgba(43, 26, 11, 0.28);
+
+    --font-display: 'Pixelify Sans', 'Courier New', monospace;
+    --font-body: 'Fraunces', Georgia, serif;
+    --font-mono: 'Space Mono', 'Courier New', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ambient: #262246;
+      --ambient-2: #1c1936;
+      --shadow: rgba(0, 0, 0, 0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ambient: #262246;
+    --ambient-2: #1c1936;
+    --shadow: rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--ambient);
+    background-image: repeating-linear-gradient(90deg, var(--ambient) 0 62px, var(--ambient-2) 62px 66px);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.55;
+  }
+
+  .page { max-width: 1040px; margin: 0 auto; padding: 28px 20px 80px; }
+  a { color: inherit; }
+  ::selection { background: var(--coin); color: #2b1a0a; }
+
+  /* ---------- wood-and-parchment panel, used everywhere ---------- */
+
+  .panel {
+    background: var(--parchment);
+    border: 6px solid var(--wood);
+    border-radius: 12px;
+    box-shadow: inset 0 0 0 3px var(--gold-trim), 0 6px 0 var(--wood-deep), 0 10px 18px var(--shadow);
+    color: var(--ink);
+  }
+
+  /* ---------- pixel dividers ---------- */
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 44px 0;
+  }
+  .divider .line {
+    flex: 1;
+    height: 3px;
+    background: var(--wood);
+    opacity: 0.55;
+    border-radius: 2px;
+  }
+  .divider svg { flex: none; image-rendering: pixelated; filter: drop-shadow(0 2px 0 var(--shadow)); }
+
+  /* ---------- Hero ---------- */
+
+  .hero { padding: 6px 0 8px; }
+  .hero-inner { padding: 30px 32px 34px; display: flex; flex-direction: column; gap: 18px; }
+
+  .eyebrow {
+    font-family: var(--font-display);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 9px; height: 9px;
+    background: var(--coin);
+    border: 1px solid var(--coin-deep);
+    transform: rotate(45deg);
+    display: inline-block;
+  }
+
+  h1.title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: clamp(2.2rem, 5.6vw, 3.6rem);
+    line-height: 1.08;
+    margin: 0;
+    text-wrap: balance;
+    color: var(--ink);
+    text-shadow: 2px 2px 0 var(--parchment-2), 4px 4px 0 var(--gold-trim);
+  }
+
+  .dek {
+    font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+    font-weight: 400;
+    color: var(--ink-soft);
+    max-width: 60ch;
+    text-wrap: balance;
+  }
+
+  /* ---------- dialogue box (replaces the terminal mock) ---------- */
+
+  .dialogue {
+    position: relative;
+    margin-top: 6px;
+    max-width: 460px;
+    background: var(--parchment-2);
+    border: 5px solid var(--wood);
+    border-radius: 10px;
+    box-shadow: inset 0 0 0 2px var(--gold-trim), 0 5px 0 var(--wood-deep), 0 8px 14px var(--shadow);
+    padding: 24px 20px 18px;
+  }
+  .dialogue-name {
+    position: absolute;
+    top: -15px;
+    left: 18px;
+    background: var(--wood);
+    color: var(--parchment);
+    font-family: var(--font-display);
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    padding: 5px 12px;
+    border-radius: 5px;
+    box-shadow: 0 3px 0 var(--wood-deep);
+  }
+  .dialogue-line {
+    font-size: 14px;
+    margin: 0 0 9px;
+    color: var(--ink);
+  }
+  .dialogue-line:last-child { margin-bottom: 0; }
+  .dialogue-line .who { color: var(--ink-soft); font-style: italic; }
+  .dialogue-arrow {
+    position: absolute;
+    right: 18px;
+    bottom: 10px;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 6px 0 6px 8px;
+    border-color: transparent transparent transparent var(--wood);
+  }
+
+  /* ---------- How it works: coin steps ---------- */
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .step { padding: 22px 20px 24px; text-align: left; }
+  .coin {
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, #fff0c2, var(--coin) 55%, var(--coin-deep) 100%);
+    box-shadow: inset 0 0 0 3px #714b0d, 0 3px 0 #5c3d0c, 0 5px 8px var(--shadow);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: #402907;
+    margin-bottom: 12px;
+  }
+  .step-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 14px;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+  .step-body { margin: 0; color: var(--ink-soft); font-size: 15px; }
+  .step-body .tag { color: var(--ink); }
+
+  /* ---------- shared: section heading ---------- */
+
+  section.block { margin: 0; }
+  .block-head { margin-bottom: 18px; padding: 0 4px; }
+  .block-head h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.55rem;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+  .block-head p { margin: 0; color: var(--ink-soft); max-width: 66ch; }
+
+  code, .mono { font-family: var(--font-mono); }
+
+  /* ---------- meta commands ---------- */
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    padding: 22px;
+  }
+  .meta-card {
+    background: var(--parchment-2);
+    border: 3px solid var(--wood);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .meta-card .cmd {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--ink);
+    display: block;
+    margin-bottom: 5px;
+  }
+  .meta-card p { margin: 0; font-size: 13.5px; color: var(--ink-soft); }
+  .meta-card.modonly { border-color: var(--chaos); }
+  .badge-mod {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--chaos);
+    color: #fdece5;
+    padding: 3px 7px;
+    border-radius: 4px;
+    margin-bottom: 7px;
+  }
+
+  /* ---------- points economy ---------- */
+
+  #points .panel { padding: 24px 24px 26px; }
+
+  .table-scroll {
+    overflow-x: auto;
+    border: 3px solid var(--wood);
+    border-radius: 8px;
+  }
+  table.econ, table.cmds {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--parchment);
+    font-size: 14.5px;
+  }
+  table.econ th, table.econ td, table.cmds th, table.cmds td {
+    text-align: left;
+    padding: 11px 16px;
+    border-bottom: 2px solid var(--parchment-2);
+    vertical-align: top;
+  }
+  table.econ th, table.cmds thead th {
+    font-family: var(--font-display);
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--parchment);
+    background: var(--wood);
+    font-weight: 500;
+  }
+  table.econ tr:last-child td, table.cmds tbody tr:last-child td { border-bottom: none; }
+  table.econ td.pts { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--blessing); font-weight: 700; }
+  table.econ td.note { color: var(--ink-soft); font-size: 13.5px; }
+
+  .multiplier-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 10px; padding: 0 22px; }
+  .mchip {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--parchment-2);
+    border: 2px solid var(--wood);
+    border-radius: 16px;
+    padding: 6px 13px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .mchip b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .mnote { font-size: 13px; color: var(--ink-soft); margin: 4px 0 0; padding: 0 22px; }
+
+  .callout {
+    margin: 20px 22px 24px;
+    background: var(--parchment-2);
+    border: 2px dashed var(--wood);
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+  }
+  .callout strong { color: var(--ink); }
+
+  /* ---------- toolbar: menu tabs ---------- */
+
+  .toolbar-wrap {
+    position: sticky;
+    top: 14px;
+    z-index: 5;
+    margin-bottom: 26px;
+  }
+  .toolbar {
+    padding: 14px 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+  .search-wrap { position: relative; flex: 1 1 220px; min-width: 200px; }
+  .search-wrap input {
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    padding: 9px 12px 9px 30px;
+    border-radius: 6px;
+    border: 2px solid var(--wood);
+    background: var(--parchment-2);
+    color: var(--ink);
+  }
+  .search-wrap input::placeholder { color: var(--ink-soft); opacity: 0.8; }
+  .search-wrap input:focus-visible { outline: 2px solid var(--coin); outline-offset: 1px; }
+  .search-wrap::before {
+    content: "\2766";
+    position: absolute;
+    left: 10px; top: 50%; transform: translateY(-50%);
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+  .kind-filter { display: flex; gap: 6px; }
+  .kind-btn {
+    font-family: var(--font-display);
+    font-size: 12px;
+    padding: 9px 14px 7px;
+    border-radius: 6px 6px 3px 3px;
+    border: 2px solid var(--wood);
+    background: var(--parchment-2);
+    color: var(--ink-soft);
+    cursor: pointer;
+    box-shadow: 0 3px 0 var(--wood);
+  }
+  .kind-btn:hover { color: var(--ink); }
+  .kind-btn[aria-pressed="true"] {
+    background: var(--wood);
+    color: var(--parchment);
+    box-shadow: 0 3px 0 var(--wood-deep);
+    transform: translateY(1px);
+  }
+  .kind-btn:focus-visible { outline: 2px solid var(--coin); outline-offset: 1px; }
+
+  .stat-line { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+  .stat-line b { color: var(--ink); font-weight: 700; }
+
+  .catnav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; }
+  .catnav a {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-decoration: none;
+    color: var(--ink-soft);
+    background: var(--parchment);
+    border: 2px solid var(--wood);
+    border-radius: 14px;
+    padding: 5px 12px;
+  }
+  .catnav a:hover { color: var(--ink); background: var(--parchment-2); }
+
+  /* ---------- kind dot ---------- */
+
+  .kind-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; flex: none; box-shadow: 0 0 0 1px rgba(0,0,0,0.25) inset; }
+  .kind-dot--blessing { background: var(--blessing); }
+  .kind-dot--chaos { background: var(--chaos); }
+
+  .legend { display: flex; gap: 18px; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 26px; font-family: var(--font-mono); flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; }
+
+  /* ---------- category / command tables ---------- */
+
+  .category { margin-bottom: 40px; scroll-margin-top: 90px; }
+  .category-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; padding: 0 2px; }
+  .category-head h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.25rem; margin: 0; color: var(--ink); }
+  .category-count {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    background: var(--parchment);
+    border: 2px solid var(--wood);
+    padding: 1px 8px;
+    border-radius: 10px;
+  }
+  .category-blurb { margin: 0 0 12px; color: var(--ink-soft); font-size: 14px; font-style: italic; padding: 0 2px; }
+
+  table.cmds tbody tr:hover { background: var(--parchment-2); }
+  table.cmds tbody tr.is-hidden { display: none; }
+
+  .cmd-chip {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    background: var(--parchment-2);
+    border: 2px solid var(--wood);
+    border-radius: 5px;
+    padding: 3px 8px;
+    color: var(--ink);
+  }
+  .cmd-cell { display: flex; align-items: center; }
+  .cmd-name { font-weight: 700; font-size: 14.5px; margin-bottom: 2px; color: var(--ink); }
+  .cmd-desc { color: var(--ink-soft); font-size: 13.5px; max-width: 46ch; }
+  td.cost, td.cd { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 13.5px; }
+  td.cost { color: var(--coin-deep); font-weight: 700; }
+  td.cd { color: var(--ink-soft); }
+
+  .category.is-hidden { display: none; }
+  .empty-state {
+    display: none;
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--ink-soft);
+    font-family: var(--font-mono);
+    font-size: 14px;
+  }
+  .empty-state.is-visible { display: block; }
+
+  footer { text-align: center; padding: 28px 22px; color: var(--ink-soft); font-size: 13px; }
+  footer .mono { display: block; margin-top: 4px; }
+
+  @media (max-width: 720px) {
+    .steps { grid-template-columns: 1fr; }
+    table.cmds .col-cd { display: none; }
+    .cmd-desc { max-width: none; }
+    .hero-inner { padding: 24px 20px 26px; }
+    .toolbar-wrap { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="hero">
+    <div class="panel hero-inner">
+      <div class="eyebrow">Chat vs Streamer &middot; Community Reference</div>
+      <h1 class="title">The Chaos Almanac</h1>
+      <p class="dek">Every command your chat can call down on the farm — what it costs, how long it takes to reload, and whether it's here to help you or ruin your afternoon.</p>
+
+      <div class="dialogue" aria-hidden="true">
+        <span class="dialogue-name">Chat Log</span>
+        <p class="dialogue-line"><span class="who">mossy_farmer</span> sends <span class="cmd-chip">!shop</span></p>
+        <p class="dialogue-line"><span class="who">mossy_farmer</span> sends <span class="cmd-chip">!info killfarm</span></p>
+        <p class="dialogue-line"><span class="who">mossy_farmer</span> sends <span class="cmd-chip">!buy killfarm</span></p>
+        <span class="dialogue-arrow"></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="divider" aria-hidden="true">
+    <span class="line"></span>
+    <svg width="28" height="28" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="5" y="14" width="6" height="1" fill="#5b3a21"/>
+      <rect x="7" y="9" width="2" height="5" fill="#8a5a30"/>
+      <rect x="4" y="7" width="4" height="3" fill="#6fae7c"/>
+      <rect x="3" y="8" width="2" height="2" fill="#4d8a5c"/>
+      <rect x="9" y="6" width="4" height="3" fill="#7cbf5c"/>
+      <rect x="12" y="7" width="2" height="2" fill="#4d8a5c"/>
+    </svg>
+    <span class="line"></span>
+  </div>
+
+  <section class="steps" aria-label="How the shop works">
+    <div class="panel step">
+      <div class="coin">1</div>
+      <p class="step-title">Earn</p>
+      <p class="step-body">Watch, chat, follow, sub, cheer, or raid — every one of those pays out chaos points automatically.</p>
+    </div>
+    <div class="panel step">
+      <div class="coin">2</div>
+      <p class="step-title">Browse</p>
+      <p class="step-body"><span class="cmd-chip">!shop</span> lists what's for sale right now; <span class="cmd-chip">!info &lt;cmd&gt;</span> gives the full price tag on any one item.</p>
+    </div>
+    <div class="panel step">
+      <div class="coin">3</div>
+      <p class="step-title">Buy</p>
+      <p class="step-body"><span class="cmd-chip">!buy &lt;cmd&gt;</span> spends the points and fires instantly, live, on the streamer's farm.</p>
+    </div>
+  </section>
+
+  <div class="divider" aria-hidden="true">
+    <span class="line"></span>
+    <svg width="30" height="28" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="6" y="4" width="4" height="1" fill="#5a9c4e"/>
+      <rect x="5" y="5" width="6" height="1" fill="#5a9c4e"/>
+      <rect x="4" y="6" width="8" height="6" fill="#5a9c4e"/>
+      <rect x="5" y="12" width="6" height="1" fill="#4a8440"/>
+      <rect x="6" y="13" width="4" height="1" fill="#4a8440"/>
+      <rect x="5" y="7" width="2" height="2" fill="#ffffff"/>
+      <rect x="9" y="7" width="2" height="2" fill="#ffffff"/>
+      <rect x="5" y="8" width="1" height="1" fill="#2a2116"/>
+      <rect x="10" y="8" width="1" height="1" fill="#2a2116"/>
+    </svg>
+    <span class="line"></span>
+  </div>
+
+  <section class="block" id="commands-meta">
+    <div class="block-head">
+      <h2>Talking to the Shop</h2>
+      <p>Four commands anyone in chat can use, and two reserved for mods.</p>
+    </div>
+    <div class="panel meta-grid">
+      <div class="meta-card">
+        <span class="cmd">!balance</span>
+        <p>Check how many chaos points you've got.</p>
+      </div>
+      <div class="meta-card">
+        <span class="cmd">!shop</span>
+        <p>List everything currently on sale.</p>
+      </div>
+      <div class="meta-card">
+        <span class="cmd">!info &lt;command&gt;</span>
+        <p>Full details on one item — cost, cooldown, and effect.</p>
+      </div>
+      <div class="meta-card">
+        <span class="cmd">!buy &lt;command&gt; [text]</span>
+        <p>Purchase it. A few items (renames) take extra text after the command.</p>
+      </div>
+      <div class="meta-card modonly">
+        <span class="badge-mod">Mod / Broadcaster</span>
+        <span class="cmd">!give &lt;user&gt; &lt;amount&gt;</span>
+        <p>Grant someone chaos points out of thin air.</p>
+      </div>
+      <div class="meta-card modonly">
+        <span class="badge-mod">Mod / Broadcaster</span>
+        <span class="cmd">!setpoints &lt;user&gt; &lt;amount&gt;</span>
+        <p>Set someone's balance to an exact number.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider" aria-hidden="true">
+    <span class="line"></span>
+    <svg width="26" height="26" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="3" y="6" width="10" height="2" fill="#3a2314"/>
+      <rect x="4" y="8" width="8" height="5" fill="#7a4a26"/>
+      <rect x="5" y="13" width="6" height="1" fill="#5b3a21"/>
+      <rect x="7" y="9" width="2" height="2" fill="#cf9f37"/>
+    </svg>
+    <span class="line"></span>
+  </div>
+
+  <section class="block" id="points">
+    <div class="block-head">
+      <h2>How Chaos Points Work</h2>
+      <p>Points build up automatically just from being part of the stream — no purchase required to start earning.</p>
+    </div>
+
+    <div class="panel">
+      <div class="table-scroll" style="border:none; border-radius: 8px 8px 0 0;">
+        <table class="econ">
+          <thead>
+            <tr><th>Doing this&hellip;</th><th>Earns</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Sitting in chat</td><td class="pts">+10 pts</td><td class="note">Every 5 minutes, automatically, scaled by your sub-tier multiplier below.</td></tr>
+            <tr><td>Sending a message</td><td class="pts">+5 pts</td><td class="note">Flat rate, once per 60 seconds per person.</td></tr>
+            <tr><td>Following the channel</td><td class="pts">+25 pts</td><td class="note">One-time.</td></tr>
+            <tr><td>Subscribing</td><td class="pts">+100 pts</td><td class="note">One-time, and raises your passive-earning multiplier for as long as you're subbed.</td></tr>
+            <tr><td>Gifting a sub</td><td class="pts">+50 pts</td><td class="note">Per sub gifted, paid to the gifter.</td></tr>
+            <tr><td>Cheering</td><td class="pts">+1 pt</td><td class="note">Per bit.</td></tr>
+            <tr><td>Leading a raid</td><td class="pts">+2 pts</td><td class="note">Per viewer you bring along.</td></tr>
+            <tr><td>Arriving in a raid</td><td class="pts">+15 pts</td><td class="note">Plus a first-message bonus that scales with raid size: +25 / +50 / +100 / +200 for small, medium, large, and massive raids.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="mnote" style="margin-top:18px;">Sub-tier multiplier — applies to the 5-minute passive tick only:</p>
+      <div class="multiplier-row">
+        <span class="mchip">No sub <b>&times;1.0</b></span>
+        <span class="mchip">Prime <b>&times;1.75</b></span>
+        <span class="mchip">Tier 1 <b>&times;1.5</b></span>
+        <span class="mchip">Tier 2 <b>&times;2.0</b></span>
+        <span class="mchip">Tier 3 <b>&times;3.0</b></span>
+      </div>
+      <p class="mnote">Yes — Prime actually out-earns Tier 1. Not a typo, just how the ladder is tuned.</p>
+
+      <div class="callout">
+        <strong>Cooldowns are shared, not personal.</strong> Once anyone buys a command, it's locked for everyone until its cooldown runs out — you're competing with the rest of chat for the good stuff.
+        <br><br>
+        <strong>Raids do more than pay points.</strong> Every raid also rolls a random Chaos, Blessing, or Meta event on the farm — bigger raids roll better odds at the good stuff, and a Meta event can temporarily double everyone's point gain or cut every shop price in half.
+      </div>
+    </div>
+  </section>
+
+  <div class="divider" aria-hidden="true">
+    <span class="line"></span>
+    <svg width="28" height="28" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="5" y="14" width="6" height="1" fill="#5b3a21"/>
+      <rect x="7" y="9" width="2" height="5" fill="#8a5a30"/>
+      <rect x="4" y="7" width="4" height="3" fill="#6fae7c"/>
+      <rect x="3" y="8" width="2" height="2" fill="#4d8a5c"/>
+      <rect x="9" y="6" width="4" height="3" fill="#7cbf5c"/>
+      <rect x="12" y="7" width="2" height="2" fill="#4d8a5c"/>
+    </svg>
+    <span class="line"></span>
+  </div>
+
+  <div class="toolbar-wrap">
+    <div class="panel toolbar">
+      <div class="search-wrap">
+        <input type="text" id="search" placeholder="Search commands, e.g. &quot;warp&quot; or &quot;gold&quot;&hellip;" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="kind-filter" role="group" aria-label="Filter by type">
+        <button class="kind-btn" data-kind="all" aria-pressed="true">All</button>
+        <button class="kind-btn" data-kind="blessing" aria-pressed="false">Blessings</button>
+        <button class="kind-btn" data-kind="chaos" aria-pressed="false">Chaos</button>
+      </div>
+      <span class="stat-line" id="stat-line"></span>
+    </div>
+  </div>
+
+  <nav class="catnav" id="catnav" aria-label="Jump to category"></nav>
+
+  <div class="legend">
+    <span><span class="kind-dot kind-dot--blessing"></span> Blessing — helps the streamer</span>
+    <span><span class="kind-dot kind-dot--chaos"></span> Chaos — sabotages the streamer</span>
+  </div>
+
+  <main id="ledger"></main>
+  <p class="panel empty-state" id="empty-state">Nothing matches that search. Try <span class="cmd-chip">!shop</span> in chat for the live version.</p>
+
+  <div class="divider" aria-hidden="true">
+    <span class="line"></span>
+    <svg width="26" height="26" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="3" y="6" width="10" height="2" fill="#3a2314"/>
+      <rect x="4" y="8" width="8" height="5" fill="#7a4a26"/>
+      <rect x="5" y="13" width="6" height="1" fill="#5b3a21"/>
+      <rect x="7" y="9" width="2" height="2" fill="#cf9f37"/>
+    </svg>
+    <span class="line"></span>
+  </div>
+
+  <footer class="panel">
+    <span class="mono">Chat vs Streamer &middot; The Chaos Almanac</span>
+    <span class="mono" id="footer-count"></span>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  const TOOL_TARGETS = [
+    { suffix: 'random',      label: 'Random Tool',  up: 125, down: 175, set: 250 },
+    { suffix: 'axe',         label: 'Axe',           up: 150, down: 200, set: 300 },
+    { suffix: 'pickaxe',     label: 'Pickaxe',       up: 150, down: 200, set: 300 },
+    { suffix: 'hoe',         label: 'Hoe',           up: 150, down: 200, set: 300 },
+    { suffix: 'wateringcan', label: 'Watering Can',  up: 150, down: 200, set: 300 },
+    { suffix: 'rod',         label: 'Fishing Rod',   up: 150, down: 200, set: 300 },
+  ];
+
+  function buildToolItems() {
+    const items = [];
+    for (const t of TOOL_TARGETS) {
+      const target = t.suffix === 'random' ? 'a random tool' : `your ${t.label.toLowerCase()}`;
+      items.push({ c: `upgrade${t.suffix}`, n: `Upgrade &mdash; ${t.label}`,      p: t.up,   cd: 120, k: 'blessing', d: `Upgrades ${target} one level.` });
+      items.push({ c: `downgrade${t.suffix}`, n: `Downgrade &mdash; ${t.label}`,  p: t.down, cd: 120, k: 'chaos',    d: `Downgrades ${target} one level.` });
+      items.push({ c: `copper${t.suffix}`, n: `Set to Copper &mdash; ${t.label}`, p: t.set,  cd: 180, k: 'chaos',    d: `Sets ${target} to copper.` });
+      items.push({ c: `iridium${t.suffix}`, n: `Set to Iridium &mdash; ${t.label}`, p: t.set, cd: 180, k: 'blessing', d: `Sets ${target} to iridium.` });
+    }
+    return items;
+  }
+
+  const CATEGORIES = [
+    {
+      key: 'weather', label: 'Weather', blurb: 'Tomorrow’s forecast, sold today.',
+      items: [
+        { c: 'rain', n: 'Rain', p: 50, cd: 300, k: 'chaos', d: 'Makes it rain tomorrow.' },
+        { c: 'wind', n: 'Wind', p: 50, cd: 300, k: 'chaos', d: 'Makes it windy tomorrow.' },
+        { c: 'storm', n: 'Storm', p: 75, cd: 300, k: 'chaos', d: 'Makes it storm tomorrow.' },
+        { c: 'snow', n: 'Snow', p: 75, cd: 300, k: 'chaos', d: 'Makes it snow tomorrow.' },
+        { c: 'sunny', n: 'Sunny Weather', p: 75, cd: 300, k: 'blessing', d: 'Makes it sunny tomorrow.' },
+        { c: 'greenrain', n: 'Green Rain', p: 200, cd: 600, k: 'chaos', d: 'Causes mysterious green rain tomorrow.' },
+      ]
+    },
+    {
+      key: 'time', label: 'Time', blurb: 'Nobody asked, but the clock moves anyway.',
+      items: [
+        { c: 'speedup', n: 'Speed Up', p: 100, cd: 120, k: 'chaos', d: 'Fast-forwards time by 1 hour.' },
+        { c: 'trickroom', n: 'Trick Room', p: 150, cd: 120, k: 'chaos', d: 'Jumps the clock forward 60 minutes.' },
+        { c: 'freezetime', n: 'Freeze Time', p: 200, cd: 240, k: 'chaos', d: 'Freezes the clock for 2 minutes.' },
+        { c: 'sleep', n: 'Sleep', p: 350, cd: 600, k: 'chaos', d: 'Fast-forwards straight to 2am.' },
+      ]
+    },
+    {
+      key: 'monsters', label: 'Monsters', blurb: 'Chat opens the portal; you close it with a sword.',
+      items: [
+        { c: 'bugs', n: 'Spawn Bugs', p: 75, cd: 60, k: 'chaos', d: 'Spawns a swarm of bugs near you.' },
+        { c: 'grubs', n: 'Spawn Grubs', p: 75, cd: 60, k: 'chaos', d: 'Spawns grubs near you.' },
+        { c: 'golem', n: 'Spawn Golem', p: 100, cd: 90, k: 'chaos', d: 'Slow but high defense.' },
+        { c: 'slime', n: 'Spawn Slime', p: 125, cd: 90, k: 'chaos', d: 'Spawns a slime near you.' },
+        { c: 'bat', n: 'Spawn Bat', p: 125, cd: 90, k: 'chaos', d: 'Spawns a bat near you.' },
+        { c: 'frostbat', n: 'Spawn Frost Bat', p: 150, cd: 90, k: 'chaos', d: 'Mines only — otherwise a random monster shows up instead.' },
+        { c: 'dust', n: 'Spawn Dust Sprites', p: 150, cd: 90, k: 'chaos', d: 'A whole pack at once. Mines only.' },
+        { c: 'ghost', n: 'Spawn Ghost', p: 200, cd: 120, k: 'chaos', d: 'Teleports around and pushes you back. Mines only.' },
+        { c: 'bomb', n: 'Bomb', p: 250, cd: 180, k: 'chaos', d: 'Explodes an area near you.' },
+        { c: 'squidkids', n: 'Spawn Squid Kids', p: 300, cd: 120, k: 'chaos', d: '1 HP each, but they fireball you from range.' },
+        { c: 'swarm', n: 'Swarm', p: 300, cd: 180, k: 'chaos', d: 'Spawns 5 slimes at once.' },
+        { c: 'serpent', n: 'Spawn Serpent', p: 350, cd: 150, k: 'chaos', d: 'Fast, large hitbox, high damage. Mines only.' },
+        { c: 'infestation', n: 'Infestation', p: 400, cd: 180, k: 'chaos', d: 'Drops a full monster swarm right where you’re standing.' },
+        { c: 'shadowbrute', n: 'Spawn Shadow Brute', p: 400, cd: 180, k: 'chaos', d: 'A heavy hitter.' },
+        { c: 'shaman', n: 'Spawn Shadow Shaman', p: 400, cd: 180, k: 'chaos', d: 'Heals other enemies and fires debuff projectiles.' },
+        { c: 'iridiumgolem', n: 'Spawn Iridium Golem', p: 500, cd: 240, k: 'chaos', d: 'Extremely tanky, late-game-grade threat.' },
+      ]
+    },
+    {
+      key: 'status', label: 'Status Effects', blurb: 'Debuffs that turn simple chores into a boss fight.',
+      items: [
+        { c: 'drain', n: 'Drain Energy', p: 100, cd: 60, k: 'chaos', d: 'Drains 50 stamina.' },
+        { c: 'dizzy', n: 'Dizzy', p: 100, cd: 90, k: 'chaos', d: 'Applies the tipsy debuff.' },
+        { c: 'hiccups', n: 'Hiccups', p: 150, cd: 120, k: 'chaos', d: 'Forces a jump every 3–8 seconds for 2 minutes.' },
+        { c: 'paranoia', n: 'Paranoia', p: 150, cd: 120, k: 'chaos', d: 'Random scary sound effects for 90 seconds — no on-screen warning.' },
+        { c: 'narcolepsy', n: 'Narcolepsy', p: 200, cd: 180, k: 'chaos', d: 'Forces a sleep emote every 30 seconds for 3 minutes.' },
+        { c: 'heavypockets', n: 'Heavy Pockets', p: 200, cd: 150, k: 'chaos', d: 'Movement slows as your inventory fills, for 2 minutes.' },
+        { c: 'drunk', n: 'Drunk', p: 200, cd: 180, k: 'chaos', d: 'Maximum tipsy effect for 60 seconds.' },
+        { c: 'sticky', n: 'Sticky', p: 175, cd: 120, k: 'chaos', d: 'Can’t switch or drop items for 60 seconds.' },
+        { c: 'mashed', n: 'Mashed', p: 250, cd: 180, k: 'chaos', d: 'Your movement controls fight each other for 60 seconds.' },
+        { c: 'blindfold', n: 'Blindfold', p: 250, cd: 180, k: 'chaos', d: 'Darkens your screen for 30 seconds.' },
+        { c: 'confused', n: 'Confused', p: 300, cd: 180, k: 'chaos', d: 'Inverts your movement controls for 60 seconds.' },
+      ]
+    },
+    {
+      key: 'warp', label: 'Warp', blurb: 'You’ll end up somewhere. Probably.',
+      items: [
+        { c: 'teleport', n: 'Teleport', p: 125, cd: 90, k: 'chaos', d: 'Warps you to a random NPC’s location.' },
+        { c: 'warpwhistle', n: 'Warp Whistle', p: 250, cd: 180, k: 'chaos', d: '5% chance to warp on entering any building, for 5 minutes.' },
+        { c: 'warp', n: 'Warp', p: 400, cd: 300, k: 'chaos', d: 'One-time warp to a random location.' },
+        { c: 'warpwhistleplus', n: 'Warp Whistle+', p: 600, cd: 600, k: 'chaos', d: '50% warp chance on entering a building, all day.' },
+        { c: 'warpwhistlemax', n: 'Warp Whistle MAX', p: 2000, cd: 600, k: 'chaos', d: '99.5% warp chance on entering a building, for 15 minutes.' },
+        { c: 'warpwhistlemaxplus', n: 'Warp Whistle MAX+', p: 5000, cd: 900, k: 'chaos', d: '99.5% warp chance on entering a building, all day.' },
+      ]
+    },
+    {
+      key: 'economy', label: 'Economy &amp; Inventory', blurb: 'Your wallet and your bag pockets, at chat’s mercy.',
+      items: [
+        { c: 'trash', n: 'Trash', p: 75, cd: 60, k: 'chaos', d: 'Fills one inventory slot with trash.' },
+        { c: 'trashday', n: 'Trash Day', p: 75, cd: 90, k: 'chaos', d: 'Fills every empty slot with trash.' },
+        { c: 'broke', n: 'Broke', p: 150, cd: 120, k: 'chaos', d: 'Removes a random amount of gold.' },
+        { c: 'giftingtree', n: 'Gifting Tree', p: 175, cd: 120, k: 'blessing', d: 'Drops a random item into your inventory.' },
+        { c: 'steal', n: 'Steal', p: 200, cd: 120, k: 'chaos', d: 'Removes a random item from your inventory.' },
+        { c: 'payday', n: 'Pay Day', p: 200, cd: 180, k: 'blessing', d: 'Fills every empty slot with useful items.' },
+        { c: 'carepackage', n: 'Care Package', p: 200, cd: 180, k: 'blessing', d: 'Drops a survival-kit chest near you.' },
+        { c: 'taxman', n: 'Tax Man', p: 200, cd: 180, k: 'chaos', d: 'Removes 10–25% of your current gold.' },
+        { c: 'inflation', n: 'Inflation', p: 250, cd: 600, k: 'chaos', d: 'Multiplies shop prices for the rest of the day.' },
+        { c: 'debtcollector', n: 'Debt Collector', p: 300, cd: 120, k: 'chaos', d: 'Steals a random item from your inventory.' },
+        { c: 'airdrop', n: 'Airdrop', p: 2000, cd: 300, k: 'blessing', d: 'A loot-packed chest lands at a random open tile — anywhere on the farm.' },
+        { c: 'bankruptcy', n: 'Bankruptcy', p: 5000, cd: 600, k: 'chaos', d: 'Sets your gold to 1g. Just 1.' },
+      ]
+    },
+    {
+      key: 'bans', label: 'Bans', blurb: 'Sixty seconds without a basic freedom.',
+      items: [
+        { c: 'banrunning', n: 'Ban Running', p: 150, cd: 120, k: 'chaos', d: 'Forces walking speed for 60 seconds.' },
+        { c: 'banhotbar', n: 'Ban Hotbar', p: 150, cd: 120, k: 'chaos', d: 'Locks hotbar scrolling and switching for 60 seconds.' },
+        { c: 'bantalk', n: 'Ban Talk', p: 175, cd: 120, k: 'chaos', d: 'Can’t talk to NPCs for 60 seconds.' },
+        { c: 'baninventory', n: 'Ban Inventory', p: 200, cd: 180, k: 'chaos', d: 'Locks your inventory for 60 seconds.' },
+        { c: 'banshopping', n: 'Ban Shopping', p: 200, cd: 180, k: 'chaos', d: 'Closes and blocks all shops for 60 seconds.' },
+      ]
+    },
+    {
+      key: 'farm', label: 'Farm &amp; Misc', blurb: 'The stuff that doesn’t fit anywhere else.',
+      items: [
+        { c: 'renamepet', n: 'Rename Pet', p: 100, cd: 60, k: 'chaos', d: 'Renames your pet — add a name after the command.' },
+        { c: 'renameanimal', n: 'Rename Animal', p: 150, cd: 60, k: 'chaos', d: 'Renames a random farm animal — add a name after the command.' },
+        { c: 'autopetter', n: 'Auto-Petter', p: 150, cd: 120, k: 'blessing', d: 'Instantly pets every animal on the farm.' },
+        { c: 'crows', n: 'Crows', p: 150, cd: 120, k: 'chaos', d: 'Crows eat a random crop.' },
+        { c: 'poltergeist', n: 'Poltergeist', p: 175, cd: 120, k: 'chaos', d: 'Shifts every piece of farmhouse furniture one tile.' },
+        { c: 'soak', n: 'Soak', p: 175, cd: 180, k: 'chaos', d: 'Turns off every sprinkler — crops go unwatered today.' },
+        { c: 'weeds', n: 'Weeds', p: 250, cd: 120, k: 'chaos', d: 'Spawns weeds across the farm.' },
+        { c: 'floorislava', n: 'Floor Is Lava', p: 400, cd: 240, k: 'chaos', d: 'Bare ground damages you — only placed paths and floors are safe.' },
+        { c: 'killfarm', n: 'Kill Farm', p: 500, cd: 600, k: 'chaos', d: 'Kills every crop on the farm.' },
+      ]
+    },
+    {
+      key: 'tools', label: 'Tools', blurb: 'Six tools &times; four operations — 24 ways to change what’s in your hand.',
+      items: buildToolItems()
+    },
+    {
+      key: 'weapons', label: 'Weapons', blurb: 'What you’re holding when the golem shows up.',
+      items: [
+        { c: 'weaponnormal', n: 'Random Weapon — Normal', p: 125, cd: 120, k: 'chaos', d: 'A random normal-tier weapon.' },
+        { c: 'weaponrandom', n: 'Random Weapon — Any', p: 175, cd: 120, k: 'chaos', d: 'Truly random — every weapon in the game, mods included.' },
+        { c: 'weaponbetter', n: 'Random Weapon — Better', p: 250, cd: 120, k: 'chaos', d: 'A random mid-tier weapon.' },
+        { c: 'weaponepic', n: 'Random Weapon — Epic', p: 450, cd: 180, k: 'chaos', d: 'A random epic-tier weapon.' },
+        { c: 'weaponlegendary', n: 'Random Weapon — Legendary', p: 600, cd: 300, k: 'chaos', d: 'Infinity or Meowmere. That’s the whole pool.' },
+      ]
+    },
+    {
+      key: 'blessings', label: 'Blessings', blurb: 'The nice stuff — for when chat is feeling generous.',
+      items: [
+        { c: 'restoreenergy', n: 'Restore Energy', p: 100, cd: 120, k: 'blessing', d: 'Restores full energy.' },
+        { c: 'restorehealth', n: 'Restore Health', p: 100, cd: 120, k: 'blessing', d: 'Restores full health.' },
+        { c: 'speedboost', n: 'Speed Boost', p: 100, cd: 180, k: 'blessing', d: '+2 speed for 60 seconds.' },
+        { c: 'givegold', n: 'Give Gold', p: 150, cd: 120, k: 'blessing', d: 'Gives 500g.' },
+        { c: 'sugarrush', n: 'Sugar Rush', p: 150, cd: 180, k: 'blessing', d: 'Max energy plus a speed boost for 30 seconds.' },
+        { c: 'luckychant', n: 'Lucky Chant', p: 150, cd: 300, k: 'blessing', d: 'Sets your daily luck to maximum.' },
+        { c: 'watercrops', n: 'Water Crops', p: 150, cd: 300, k: 'blessing', d: 'Waters every crop on the farm.' },
+        { c: 'givemoregold', n: 'Give More Gold', p: 200, cd: 180, k: 'blessing', d: 'Gives 5,000g.' },
+        { c: 'fertilize', n: 'Fertilize Crops', p: 200, cd: 600, k: 'blessing', d: 'Applies basic fertilizer to every crop.' },
+        { c: 'cleardebris', n: 'Clear Debris', p: 200, cd: 300, k: 'blessing', d: 'Clears every weed and piece of debris from the farm.' },
+        { c: 'givemostgold', n: 'Give Most Gold', p: 1000, cd: 600, k: 'blessing', d: 'Gives 50,000g.' },
+      ]
+    },
+  ];
+
+  function fmtCd(s) {
+    if (s < 60) return s + 's';
+    const m = Math.floor(s / 60), rem = s % 60;
+    return rem ? `${m}m ${rem}s` : `${m}m`;
+  }
+  function fmtPts(p) { return p.toLocaleString('en-US') + ' pts'; }
+  function esc(s) { return s.replace(/&amp;/g, '&').replace(/&mdash;/g, '—').replace(/&times;/g,'×'); }
+
+  const ledger = document.getElementById('ledger');
+  const catnav = document.getElementById('catnav');
+  let total = 0, totalBlessing = 0, totalChaos = 0;
+
+  CATEGORIES.forEach(cat => {
+    total += cat.items.length;
+    cat.items.forEach(i => i.k === 'blessing' ? totalBlessing++ : totalChaos++);
+
+    const navLink = document.createElement('a');
+    navLink.href = `#cat-${cat.key}`;
+    navLink.textContent = cat.label.replace(/&amp;/g, '&');
+    catnav.appendChild(navLink);
+
+    const section = document.createElement('section');
+    section.className = 'category';
+    section.id = `cat-${cat.key}`;
+
+    const rows = cat.items.map(i => `
+      <tr data-search="${esc(i.n).toLowerCase()} ${i.c} ${esc(i.d).toLowerCase()}" data-kind="${i.k}">
+        <td>
+          <div class="cmd-cell">
+            <span class="kind-dot kind-dot--${i.k}" title="${i.k === 'blessing' ? 'Blessing' : 'Chaos'}"></span>
+            <code class="cmd-chip">!buy ${i.c}</code>
+          </div>
+        </td>
+        <td>
+          <div class="cmd-name">${i.n}</div>
+          <div class="cmd-desc">${i.d}</div>
+        </td>
+        <td class="cost">${fmtPts(i.p)}</td>
+        <td class="cd col-cd">${fmtCd(i.cd)}</td>
+      </tr>`).join('');
+
+    section.innerHTML = `
+      <div class="category-head">
+        <h3>${cat.label}</h3>
+        <span class="category-count">${cat.items.length}</span>
+      </div>
+      <p class="category-blurb">${cat.blurb}</p>
+      <div class="table-scroll">
+        <table class="cmds">
+          <thead>
+            <tr><th>Command</th><th>Effect</th><th>Cost</th><th class="col-cd">Cooldown</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    ledger.appendChild(section);
+  });
+
+  document.getElementById('stat-line').innerHTML =
+    `<b>${total}</b> commands &middot; <b>${totalChaos}</b> chaos &middot; <b>${totalBlessing}</b> blessings`;
+  document.getElementById('footer-count').textContent =
+    `${total} commands documented`;
+
+  // ---- filtering ----
+  const searchInput = document.getElementById('search');
+  const kindButtons = Array.from(document.querySelectorAll('.kind-btn'));
+  const emptyState = document.getElementById('empty-state');
+  let activeKind = 'all';
+
+  function applyFilter() {
+    const q = searchInput.value.trim().toLowerCase();
+    let anyVisible = false;
+
+    document.querySelectorAll('.category').forEach(section => {
+      let sectionHasVisible = false;
+      section.querySelectorAll('tbody tr').forEach(row => {
+        const matchesText = !q || row.dataset.search.includes(q);
+        const matchesKind = activeKind === 'all' || row.dataset.kind === activeKind;
+        const visible = matchesText && matchesKind;
+        row.classList.toggle('is-hidden', !visible);
+        if (visible) sectionHasVisible = true;
+      });
+      section.classList.toggle('is-hidden', !sectionHasVisible);
+      if (sectionHasVisible) anyVisible = true;
+    });
+
+    emptyState.classList.toggle('is-visible', !anyVisible);
+  }
+
+  searchInput.addEventListener('input', applyFilter);
+  kindButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeKind = btn.dataset.kind;
+      kindButtons.forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+      applyFilter();
+    });
+  });
+})();
+</script>
+</body>
+</html>

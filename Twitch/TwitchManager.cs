@@ -553,7 +553,11 @@ public class TwitchManager
         if (_config.EnableRaidEvents && _gameActive)
         {
             _monitor.Log($"[TwitchManager] Triggering raid event for {raider}", LogLevel.Info);
-            ModEntry.PendingActions.Enqueue(() => _sabotage.RaidEvents.Execute(raider, viewerCount, SendMessage));
+            ModEntry.PendingActions.Enqueue(() =>
+            {
+                var result = _sabotage.RaidEvents.Execute(raider, viewerCount, SendMessage);
+                _overlay?.PushFeedEvent(raider, "Raid", result.HudMessage, 0, "raid");
+            });
         }
         else
         {

@@ -284,7 +284,8 @@ public class ModEntry : Mod
         var overlayPath = Path.Combine(Helper.DirectoryPath, "Overlay", "overlay.html");
         var mobilePath  = Path.Combine(Helper.DirectoryPath, "Overlay", "mobile.html");
         var chatPath    = Path.Combine(Helper.DirectoryPath, "Overlay", "chat.html");
-        _overlay.Start(overlayPath, mobilePath, chatPath, _chatFeed);
+        var alertPath   = Path.Combine(Helper.DirectoryPath, "Overlay", "alert.html");
+        _overlay.Start(overlayPath, mobilePath, chatPath, alertPath, _chatFeed);
 
         // Push new chat messages to the browser source
         _chatFeed.OnNewMessage   += msg  => _overlay.PushChatMessage(msg);

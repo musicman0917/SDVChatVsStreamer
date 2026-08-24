@@ -20,6 +20,7 @@ public class OverlayServer
     private string _overlayHtmlPath = "";
     private string _mobileHtmlPath  = "";
     private string _chatHtmlPath    = "";
+    private string _alertHtmlPath   = "";
     private ChatFeed? _chatFeed;
     private TikTok.TikTokManager? _tikTokManager;
 
@@ -63,11 +64,12 @@ public class OverlayServer
 
     public void SetTikTokManager(TikTok.TikTokManager manager) => _tikTokManager = manager;
 
-    public void Start(string overlayHtmlPath, string mobileHtmlPath, string chatHtmlPath, UI.ChatFeed chatFeed)
+    public void Start(string overlayHtmlPath, string mobileHtmlPath, string chatHtmlPath, string alertHtmlPath, UI.ChatFeed chatFeed)
     {
         _overlayHtmlPath = overlayHtmlPath;
         _mobileHtmlPath  = mobileHtmlPath;
         _chatHtmlPath    = chatHtmlPath;
+        _alertHtmlPath   = alertHtmlPath;
         _chatFeed        = chatFeed;
         _cts             = new CancellationTokenSource();
         _listener        = new HttpListener();
@@ -134,6 +136,7 @@ public class OverlayServer
                 "/mobile"      => _mobileHtmlPath,
                 "/chat"        => _chatHtmlPath,
                 "/tiktok-test" => _chatHtmlPath,
+                "/alert"       => _alertHtmlPath,
                 _              => _overlayHtmlPath
             };
 
@@ -286,9 +289,12 @@ public class OverlayServer
                 _monitor.Log($"[OverlayServer] Debug raid: {username} with {viewerCount} viewers", LogLevel.Info);
 
                 ModEntry.PendingActions.Enqueue(() =>
-                    _sabotage.RaidEvents.Execute(username, viewerCount, msg => PushChatMessage(
+                {
+                    var result = _sabotage.RaidEvents.Execute(username, viewerCount, msg => PushChatMessage(
                         new UI.ChatMessage("Chat vs Streamer", msg, UI.ChatFeed.HtmlEscape(msg),
-                            UI.ChatPlatform.Twitch, DateTime.UtcNow))));
+                            UI.ChatPlatform.Twitch, DateTime.UtcNow)));
+                    PushFeedEvent(username, "Raid", result.HudMessage, 0, "raid");
+                });
             }
             else if (type == "debug_buy")
             {

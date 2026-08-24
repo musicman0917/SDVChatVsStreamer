@@ -439,7 +439,7 @@ public static class WarpWhistleState
         foreach (var dest in options)
         {
             ModEntry.Logger?.Log($"[WarpWhistleState] Trying warp to {dest.Location} ({dest.X},{dest.Y})", LogLevel.Info);
-            if (SDVChatVsStreamer.Sabotage.WarpHelper.SafeWarp(dest.Location, dest.X, dest.Y))
+            if (SDVChatVsStreamer.Sabotage.WarpHelper.SafeWarpToRandomSpot(dest.Location, dest.X, dest.Y, _rng))
             {
                 ModEntry.Logger?.Log($"[WarpWhistleState] Successfully warped to {dest.Location}.", LogLevel.Info);
                 Game1.addHUDMessage(new HUDMessage(

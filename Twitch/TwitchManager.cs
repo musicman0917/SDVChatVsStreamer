@@ -147,6 +147,7 @@ public class TwitchManager
         _client.OnUserTimedout          += OnUserTimedout;
         _client.OnMessageCleared        += OnMessageCleared;
         _client.OnChatCleared           += OnChatCleared;
+        _client.OnJoinedChannel         += OnIrcJoinedChannel;
 
         _client.Connect();
     }
@@ -157,6 +158,16 @@ public class TwitchManager
         Game1.addHUDMessage(new HUDMessage(
             "✅ Chat vs Streamer connected to Twitch!",
             HUDMessage.newQuest_type));
+
+        // Don't rely solely on Initialize(credentials, channel)'s auto-join — join explicitly
+        // so a bad channel name or a flaky auto-join shows up as a clear log line either way.
+        if (_client?.JoinedChannels.Count == 0)
+            _client?.JoinChannel(_config.ChannelName);
+    }
+
+    private void OnIrcJoinedChannel(object? sender, TwitchLib.Client.Events.OnJoinedChannelArgs e)
+    {
+        _monitor.Log($"[TwitchManager] Joined channel: {e.Channel}", LogLevel.Info);
     }
 
     private bool _reconnecting = false;

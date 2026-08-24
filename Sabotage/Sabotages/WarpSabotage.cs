@@ -34,7 +34,7 @@ public class WarpSabotage : ISabotage
         foreach (var dest in shuffled)
         {
             ModEntry.Logger?.Log($"[WarpSabotage] Trying destination: {dest.Location} ({dest.X},{dest.Y})", LogLevel.Info);
-            if (WarpHelper.SafeWarp(dest.Location, dest.X, dest.Y))
+            if (WarpHelper.SafeWarpToRandomSpot(dest.Location, dest.X, dest.Y, _rng))
             {
                 ModEntry.Logger?.Log($"[WarpSabotage] Successfully warped to {dest.Location}.", LogLevel.Info);
                 Game1.addHUDMessage(new HUDMessage(

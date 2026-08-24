@@ -231,7 +231,7 @@ public class TeleportSabotage : ISabotage
         var dests = new[] { ("Town", 50, 80), ("Beach", 30, 5), ("Mountain", 30, 20) };
         foreach (var dest in dests.OrderBy(_ => _rng.Next()))
         {
-            if (SDVChatVsStreamer.Sabotage.WarpHelper.SafeWarp(dest.Item1, dest.Item2, dest.Item3))
+            if (SDVChatVsStreamer.Sabotage.WarpHelper.SafeWarpToRandomSpot(dest.Item1, dest.Item2, dest.Item3, _rng))
             {
                 ModEntry.Logger?.Log($"[TeleportSabotage] Fallback warp succeeded to {dest.Item1}.", LogLevel.Info);
                 Game1.addHUDMessage(new HUDMessage(

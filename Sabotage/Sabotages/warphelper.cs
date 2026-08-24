@@ -56,6 +56,35 @@ public static class WarpHelper
         return null;
     }
 
+    /// <summary>
+    /// Warps to a random spot in the given location, preferring one of the location's
+    /// own warp/exit points over a hardcoded coordinate. Exit points are guaranteed to
+    /// sit on the connected walkable path network — a bare passability check on a
+    /// hardcoded coordinate can still land on an isolated, unreachable tile once a map
+    /// overhaul mod (SVE, Ridgeside, etc.) changes what's around it, which is how a
+    /// "random location" warp turns into a softlock instead of just an inconvenience.
+    /// Falls back to the hardcoded coordinate if the location has no warp points.
+    /// </summary>
+    public static bool SafeWarpToRandomSpot(string locationName, int fallbackX, int fallbackY, Random rng)
+    {
+        var loc = Game1.getLocationFromName(locationName);
+        if (loc == null)
+        {
+            ModEntry.Logger?.Log($"[WarpHelper] SafeWarpToRandomSpot failed: location '{locationName}' not found.", LogLevel.Warn);
+            return false;
+        }
+
+        if (loc.warps != null && loc.warps.Count > 0)
+        {
+            var warp = loc.warps[rng.Next(loc.warps.Count)];
+            ModEntry.Logger?.Log($"[WarpHelper] Warping to '{locationName}' at its own warp point ({warp.X},{warp.Y}).", LogLevel.Info);
+            Game1.warpFarmer(locationName, warp.X, warp.Y, false);
+            return true;
+        }
+
+        return SafeWarp(locationName, fallbackX, fallbackY);
+    }
+
     public static bool IsTilePassable(GameLocation loc, Vector2 tile)
     {
         try

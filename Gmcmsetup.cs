@@ -479,6 +479,7 @@ public static class GmcmSetup
 
         api.AddPageLink(manifest, "autotrigger", () => "Auto Trigger (Chaos Gods)");
         api.AddPageLink(manifest, "youtube", () => "YouTube (via Streamer.bot) [BETA]");
+        api.AddPageLink(manifest, "donordrive", () => "💸 DonorDrive");
 
         api.AddPage(manifest, "youtube", () => "YouTube (via Streamer.bot) [BETA]");
         api.AddSectionTitle(manifest, () => "YouTube Settings (BETA)");
@@ -494,6 +495,61 @@ public static class GmcmSetup
             name: () => "Streamer.bot Port",
             tooltip: () => "Port Streamer.bot WebSocket is running on (default: 8080)",
             min: 1024, max: 65535);
+
+        api.AddPage(manifest, "donordrive", () => "DonorDrive");
+
+        api.AddSectionTitle(manifest, () => "DonorDrive Settings");
+        api.AddParagraph(manifest, () => "Polls a DonorDrive-powered donation page (Extra Life, etc.) and turns each new donation into chaos points plus a random sabotage/blessing scaled by donation size.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.DonorDriveEnabled,
+            setValue: v => config.DonorDriveEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Turn DonorDrive polling on or off");
+        api.AddTextOption(manifest,
+            getValue: () => config.DonorDriveParticipantId,
+            setValue: v => config.DonorDriveParticipantId = v,
+            name: () => "Participant ID",
+            tooltip: () => "The number (or alias) from your fundraising page's URL, e.g. extra-life.org/participant/123456 → 123456");
+        api.AddTextOption(manifest,
+            getValue: () => config.DonorDriveApiBaseUrl,
+            setValue: v => config.DonorDriveApiBaseUrl = v,
+            name: () => "API Base URL",
+            tooltip: () => "Base URL of your org's DonorDrive site, e.g. https://www.extra-life.org");
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonorDrivePollSeconds,
+            setValue: v => config.DonorDrivePollSeconds = v,
+            name: () => "Poll Interval (seconds)",
+            tooltip: () => "How often to check for new donations. DonorDrive asks integrators not to poll more often than every 15 seconds.",
+            min: 15, max: 300);
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonationPointsPerCent,
+            setValue: v => config.DonationPointsPerCent = v,
+            name: () => "Points Per Cent Donated",
+            tooltip: () => "How many points are awarded per cent donated (bits award 1 point per cent by default)",
+            min: 0, max: 20);
+
+        api.AddSectionTitle(manifest, () => "Donation Size Tiers ($)");
+        api.AddParagraph(manifest, () => "Bigger donations roll from a more dramatic effect pool, same idea as raid size.");
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonationSmallThreshold,
+            setValue: v => config.DonationSmallThreshold = v,
+            name: () => "Small Donation Threshold",
+            min: 1, max: 100000);
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonationMediumThreshold,
+            setValue: v => config.DonationMediumThreshold = v,
+            name: () => "Medium Donation Threshold",
+            min: 1, max: 100000);
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonationLargeThreshold,
+            setValue: v => config.DonationLargeThreshold = v,
+            name: () => "Large Donation Threshold",
+            min: 1, max: 100000);
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonationMassiveThreshold,
+            setValue: v => config.DonationMassiveThreshold = v,
+            name: () => "Massive Donation Threshold",
+            min: 1, max: 100000);
 
         api.AddPage(manifest, "autotrigger", () => "Auto Trigger (Chaos Gods)");
 
@@ -541,6 +597,15 @@ public static class GmcmSetup
         config.SmallBitThreshold         = defaults.SmallBitThreshold;
         config.MediumBitThreshold        = defaults.MediumBitThreshold;
         config.LargeBitThreshold         = defaults.LargeBitThreshold;
+        config.DonorDriveEnabled         = defaults.DonorDriveEnabled;
+        config.DonorDriveApiBaseUrl      = defaults.DonorDriveApiBaseUrl;
+        config.DonorDriveParticipantId   = defaults.DonorDriveParticipantId;
+        config.DonorDrivePollSeconds     = defaults.DonorDrivePollSeconds;
+        config.DonationPointsPerCent     = defaults.DonationPointsPerCent;
+        config.DonationSmallThreshold    = defaults.DonationSmallThreshold;
+        config.DonationMediumThreshold   = defaults.DonationMediumThreshold;
+        config.DonationLargeThreshold    = defaults.DonationLargeThreshold;
+        config.DonationMassiveThreshold  = defaults.DonationMassiveThreshold;
         config.EnableChatCommands        = defaults.EnableChatCommands;
         config.EnableChannelPoints       = defaults.EnableChannelPoints;
         config.EnableBitEvents           = defaults.EnableBitEvents;

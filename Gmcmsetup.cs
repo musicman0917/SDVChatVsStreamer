@@ -21,16 +21,21 @@ public static class GmcmSetup
         );
 
         // ─── Pages ────────────────────────────────────────────────────────────
+        // All page links MUST be added here, before the first AddPage call below —
+        // AddPageLink attaches its button to whatever page is currently active, so
+        // any link added after an AddPage call ends up buried on that page instead
+        // of the root menu.
 
-        api.AddPageLink(manifest, "general",      () => "⚙️  General");
-        api.AddPageLink(manifest, "points",       () => "⭐ Points & Economy");
-        api.AddPageLink(manifest, "multipliers",  () => "🎖️  Sub Multipliers");
-        api.AddPageLink(manifest, "bonuses",      () => "🎁 Event Bonuses");
-        api.AddPageLink(manifest, "bits",         () => "💰 Bit Thresholds");
-        api.AddPageLink(manifest, "features",     () => "🔧 Feature Toggles");
-        api.AddPageLink(manifest, "tiktok",       () => "🎵 TikTok (Tikfinity)");
-        api.AddPageLink(manifest, "overlay",      () => "🖥️  Overlay");
-        api.AddPageLink(manifest, "ignored",      () => "🚫 Ignored Users");
+        api.AddPageLink(manifest, "general",   () => "⚙️  General");
+        api.AddPageLink(manifest, "points",    () => "⭐ Points & Economy");
+        api.AddPageLink(manifest, "bits",      () => "💰 Bits");
+        api.AddPageLink(manifest, "donordrive",() => "💸 DonorDrive");
+        api.AddPageLink(manifest, "behavior",  () => "🔧 Sabotage Behavior");
+        api.AddPageLink(manifest, "tiktok",    () => "🎵 TikTok (Tikfinity)");
+        api.AddPageLink(manifest, "youtube",   () => "📺 YouTube (Streamer.bot) [BETA]");
+        api.AddPageLink(manifest, "overlay",   () => "🖥️  OBS Overlay (Shop/Feed)");
+        api.AddPageLink(manifest, "chatfeed",  () => "💬 Chat Feed Display");
+        api.AddPageLink(manifest, "ignored",   () => "🚫 Ignored Users");
 
         // ─── General ──────────────────────────────────────────────────────────
 
@@ -53,13 +58,12 @@ public static class GmcmSetup
             name: () => "Broadcaster User ID",
             tooltip: () => "Your numeric Twitch user ID (find it at streamweasels.com/tools/twitch-user-id-finder)");
 
-        api.AddSectionTitle(manifest, () => "Overlay");
-        api.AddNumberOption(manifest,
-            getValue: () => config.OverlayPort,
-            setValue: v => config.OverlayPort = v,
-            name: () => "Overlay Port",
-            tooltip: () => "Port for the OBS browser source overlay (default: 7373)",
-            min: 1024, max: 65535);
+        api.AddSectionTitle(manifest, () => "Chaos Shop");
+        api.AddTextOption(manifest,
+            getValue: () => config.ShopUrl,
+            setValue: v => config.ShopUrl = v,
+            name: () => "Shop Reference URL",
+            tooltip: () => "Link posted in chat by !shop instead of listing every command");
 
         api.AddSectionTitle(manifest, () => "Key Bindings");
         api.AddTextOption(manifest,
@@ -100,42 +104,7 @@ public static class GmcmSetup
             tooltip: () => "How long before the same viewer can earn chat bonus again",
             min: 10, max: 600);
 
-        // ─── Sub Multipliers ──────────────────────────────────────────────────
-
-        api.AddPage(manifest, "multipliers", () => "Sub Multipliers");
-
-        api.AddParagraph(manifest, () => "Multipliers are applied to passive point ticks. Higher tier = more points per tick.");
-
-        api.AddNumberOption(manifest,
-            getValue: () => config.MultiplierNone,
-            setValue: v => config.MultiplierNone = v,
-            name: () => "Non-Sub Multiplier",
-            min: 0.1f, max: 5.0f, interval: 0.05f);
-        api.AddNumberOption(manifest,
-            getValue: () => config.MultiplierPrime,
-            setValue: v => config.MultiplierPrime = v,
-            name: () => "Prime Sub Multiplier",
-            min: 0.1f, max: 5.0f, interval: 0.05f);
-        api.AddNumberOption(manifest,
-            getValue: () => config.MultiplierT1,
-            setValue: v => config.MultiplierT1 = v,
-            name: () => "Tier 1 Sub Multiplier",
-            min: 0.1f, max: 5.0f, interval: 0.05f);
-        api.AddNumberOption(manifest,
-            getValue: () => config.MultiplierT2,
-            setValue: v => config.MultiplierT2 = v,
-            name: () => "Tier 2 Sub Multiplier",
-            min: 0.1f, max: 5.0f, interval: 0.05f);
-        api.AddNumberOption(manifest,
-            getValue: () => config.MultiplierT3,
-            setValue: v => config.MultiplierT3 = v,
-            name: () => "Tier 3 Sub Multiplier",
-            min: 0.1f, max: 5.0f, interval: 0.05f);
-
-        // ─── Event Bonuses ────────────────────────────────────────────────────
-
-        api.AddPage(manifest, "bonuses", () => "Event Bonuses");
-
+        api.AddSectionTitle(manifest, () => "Event Bonuses");
         api.AddNumberOption(manifest,
             getValue: () => config.FollowBonus,
             setValue: v => config.FollowBonus = v,
@@ -166,6 +135,39 @@ public static class GmcmSetup
             name: () => "Raider Welcome Bonus",
             tooltip: () => "Points awarded to each viewer who joins via raid",
             min: 0, max: 200);
+
+        api.AddSectionTitle(manifest, () => "Sub Multipliers");
+        api.AddParagraph(manifest, () => "Multipliers are applied to passive point ticks. Higher tier = more points per tick.");
+        api.AddNumberOption(manifest,
+            getValue: () => config.MultiplierNone,
+            setValue: v => config.MultiplierNone = v,
+            name: () => "Non-Sub Multiplier",
+            min: 0.1f, max: 5.0f, interval: 0.05f);
+        api.AddNumberOption(manifest,
+            getValue: () => config.MultiplierPrime,
+            setValue: v => config.MultiplierPrime = v,
+            name: () => "Prime Sub Multiplier",
+            min: 0.1f, max: 5.0f, interval: 0.05f);
+        api.AddNumberOption(manifest,
+            getValue: () => config.MultiplierT1,
+            setValue: v => config.MultiplierT1 = v,
+            name: () => "Tier 1 Sub Multiplier",
+            min: 0.1f, max: 5.0f, interval: 0.05f);
+        api.AddNumberOption(manifest,
+            getValue: () => config.MultiplierT2,
+            setValue: v => config.MultiplierT2 = v,
+            name: () => "Tier 2 Sub Multiplier",
+            min: 0.1f, max: 5.0f, interval: 0.05f);
+        api.AddNumberOption(manifest,
+            getValue: () => config.MultiplierT3,
+            setValue: v => config.MultiplierT3 = v,
+            name: () => "Tier 3 Sub Multiplier",
+            min: 0.1f, max: 5.0f, interval: 0.05f);
+
+        // ─── Bits ─────────────────────────────────────────────────────────────
+
+        api.AddPage(manifest, "bits", () => "Bits");
+
         api.AddNumberOption(manifest,
             getValue: () => config.BitsPerPoint,
             setValue: v => config.BitsPerPoint = v,
@@ -173,12 +175,8 @@ public static class GmcmSetup
             tooltip: () => "How many points are awarded per bit cheered",
             min: 0, max: 10);
 
-        // ─── Bit Thresholds ───────────────────────────────────────────────────
-
-        api.AddPage(manifest, "bits", () => "Bit Thresholds");
-
+        api.AddSectionTitle(manifest, () => "Sabotage Thresholds");
         api.AddParagraph(manifest, () => "Bit cheers above these thresholds trigger sabotage events.");
-
         api.AddNumberOption(manifest,
             getValue: () => config.SmallBitThreshold,
             setValue: v => config.SmallBitThreshold = v,
@@ -195,10 +193,68 @@ public static class GmcmSetup
             name: () => "Large Bit Threshold",
             min: 1, max: 10000);
 
-        // ─── Feature Toggles ──────────────────────────────────────────────────
+        // ─── DonorDrive ───────────────────────────────────────────────────────
 
-        api.AddPage(manifest, "features", () => "Feature Toggles");
+        api.AddPage(manifest, "donordrive", () => "DonorDrive");
 
+        api.AddSectionTitle(manifest, () => "DonorDrive Settings");
+        api.AddParagraph(manifest, () => "Polls a DonorDrive-powered donation page (Extra Life, etc.) and turns each new donation into chaos points plus a random sabotage/blessing scaled by donation size.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.DonorDriveEnabled,
+            setValue: v => config.DonorDriveEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Turn DonorDrive polling on or off");
+        api.AddTextOption(manifest,
+            getValue: () => config.DonorDriveParticipantId,
+            setValue: v => config.DonorDriveParticipantId = v,
+            name: () => "Participant ID",
+            tooltip: () => "The number (or alias) from your fundraising page's URL, e.g. extra-life.org/participant/123456 → 123456");
+        api.AddTextOption(manifest,
+            getValue: () => config.DonorDriveApiBaseUrl,
+            setValue: v => config.DonorDriveApiBaseUrl = v,
+            name: () => "API Base URL",
+            tooltip: () => "Base URL of your org's DonorDrive site, e.g. https://www.extra-life.org");
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonorDrivePollSeconds,
+            setValue: v => config.DonorDrivePollSeconds = v,
+            name: () => "Poll Interval (seconds)",
+            tooltip: () => "How often to check for new donations. DonorDrive asks integrators not to poll more often than every 15 seconds.",
+            min: 15, max: 300);
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonationPointsPerCent,
+            setValue: v => config.DonationPointsPerCent = v,
+            name: () => "Points Per Cent Donated",
+            tooltip: () => "How many points are awarded per cent donated (bits award 1 point per cent by default)",
+            min: 0, max: 20);
+
+        api.AddSectionTitle(manifest, () => "Donation Size Tiers ($)");
+        api.AddParagraph(manifest, () => "Bigger donations roll from a more dramatic effect pool, same idea as raid size.");
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonationSmallThreshold,
+            setValue: v => config.DonationSmallThreshold = v,
+            name: () => "Small Donation Threshold",
+            min: 1, max: 100000);
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonationMediumThreshold,
+            setValue: v => config.DonationMediumThreshold = v,
+            name: () => "Medium Donation Threshold",
+            min: 1, max: 100000);
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonationLargeThreshold,
+            setValue: v => config.DonationLargeThreshold = v,
+            name: () => "Large Donation Threshold",
+            min: 1, max: 100000);
+        api.AddNumberOption(manifest,
+            getValue: () => config.DonationMassiveThreshold,
+            setValue: v => config.DonationMassiveThreshold = v,
+            name: () => "Massive Donation Threshold",
+            min: 1, max: 100000);
+
+        // ─── Sabotage Behavior ────────────────────────────────────────────────
+
+        api.AddPage(manifest, "behavior", () => "Sabotage Behavior");
+
+        api.AddSectionTitle(manifest, () => "Chat Commands & Events");
         api.AddBoolOption(manifest,
             getValue: () => config.EnableChatCommands,
             setValue: v => config.EnableChatCommands = v,
@@ -224,39 +280,6 @@ public static class GmcmSetup
             setValue: v => config.EnableRaidEvents = v,
             name: () => "Enable Raid Events",
             tooltip: () => "Fire a random sabotage when a raid comes in");
-        api.AddBoolOption(manifest,
-            getValue: () => config.NotifyOverlayConnected,
-            setValue: v => config.NotifyOverlayConnected = v,
-            name: () => "Notify Overlay Connected",
-            tooltip: () => "Show an in-game HUD message when the OBS overlay connects");
-        api.AddBoolOption(manifest,
-            getValue: () => config.EnableChatOverlay,
-            setValue: v => config.EnableChatOverlay = v,
-            name: () => "Enable In-Game Chat Overlay",
-            tooltip: () => "Show a chat feed in the corner of the screen while playing");
-        api.AddTextOption(manifest,
-            getValue: () => config.ChatOverlayCorner,
-            setValue: v => config.ChatOverlayCorner = v,
-            name: () => "Chat Overlay Corner",
-            tooltip: () => "Which corner to display the chat feed",
-            allowedValues: new[] { "TopLeft", "TopRight", "BottomLeft", "BottomRight" });
-        api.AddNumberOption(manifest,
-            getValue: () => config.ChatOverlayMaxMessages,
-            setValue: v => config.ChatOverlayMaxMessages = v,
-            name: () => "Chat Overlay Max Messages",
-            tooltip: () => "How many messages to show in the in-game overlay",
-            min: 1, max: 20);
-        api.AddNumberOption(manifest,
-            getValue: () => config.ChatOverlayMessageTTL,
-            setValue: v => config.ChatOverlayMessageTTL = v,
-            name: () => "Message Display Time (seconds)",
-            tooltip: () => "How long messages stay visible before disappearing",
-            min: 3, max: 60);
-        api.AddBoolOption(manifest,
-            getValue: () => config.EnableChatBrowserSource,
-            setValue: v => config.EnableChatBrowserSource = v,
-            name: () => "Enable Chat Browser Source",
-            tooltip: () => "Serve a chat overlay at http://localhost:7373/chat for OBS");
 
         api.AddSectionTitle(manifest, () => "Starter Points Redemptions");
         api.AddParagraph(manifest, () => "Set up to three channel point rewards that award chaos points. Title must match your Twitch reward exactly (case-insensitive).");
@@ -265,44 +288,56 @@ public static class GmcmSetup
             setValue: v => config.EnableStarterRedemption = v,
             name: () => "Enable CPR Starter Points",
             tooltip: () => "Award chaos points when a viewer redeems a matching channel point reward");
-
-        api.AddSectionTitle(manifest, () => "Small Reward");
         api.AddTextOption(manifest,
             getValue: () => config.StarterRedemptionTitleSmall,
             setValue: v => config.StarterRedemptionTitleSmall = v,
-            name: () => "Redemption Title",
+            name: () => "Small Reward Title",
             tooltip: () => "Must match your Twitch channel point reward title exactly");
         api.AddNumberOption(manifest,
             getValue: () => config.StarterRedemptionPointsSmall,
             setValue: v => config.StarterRedemptionPointsSmall = v,
-            name: () => "Points Awarded",
+            name: () => "Small Reward Points",
             min: 1, max: 10000);
-
-        api.AddSectionTitle(manifest, () => "Medium Reward");
         api.AddTextOption(manifest,
             getValue: () => config.StarterRedemptionTitleMedium,
             setValue: v => config.StarterRedemptionTitleMedium = v,
-            name: () => "Redemption Title",
+            name: () => "Medium Reward Title",
             tooltip: () => "Must match your Twitch channel point reward title exactly");
         api.AddNumberOption(manifest,
             getValue: () => config.StarterRedemptionPointsMedium,
             setValue: v => config.StarterRedemptionPointsMedium = v,
-            name: () => "Points Awarded",
+            name: () => "Medium Reward Points",
             min: 1, max: 10000);
-
-        api.AddSectionTitle(manifest, () => "Large Reward");
         api.AddTextOption(manifest,
             getValue: () => config.StarterRedemptionTitleLarge,
             setValue: v => config.StarterRedemptionTitleLarge = v,
-            name: () => "Redemption Title",
+            name: () => "Large Reward Title",
             tooltip: () => "Must match your Twitch channel point reward title exactly");
         api.AddNumberOption(manifest,
             getValue: () => config.StarterRedemptionPointsLarge,
             setValue: v => config.StarterRedemptionPointsLarge = v,
-            name: () => "Points Awarded",
+            name: () => "Large Reward Points",
             min: 1, max: 10000);
 
-        // ─── TikTok ───────────────────────────────────────────────────────────────
+        api.AddSectionTitle(manifest, () => "Auto Trigger (Chaos Gods)");
+        api.AddBoolOption(manifest,
+            getValue: () => config.AutoTriggerEnabled,
+            setValue: v => config.AutoTriggerEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Automatically fire a random sabotage if chat goes quiet");
+        api.AddNumberOption(manifest,
+            getValue: () => config.AutoTriggerMinutes,
+            setValue: v => config.AutoTriggerMinutes = v,
+            name: () => "Quiet Period (minutes)",
+            tooltip: () => "How many minutes of no sabotages before auto-triggering",
+            min: 1, max: 30);
+        api.AddTextOption(manifest,
+            getValue: () => config.AutoTriggerPool,
+            setValue: v => config.AutoTriggerPool = v,
+            name: () => "Sabotage Pool",
+            tooltip: () => "Comma-separated list of !buy commands to pick from");
+
+        // ─── TikTok ───────────────────────────────────────────────────────────
 
         api.AddPage(manifest, "tiktok", () => "TikTok (Tikfinity)");
 
@@ -358,9 +393,27 @@ public static class GmcmSetup
             tooltip: () => "Gifts are valued in TikTok diamonds — how many chaos points each diamond is worth",
             min: 0, max: 100);
 
-        // ─── Overlay ──────────────────────────────────────────────────────────
+        // ─── YouTube ──────────────────────────────────────────────────────────
 
-        api.AddPage(manifest, "overlay", () => "Overlay");
+        api.AddPage(manifest, "youtube", () => "YouTube (via Streamer.bot) [BETA]");
+
+        api.AddSectionTitle(manifest, () => "YouTube Settings (BETA)");
+        api.AddParagraph(manifest, () => "⚠️ Experimental and not yet fully tested. Connects YouTube Live Chat via Streamer.bot. Make sure Streamer.bot is running and connected to YouTube before enabling.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.YouTubeEnabled,
+            setValue: v => config.YouTubeEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Enable YouTube Live Chat integration via Streamer.bot");
+        api.AddNumberOption(manifest,
+            getValue: () => config.StreamerbotPort,
+            setValue: v => config.StreamerbotPort = v,
+            name: () => "Streamer.bot Port",
+            tooltip: () => "Port Streamer.bot WebSocket is running on (default: 8080)",
+            min: 1024, max: 65535);
+
+        // ─── OBS Overlay (Shop/Feed) ──────────────────────────────────────────
+
+        api.AddPage(manifest, "overlay", () => "OBS Overlay (Shop/Feed)");
 
         api.AddSectionTitle(manifest, () => "Connection");
         api.AddNumberOption(manifest,
@@ -369,6 +422,11 @@ public static class GmcmSetup
             name: () => "Port",
             tooltip: () => "OBS browser source port (default: 7373)",
             min: 1024, max: 65535);
+        api.AddBoolOption(manifest,
+            getValue: () => config.NotifyOverlayConnected,
+            setValue: v => config.NotifyOverlayConnected = v,
+            name: () => "Notify Overlay Connected",
+            tooltip: () => "Show an in-game HUD message when the OBS overlay connects");
 
         api.AddSectionTitle(manifest, () => "Layout Mode");
         api.AddTextOption(manifest,
@@ -464,6 +522,44 @@ public static class GmcmSetup
             name: () => "Text Color",
             tooltip: () => "Hex color e.g. #efeff1");
 
+        // ─── Chat Feed Display ────────────────────────────────────────────────
+        // The chat message feed (as opposed to the shop/feed/leaderboard overlay
+        // above) — shown both as an in-game HUD and as a separate OBS browser source.
+
+        api.AddPage(manifest, "chatfeed", () => "Chat Feed Display");
+
+        api.AddSectionTitle(manifest, () => "In-Game HUD");
+        api.AddBoolOption(manifest,
+            getValue: () => config.EnableChatOverlay,
+            setValue: v => config.EnableChatOverlay = v,
+            name: () => "Enable In-Game Chat Overlay",
+            tooltip: () => "Show a chat feed in the corner of the screen while playing");
+        api.AddTextOption(manifest,
+            getValue: () => config.ChatOverlayCorner,
+            setValue: v => config.ChatOverlayCorner = v,
+            name: () => "Chat Overlay Corner",
+            tooltip: () => "Which corner to display the chat feed",
+            allowedValues: new[] { "TopLeft", "TopRight", "BottomLeft", "BottomRight" });
+        api.AddNumberOption(manifest,
+            getValue: () => config.ChatOverlayMaxMessages,
+            setValue: v => config.ChatOverlayMaxMessages = v,
+            name: () => "Max Messages",
+            tooltip: () => "How many messages to show at once",
+            min: 1, max: 20);
+        api.AddNumberOption(manifest,
+            getValue: () => config.ChatOverlayMessageTTL,
+            setValue: v => config.ChatOverlayMessageTTL = v,
+            name: () => "Message Display Time (seconds)",
+            tooltip: () => "How long messages stay visible before disappearing",
+            min: 3, max: 60);
+
+        api.AddSectionTitle(manifest, () => "OBS Browser Source");
+        api.AddBoolOption(manifest,
+            getValue: () => config.EnableChatBrowserSource,
+            setValue: v => config.EnableChatBrowserSource = v,
+            name: () => "Enable Chat Browser Source",
+            tooltip: () => "Serve a chat overlay at http://localhost:7373/chat for OBS");
+
         // ─── Ignored Users ────────────────────────────────────────────────────
 
         api.AddPage(manifest, "ignored", () => "Ignored Users");
@@ -474,102 +570,6 @@ public static class GmcmSetup
             setValue: v => config.IgnoreListKey = v,
             name: () => "Open Menu Key",
             tooltip: () => "Key to press in-game to open the Ignored Users manager (default: F8)");
-
-        // ─── Auto Trigger ─────────────────────────────────────────────────────
-
-        api.AddPageLink(manifest, "autotrigger", () => "Auto Trigger (Chaos Gods)");
-        api.AddPageLink(manifest, "youtube", () => "YouTube (via Streamer.bot) [BETA]");
-        api.AddPageLink(manifest, "donordrive", () => "💸 DonorDrive");
-
-        api.AddPage(manifest, "youtube", () => "YouTube (via Streamer.bot) [BETA]");
-        api.AddSectionTitle(manifest, () => "YouTube Settings (BETA)");
-        api.AddParagraph(manifest, () => "⚠️ Experimental and not yet fully tested. Connects YouTube Live Chat via Streamer.bot. Make sure Streamer.bot is running and connected to YouTube before enabling.");
-        api.AddBoolOption(manifest,
-            getValue: () => config.YouTubeEnabled,
-            setValue: v => config.YouTubeEnabled = v,
-            name: () => "Enabled",
-            tooltip: () => "Enable YouTube Live Chat integration via Streamer.bot");
-        api.AddNumberOption(manifest,
-            getValue: () => config.StreamerbotPort,
-            setValue: v => config.StreamerbotPort = v,
-            name: () => "Streamer.bot Port",
-            tooltip: () => "Port Streamer.bot WebSocket is running on (default: 8080)",
-            min: 1024, max: 65535);
-
-        api.AddPage(manifest, "donordrive", () => "DonorDrive");
-
-        api.AddSectionTitle(manifest, () => "DonorDrive Settings");
-        api.AddParagraph(manifest, () => "Polls a DonorDrive-powered donation page (Extra Life, etc.) and turns each new donation into chaos points plus a random sabotage/blessing scaled by donation size.");
-        api.AddBoolOption(manifest,
-            getValue: () => config.DonorDriveEnabled,
-            setValue: v => config.DonorDriveEnabled = v,
-            name: () => "Enabled",
-            tooltip: () => "Turn DonorDrive polling on or off");
-        api.AddTextOption(manifest,
-            getValue: () => config.DonorDriveParticipantId,
-            setValue: v => config.DonorDriveParticipantId = v,
-            name: () => "Participant ID",
-            tooltip: () => "The number (or alias) from your fundraising page's URL, e.g. extra-life.org/participant/123456 → 123456");
-        api.AddTextOption(manifest,
-            getValue: () => config.DonorDriveApiBaseUrl,
-            setValue: v => config.DonorDriveApiBaseUrl = v,
-            name: () => "API Base URL",
-            tooltip: () => "Base URL of your org's DonorDrive site, e.g. https://www.extra-life.org");
-        api.AddNumberOption(manifest,
-            getValue: () => config.DonorDrivePollSeconds,
-            setValue: v => config.DonorDrivePollSeconds = v,
-            name: () => "Poll Interval (seconds)",
-            tooltip: () => "How often to check for new donations. DonorDrive asks integrators not to poll more often than every 15 seconds.",
-            min: 15, max: 300);
-        api.AddNumberOption(manifest,
-            getValue: () => config.DonationPointsPerCent,
-            setValue: v => config.DonationPointsPerCent = v,
-            name: () => "Points Per Cent Donated",
-            tooltip: () => "How many points are awarded per cent donated (bits award 1 point per cent by default)",
-            min: 0, max: 20);
-
-        api.AddSectionTitle(manifest, () => "Donation Size Tiers ($)");
-        api.AddParagraph(manifest, () => "Bigger donations roll from a more dramatic effect pool, same idea as raid size.");
-        api.AddNumberOption(manifest,
-            getValue: () => config.DonationSmallThreshold,
-            setValue: v => config.DonationSmallThreshold = v,
-            name: () => "Small Donation Threshold",
-            min: 1, max: 100000);
-        api.AddNumberOption(manifest,
-            getValue: () => config.DonationMediumThreshold,
-            setValue: v => config.DonationMediumThreshold = v,
-            name: () => "Medium Donation Threshold",
-            min: 1, max: 100000);
-        api.AddNumberOption(manifest,
-            getValue: () => config.DonationLargeThreshold,
-            setValue: v => config.DonationLargeThreshold = v,
-            name: () => "Large Donation Threshold",
-            min: 1, max: 100000);
-        api.AddNumberOption(manifest,
-            getValue: () => config.DonationMassiveThreshold,
-            setValue: v => config.DonationMassiveThreshold = v,
-            name: () => "Massive Donation Threshold",
-            min: 1, max: 100000);
-
-        api.AddPage(manifest, "autotrigger", () => "Auto Trigger (Chaos Gods)");
-
-        api.AddSectionTitle(manifest, () => "Chaos Gods Settings");
-        api.AddBoolOption(manifest,
-            getValue: () => config.AutoTriggerEnabled,
-            setValue: v => config.AutoTriggerEnabled = v,
-            name: () => "Enabled",
-            tooltip: () => "Automatically fire a random sabotage if chat goes quiet");
-        api.AddNumberOption(manifest,
-            getValue: () => config.AutoTriggerMinutes,
-            setValue: v => config.AutoTriggerMinutes = v,
-            name: () => "Quiet Period (minutes)",
-            tooltip: () => "How many minutes of no sabotages before auto-triggering",
-            min: 1, max: 30);
-        api.AddTextOption(manifest,
-            getValue: () => config.AutoTriggerPool,
-            setValue: v => config.AutoTriggerPool = v,
-            name: () => "Sabotage Pool",
-            tooltip: () => "Comma-separated list of !buy commands to pick from");
     }
 
     private static void ResetConfig(ModConfig config)
@@ -579,6 +579,7 @@ public static class GmcmSetup
         config.ChannelName               = defaults.ChannelName;
         config.BotUsername               = defaults.BotUsername;
         config.BroadcasterUserId         = defaults.BroadcasterUserId;
+        config.ShopUrl                   = defaults.ShopUrl;
         config.PassiveTickMinutes        = defaults.PassiveTickMinutes;
         config.BasePassivePoints         = defaults.BasePassivePoints;
         config.ChatBonusPoints           = defaults.ChatBonusPoints;

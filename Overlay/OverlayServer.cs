@@ -21,6 +21,7 @@ public class OverlayServer
     private string _mobileHtmlPath  = "";
     private string _chatHtmlPath    = "";
     private string _alertHtmlPath   = "";
+    private string _alertMobileHtmlPath = "";
     private ChatFeed? _chatFeed;
     private TikTok.TikTokManager? _tikTokManager;
 
@@ -64,13 +65,14 @@ public class OverlayServer
 
     public void SetTikTokManager(TikTok.TikTokManager manager) => _tikTokManager = manager;
 
-    public void Start(string overlayHtmlPath, string mobileHtmlPath, string chatHtmlPath, string alertHtmlPath, UI.ChatFeed chatFeed)
+    public void Start(string overlayHtmlPath, string mobileHtmlPath, string chatHtmlPath, string alertHtmlPath, string alertMobileHtmlPath, UI.ChatFeed chatFeed)
     {
-        _overlayHtmlPath = overlayHtmlPath;
-        _mobileHtmlPath  = mobileHtmlPath;
-        _chatHtmlPath    = chatHtmlPath;
-        _alertHtmlPath   = alertHtmlPath;
-        _chatFeed        = chatFeed;
+        _overlayHtmlPath     = overlayHtmlPath;
+        _mobileHtmlPath      = mobileHtmlPath;
+        _chatHtmlPath        = chatHtmlPath;
+        _alertHtmlPath       = alertHtmlPath;
+        _alertMobileHtmlPath = alertMobileHtmlPath;
+        _chatFeed            = chatFeed;
         _cts             = new CancellationTokenSource();
         _listener        = new HttpListener();
         _listener.Prefixes.Add($"http://localhost:{_config.OverlayPort}/");
@@ -137,6 +139,7 @@ public class OverlayServer
                 "/chat"        => _chatHtmlPath,
                 "/tiktok-test" => _chatHtmlPath,
                 "/alert"       => _alertHtmlPath,
+                "/alert-mobile" => _alertMobileHtmlPath,
                 _              => _overlayHtmlPath
             };
 

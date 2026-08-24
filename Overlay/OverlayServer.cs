@@ -286,7 +286,7 @@ public class OverlayServer
                 _monitor.Log($"[OverlayServer] Debug raid: {username} with {viewerCount} viewers", LogLevel.Info);
 
                 ModEntry.PendingActions.Enqueue(() =>
-                    _sabotage.TriggerRaidEvent(username, viewerCount, msg => PushChatMessage(
+                    _sabotage.RaidEvents.Execute(username, viewerCount, msg => PushChatMessage(
                         new UI.ChatMessage("Chat vs Streamer", msg, UI.ChatFeed.HtmlEscape(msg),
                             UI.ChatPlatform.Twitch, DateTime.UtcNow))));
             }

@@ -13,7 +13,6 @@ public class SabotageEngine
     private readonly ModConfig    _config;
 
     private readonly Dictionary<string, SabotageDefinition> _shop = new();
-    private readonly List<SabotageDefinition> _raidPool            = new();
     private readonly List<SabotageDefinition> _smallBitPool        = new();
     private readonly List<SabotageDefinition> _mediumBitPool       = new();
     private readonly List<SabotageDefinition> _largeBitPool        = new();
@@ -49,12 +48,6 @@ public class SabotageEngine
         var def = new SabotageDefinition { Sabotage = sabotage };
         _shop[sabotage.BuyCommand.ToLower()] = def;
         _monitor.Log($"[SabotageEngine] Registered: {sabotage.Name} ({sabotage.Cost}pts)", LogLevel.Debug);
-    }
-
-    public void RegisterRaidEvent(ISabotage sabotage)
-    {
-        _raidPool.Add(new SabotageDefinition { Sabotage = sabotage });
-        _monitor.Log($"[SabotageEngine] Registered raid event: {sabotage.Name}", LogLevel.Debug);
     }
 
     public void RegisterBitEvent(ISabotage sabotage, BitTier tier)
@@ -150,64 +143,8 @@ public class SabotageEngine
     }
 
     // ─── Triggered Events ─────────────────────────────────────────────────────
-
-    public void TriggerRaidEvent(string raidLeader, int viewerCount, Action<string> sendChatMessage)
-    {
-        ModEntry.PendingActions.Enqueue(() => FireRaidSlimes(raidLeader, viewerCount, sendChatMessage));
-    }
-
-    private static readonly string[] RaidDevastatingPool = { "sleep", "killfarm", "greenrain", "warp", "bomb" };
-    private readonly Random _raidRng = new();
-
-    private void FireRaidSlimes(string raidLeader, int viewerCount, Action<string> sendChatMessage)
-    {
-        var loc      = Game1.player.currentLocation;
-        var origin   = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
-        int count    = Math.Min(viewerCount, 25);
-        int season   = loc.GetSeasonIndex();
-        bool isBig   = viewerCount >= 20;
-
-        // Spawn slimes on passable tiles
-        var tiles = Sabotages.MonsterSpawnHelper.FindSpawnTiles(loc, origin, count);
-        foreach (var pos in tiles)
-            loc.characters.Add(new StardewValley.Monsters.GreenSlime(pos, season));
-
-        var slimeMsg = count == 1
-            ? $"1 slime"
-            : $"{count} slimes";
-
-        string hudMsg, chatMsg;
-
-        if (isBig)
-        {
-            // Pick a random devastating sabotage
-            var available = RaidDevastatingPool.Where(cmd => _shop.ContainsKey(cmd)).ToList();
-            string bonusDesc = "chaos";
-            if (available.Count > 0)
-            {
-                var cmd = available[_raidRng.Next(available.Count)];
-                if (_shop.TryGetValue(cmd, out var def))
-                {
-                    def.Fire(raidLeader);
-                    bonusDesc = def.Name;
-                    _overlay?.PushFeedEvent(raidLeader, def.Name, def.Description, 0, "raid");
-                }
-            }
-
-            hudMsg  = $"🚨 {raidLeader} raided with {viewerCount}! {slimeMsg} + {bonusDesc}!";
-            chatMsg = $"🚨 MASSIVE RAID from {raidLeader} ({viewerCount} viewers)! {slimeMsg} AND {bonusDesc}! PogChamp";
-        }
-        else
-        {
-            hudMsg  = $"🚨 {raidLeader} raided with {viewerCount}! {slimeMsg} incoming!";
-            chatMsg = $"🚨 RAID from {raidLeader} ({viewerCount} viewers)! {slimeMsg} incoming!";
-        }
-
-        Game1.addHUDMessage(new HUDMessage(hudMsg, HUDMessage.error_type));
-        sendChatMessage(chatMsg);
-
-        _monitor.Log($"[RaidEvent] {raidLeader} — {viewerCount} viewers → {count} slimes{(isBig ? " + devastating sabotage" : "")}", LogLevel.Info);
-    }
+    // Raids fire through RaidEvents.Execute(...) directly (see RaidEventSystem) —
+    // it already covers Chaos/Blessing/Meta outcomes scaled by raid size.
 
     public void TriggerBitEvent(string username, BitTier tier)
     {

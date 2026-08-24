@@ -219,23 +219,6 @@ public class ModEntry : Mod
         foreach (var toolSabotage in ToolSabotage.BuildAll())
             _sabotage.Register(toolSabotage);
 
-        // ── Raid pool ──
-        _sabotage.RegisterRaidEvent(new RainSabotage());
-        _sabotage.RegisterRaidEvent(new StormSabotage());
-        _sabotage.RegisterRaidEvent(new SnowSabotage());
-        _sabotage.RegisterRaidEvent(new GreenRainSabotage());
-        _sabotage.RegisterRaidEvent(new SpawnMonsterSabotage());
-        _sabotage.RegisterRaidEvent(new SpawnBugSabotage());
-        _sabotage.RegisterRaidEvent(new SpawnFrostBatSabotage());
-        _sabotage.RegisterRaidEvent(new SpawnGhostSabotage());
-        _sabotage.RegisterRaidEvent(new SpawnSerpentSabotage());
-        _sabotage.RegisterRaidEvent(new SpawnShadowBruteSabotage());
-        _sabotage.RegisterRaidEvent(new WarpSabotage());
-        _sabotage.RegisterRaidEvent(new DrainEnergySabotage());
-        _sabotage.RegisterRaidEvent(new SwarmSabotage());
-        _sabotage.RegisterRaidEvent(new BombSabotage());
-        _sabotage.RegisterRaidEvent(new DrunkSabotage());
-
         // ── Bit pools ──
         _sabotage.RegisterBitEvent(new DrainEnergySabotage(), BitTier.Small);
         _sabotage.RegisterBitEvent(new RainSabotage(),        BitTier.Small);

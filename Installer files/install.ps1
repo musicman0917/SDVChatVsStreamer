@@ -1,6 +1,6 @@
 # ================================================================
 #  Chat vs Streamer - Installer
-#  Version 0.4.0 by NeighborhoodofMusic
+#  Version 0.5.0 by NeighborhoodofMusic
 # ================================================================
 
 $ErrorActionPreference = "Stop"
@@ -19,7 +19,7 @@ function Write-Header {
     Write-Host ""
     Write-Host "  +======================================================+" -ForegroundColor Cyan
     Write-Host "  *          CHAT VS STREAMER - INSTALLER                *" -ForegroundColor Cyan
-    Write-Host "  *                    v0.4.0                            *" -ForegroundColor Cyan
+    Write-Host "  *                    v0.5.0                            *" -ForegroundColor Cyan
     Write-Host "  +======================================================+" -ForegroundColor Cyan
     Write-Host ""
     if ($Step -and $Total) {

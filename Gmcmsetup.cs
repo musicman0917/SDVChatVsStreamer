@@ -35,6 +35,7 @@ public static class GmcmSetup
         api.AddPageLink(manifest, "youtube",   () => "📺 YouTube (Streamer.bot) [BETA]");
         api.AddPageLink(manifest, "overlay",   () => "🖥️  OBS Overlay (Shop/Feed)");
         api.AddPageLink(manifest, "chatfeed",  () => "💬 Chat Feed Display");
+        api.AddPageLink(manifest, "autoclip",  () => "🎬 Auto-Clipping");
         api.AddPageLink(manifest, "ignored",   () => "🚫 Ignored Users");
 
         // ─── General ──────────────────────────────────────────────────────────
@@ -560,6 +561,78 @@ public static class GmcmSetup
             name: () => "Enable Chat Browser Source",
             tooltip: () => "Serve a chat overlay at http://localhost:7373/chat for OBS");
 
+        // ─── Auto-Clipping ────────────────────────────────────────────────────
+
+        api.AddPage(manifest, "autoclip", () => "Auto-Clipping");
+
+        api.AddParagraph(manifest, () => "Automatically creates a Twitch clip a few seconds after a sabotage or blessing fires, so you never miss capturing chaos for later. Requires clips:edit scope on your Twitch token.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.AutoClipEnabled,
+            setValue: v => config.AutoClipEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Master switch for automatic clip creation");
+        api.AddNumberOption(manifest,
+            getValue: () => config.ClipDelaySeconds,
+            setValue: v => config.ClipDelaySeconds = v,
+            name: () => "Clip Delay (seconds)",
+            tooltip: () => "How long to wait after a trigger before creating the clip, so the effect is actually visible on screen",
+            min: 0, max: 30);
+
+        api.AddSectionTitle(manifest, () => "Clip By Tier");
+        api.AddParagraph(manifest, () => "Which sabotage tiers get auto-clipped. Applies to !buy purchases, bits, donations, channel points, TikTok, and Chaos Gods auto-triggers alike.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.ClipNuisance,
+            setValue: v => config.ClipNuisance = v,
+            name: () => "Clip Nuisance Tier");
+        api.AddNumberOption(manifest,
+            getValue: () => config.ClipNuisanceCooldownSeconds,
+            setValue: v => config.ClipNuisanceCooldownSeconds = v,
+            name: () => "Nuisance Cooldown (seconds)",
+            min: 0, max: 1800);
+        api.AddBoolOption(manifest,
+            getValue: () => config.ClipDisruptive,
+            setValue: v => config.ClipDisruptive = v,
+            name: () => "Clip Disruptive Tier");
+        api.AddNumberOption(manifest,
+            getValue: () => config.ClipDisruptiveCooldownSeconds,
+            setValue: v => config.ClipDisruptiveCooldownSeconds = v,
+            name: () => "Disruptive Cooldown (seconds)",
+            min: 0, max: 1800);
+        api.AddBoolOption(manifest,
+            getValue: () => config.ClipPainful,
+            setValue: v => config.ClipPainful = v,
+            name: () => "Clip Painful Tier");
+        api.AddNumberOption(manifest,
+            getValue: () => config.ClipPainfulCooldownSeconds,
+            setValue: v => config.ClipPainfulCooldownSeconds = v,
+            name: () => "Painful Cooldown (seconds)",
+            min: 0, max: 1800);
+        api.AddBoolOption(manifest,
+            getValue: () => config.ClipDevastating,
+            setValue: v => config.ClipDevastating = v,
+            name: () => "Clip Devastating Tier");
+        api.AddNumberOption(manifest,
+            getValue: () => config.ClipDevastatingCooldownSeconds,
+            setValue: v => config.ClipDevastatingCooldownSeconds = v,
+            name: () => "Devastating Cooldown (seconds)",
+            min: 0, max: 1800);
+        api.AddBoolOption(manifest,
+            getValue: () => config.ClipBlessings,
+            setValue: v => config.ClipBlessings = v,
+            name: () => "Clip Blessings");
+
+        api.AddSectionTitle(manifest, () => "Raids");
+        api.AddBoolOption(manifest,
+            getValue: () => config.ClipRaids,
+            setValue: v => config.ClipRaids = v,
+            name: () => "Clip Raid Events",
+            tooltip: () => "Also clip the Chaos/Blessing/Meta event rolled when a raid comes in");
+        api.AddNumberOption(manifest,
+            getValue: () => config.ClipRaidsCooldownSeconds,
+            setValue: v => config.ClipRaidsCooldownSeconds = v,
+            name: () => "Raid Clip Cooldown (seconds)",
+            min: 0, max: 1800);
+
         // ─── Ignored Users ────────────────────────────────────────────────────
 
         api.AddPage(manifest, "ignored", () => "Ignored Users");
@@ -653,5 +726,21 @@ public static class GmcmSetup
         config.OverlayCustomBg           = defaults.OverlayCustomBg;
         config.OverlayCustomAccent       = defaults.OverlayCustomAccent;
         config.OverlayCustomText         = defaults.OverlayCustomText;
+        config.AutoTriggerEnabled        = defaults.AutoTriggerEnabled;
+        config.AutoTriggerMinutes        = defaults.AutoTriggerMinutes;
+        config.AutoTriggerPool           = defaults.AutoTriggerPool;
+        config.AutoClipEnabled                = defaults.AutoClipEnabled;
+        config.ClipNuisance                   = defaults.ClipNuisance;
+        config.ClipDisruptive                 = defaults.ClipDisruptive;
+        config.ClipPainful                    = defaults.ClipPainful;
+        config.ClipDevastating                = defaults.ClipDevastating;
+        config.ClipBlessings                  = defaults.ClipBlessings;
+        config.ClipDelaySeconds               = defaults.ClipDelaySeconds;
+        config.ClipNuisanceCooldownSeconds    = defaults.ClipNuisanceCooldownSeconds;
+        config.ClipDisruptiveCooldownSeconds  = defaults.ClipDisruptiveCooldownSeconds;
+        config.ClipPainfulCooldownSeconds     = defaults.ClipPainfulCooldownSeconds;
+        config.ClipDevastatingCooldownSeconds = defaults.ClipDevastatingCooldownSeconds;
+        config.ClipRaids                      = defaults.ClipRaids;
+        config.ClipRaidsCooldownSeconds       = defaults.ClipRaidsCooldownSeconds;
     }
 }

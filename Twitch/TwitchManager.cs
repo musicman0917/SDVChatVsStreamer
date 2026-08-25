@@ -580,6 +580,7 @@ public class TwitchManager
             {
                 var result = _sabotage.RaidEvents.Execute(raider, viewerCount, SendMessage);
                 _overlay?.PushFeedEvent(raider, "Raid", result.HudMessage, 0, "raid");
+                _sabotage.TryClipForRaid(raider);
             });
         }
         else

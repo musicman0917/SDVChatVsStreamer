@@ -154,6 +154,8 @@ public class ModConfig
     public int  ClipDisruptiveCooldownSeconds    { get; set; } = 180;
     public int  ClipPainfulCooldownSeconds       { get; set; } = 120;
     public int  ClipDevastatingCooldownSeconds   { get; set; } = 90;
+    public bool ClipRaids                        { get; set; } = true;
+    public int  ClipRaidsCooldownSeconds         { get; set; } = 150;
 
     // ─── Database ────────────────────────────────────────────────────────────
     public string DatabaseFileName { get; set; } = "ViewerLedger.db";

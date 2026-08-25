@@ -298,6 +298,7 @@ public class OverlayServer
                         new UI.ChatMessage("Chat vs Streamer", msg, UI.ChatFeed.HtmlEscape(msg),
                             UI.ChatPlatform.Twitch, DateTime.UtcNow)));
                     PushFeedEvent(username, "Raid", result.HudMessage, 0, "raid");
+                    _sabotage.TryClipForRaid(username);
                 });
             }
             else if (type == "debug_buy")

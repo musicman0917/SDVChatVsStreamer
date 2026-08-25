@@ -137,7 +137,15 @@ public class SabotageEngine
 
     // ─── Triggered Events ─────────────────────────────────────────────────────
     // Raids fire through RaidEvents.Execute(...) directly (see RaidEventSystem) —
-    // it already covers Chaos/Blessing/Meta outcomes scaled by raid size.
+    // it already covers Chaos/Blessing/Meta outcomes scaled by raid size. Raid
+    // effects aren't ISabotage instances, so they don't carry a SabotageTier —
+    // call this separately once a raid event has fired.
+
+    public void TryClipForRaid(string triggeredBy)
+    {
+        if (!_config.ClipRaids) return;
+        _clipService?.TryClip("raid", triggeredBy, _config.ClipRaidsCooldownSeconds);
+    }
 
     public void TriggerBitEvent(string username, BitTier tier)
     {
@@ -184,6 +192,7 @@ public class SabotageEngine
             def.Fire(username);
             names.Add(def.Name);
             _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, eventType);
+            _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         }
         _overlay?.PushShopUpdate();
 
@@ -222,6 +231,7 @@ public class SabotageEngine
 
         _overlay?.PushFeedEvent("The Chaos Gods", def.Name, def.Description, 0, "buy");
         _overlay?.PushShopUpdate();
+        _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, "The Chaos Gods", _config);
 
         sendChat($"🌩️ The Chaos Gods grow restless... !buy {command} was triggered automatically! Type !shop to join the chaos!");
         _monitor.Log($"[SabotageEngine] Auto-trigger fired: {command}", LogLevel.Info);
@@ -253,6 +263,7 @@ public class SabotageEngine
 
         _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "channelpoints");
         _overlay?.PushShopUpdate();
+        _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
 
         _monitor.Log($"[SabotageEngine] Channel point redemption: {def.Name} for {username}", LogLevel.Info);
         return true;
@@ -289,6 +300,7 @@ public class SabotageEngine
             _monitor.Log($"[SabotageEngine] TikTok gift triggered: {def.Name} for {username}", LogLevel.Info);
             def.Fire(username);
             _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "tiktok");
+            _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         }
     }
 
@@ -303,6 +315,7 @@ public class SabotageEngine
             _monitor.Log($"[SabotageEngine] TikTok blessing triggered: {def.Name} for {username}", LogLevel.Info);
             def.Fire(username);
             _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "tiktok");
+            _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         }
     }
 

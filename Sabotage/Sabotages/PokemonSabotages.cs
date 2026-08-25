@@ -241,9 +241,10 @@ public class TeleportSabotage : ISabotage
             }
         }
 
-        ModEntry.Logger?.Log("[TeleportSabotage] All fallback warps failed.", LogLevel.Warn);
+        ModEntry.Logger?.Log("[TeleportSabotage] All fallback warps failed — refunding.", LogLevel.Warn);
+        ModEntry.Ledger?.AddPoints(triggeredBy, Cost);
         Game1.addHUDMessage(new HUDMessage(
-            $"✨ {triggeredBy} tried to Teleport you, but nowhere safe was found!",
+            $"✨ {triggeredBy} tried to Teleport you, but nowhere safe was found! Refunded {Cost}pts.",
             HUDMessage.error_type));
     }
 }

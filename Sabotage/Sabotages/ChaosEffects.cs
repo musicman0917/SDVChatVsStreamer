@@ -451,6 +451,9 @@ public static class WarpWhistleState
         }
 
         ModEntry.Logger?.Log("[WarpWhistleState] All building destinations failed SafeWarp.", LogLevel.Warn);
+        Game1.addHUDMessage(new HUDMessage(
+            "🎺 The Warp Whistle sparked, but nowhere safe was found!",
+            HUDMessage.error_type));
     }
 
     public static int SecsLeft =>

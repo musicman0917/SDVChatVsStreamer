@@ -13,13 +13,21 @@ public class SabotageEngine
     private readonly ModConfig    _config;
 
     private readonly Dictionary<string, SabotageDefinition> _shop = new();
-    private readonly List<SabotageDefinition> _smallBitPool        = new();
-    private readonly List<SabotageDefinition> _mediumBitPool       = new();
-    private readonly List<SabotageDefinition> _largeBitPool        = new();
-    private readonly List<SabotageDefinition> _smallDonationPool   = new();
-    private readonly List<SabotageDefinition> _mediumDonationPool  = new();
-    private readonly List<SabotageDefinition> _largeDonationPool   = new();
-    private readonly List<SabotageDefinition> _massiveDonationPool = new();
+
+    private readonly Dictionary<BitTier, List<SabotageDefinition>> _bitPools = new()
+    {
+        [BitTier.Small]  = new(),
+        [BitTier.Medium] = new(),
+        [BitTier.Large]  = new(),
+    };
+
+    private readonly Dictionary<DonationTier, List<SabotageDefinition>> _donationPools = new()
+    {
+        [DonationTier.Small]   = new(),
+        [DonationTier.Medium]  = new(),
+        [DonationTier.Large]   = new(),
+        [DonationTier.Massive] = new(),
+    };
 
     private readonly Random _rng = new();
 
@@ -52,30 +60,15 @@ public class SabotageEngine
 
     public void RegisterBitEvent(ISabotage sabotage, BitTier tier)
     {
-        var def  = new SabotageDefinition { Sabotage = sabotage };
-        var pool = tier switch
-        {
-            BitTier.Small  => _smallBitPool,
-            BitTier.Medium => _mediumBitPool,
-            BitTier.Large  => _largeBitPool,
-            _              => _smallBitPool
-        };
-        pool.Add(def);
+        var def = new SabotageDefinition { Sabotage = sabotage };
+        _bitPools[tier].Add(def);
         _monitor.Log($"[SabotageEngine] Registered bit event ({tier}): {sabotage.Name}", LogLevel.Debug);
     }
 
     public void RegisterDonationEvent(ISabotage sabotage, DonationTier tier)
     {
-        var def  = new SabotageDefinition { Sabotage = sabotage };
-        var pool = tier switch
-        {
-            DonationTier.Small   => _smallDonationPool,
-            DonationTier.Medium  => _mediumDonationPool,
-            DonationTier.Large   => _largeDonationPool,
-            DonationTier.Massive => _massiveDonationPool,
-            _                    => _smallDonationPool
-        };
-        pool.Add(def);
+        var def = new SabotageDefinition { Sabotage = sabotage };
+        _donationPools[tier].Add(def);
         _monitor.Log($"[SabotageEngine] Registered donation event ({tier}): {sabotage.Name}", LogLevel.Debug);
     }
 
@@ -153,31 +146,8 @@ public class SabotageEngine
 
     private void FireBitEvent(string username, BitTier tier)
     {
-        var pool = tier switch
-        {
-            BitTier.Small  => _smallBitPool,
-            BitTier.Medium => _mediumBitPool,
-            BitTier.Large  => _largeBitPool,
-            _              => _smallBitPool
-        };
-
-        if (pool.Count == 0)
-        {
-            _monitor.Log($"[SabotageEngine] Bit pool ({tier}) is empty.", LogLevel.Warn);
-            return;
-        }
-
-        var def = pool[_rng.Next(pool.Count)];
-        def.Fire(username);
-
-        _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "bits");
-        _overlay?.PushShopUpdate();
-
-        _monitor.Log($"[SabotageEngine] Bit event ({tier}): {def.Name} for {username}", LogLevel.Info);
-
-        Game1.addHUDMessage(new HUDMessage(
-            $"💰 {username}'s bits triggered: {def.Description}!",
-            HUDMessage.error_type));
+        FireTieredEvent(_bitPools[tier], username, tier.ToString(), "bits", fireCount: 1,
+            buildHudMessage: desc => $"💰 {username}'s bits triggered: {desc}!");
     }
 
     public void TriggerDonationEvent(string username, DonationTier tier, double amount)
@@ -187,40 +157,40 @@ public class SabotageEngine
 
     private void FireDonationEvent(string username, DonationTier tier, double amount)
     {
-        var pool = tier switch
-        {
-            DonationTier.Small   => _smallDonationPool,
-            DonationTier.Medium  => _mediumDonationPool,
-            DonationTier.Large   => _largeDonationPool,
-            DonationTier.Massive => _massiveDonationPool,
-            _                    => _smallDonationPool
-        };
+        // Massive donations fire two effects instead of one — same "extra bang" idea as a big raid
+        int fires = tier == DonationTier.Massive ? 2 : 1;
+        FireTieredEvent(_donationPools[tier], username, tier.ToString(), "donation", fires,
+            buildHudMessage: desc => $"💸 {username} donated ${amount:F2}! Triggered: {desc}!");
+    }
 
+    /// <summary>
+    /// Shared firing logic for bit/donation pools: pick up to fireCount random entries,
+    /// fire them, push feed/shop updates, log, and show one HUD message.
+    /// </summary>
+    private void FireTieredEvent(List<SabotageDefinition> pool, string username, string tierLabel,
+        string eventType, int fireCount, Func<string, string> buildHudMessage)
+    {
         if (pool.Count == 0)
         {
-            _monitor.Log($"[SabotageEngine] Donation pool ({tier}) is empty.", LogLevel.Warn);
+            _monitor.Log($"[SabotageEngine] {eventType} pool ({tierLabel}) is empty.", LogLevel.Warn);
             return;
         }
 
-        // Massive donations fire two effects instead of one — same "extra bang" idea as a big raid
-        int fires = tier == DonationTier.Massive ? 2 : 1;
-        var chosen = pool.OrderBy(_ => _rng.Next()).Take(Math.Min(fires, pool.Count)).ToList();
+        var chosen = pool.OrderBy(_ => _rng.Next()).Take(Math.Min(fireCount, pool.Count)).ToList();
 
         var names = new List<string>();
         foreach (var def in chosen)
         {
             def.Fire(username);
             names.Add(def.Name);
-            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "donation");
+            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, eventType);
         }
         _overlay?.PushShopUpdate();
 
         var desc = string.Join(" + ", names);
-        _monitor.Log($"[SabotageEngine] Donation event ({tier}, ${amount:F2}): {desc} for {username}", LogLevel.Info);
+        _monitor.Log($"[SabotageEngine] {eventType} event ({tierLabel}): {desc} for {username}", LogLevel.Info);
 
-        Game1.addHUDMessage(new HUDMessage(
-            $"💸 {username} donated ${amount:F2}! Triggered: {desc}!",
-            HUDMessage.error_type));
+        Game1.addHUDMessage(new HUDMessage(buildHudMessage(desc), HUDMessage.error_type));
     }
 
     // ─── Auto Trigger ─────────────────────────────────────────────────────────

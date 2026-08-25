@@ -15,6 +15,7 @@ namespace SDVChatVsStreamer;
 public class ModEntry : Mod
 {
     public static IMonitor? Logger { get; private set; }
+    public static ViewerLedger? Ledger { get; private set; }
     public static Queue<Action> PendingActions { get; } = new();
     public static Action? PendingDismissalAction { get; set; }
     public static SDVChatVsStreamer.YouTube.YouTubeManager? YouTubeManager { get; private set; }
@@ -49,6 +50,7 @@ public class ModEntry : Mod
         // Economy
         var dbPath = Path.Combine(helper.DirectoryPath, _config.DatabaseFileName);
         _ledger  = new ViewerLedger(dbPath);
+        Ledger   = _ledger;
         _points  = new PointsEngine(_ledger, Monitor, _config);
 
         // Sabotage

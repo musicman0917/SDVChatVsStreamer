@@ -28,6 +28,20 @@ public class AutoPetterSabotage : ISabotage
             }
         }
 
+        // Animals sheltering indoors (rain, night, winter) live in each barn/coop's own
+        // indoor GameLocation, which isn't part of Game1.locations.
+        foreach (var building in Game1.getFarm().buildings)
+        {
+            var indoors = building.GetIndoors();
+            if (indoors == null) continue;
+
+            foreach (var animal in indoors.Animals.Values)
+            {
+                animal.pet(Game1.player);
+                count++;
+            }
+        }
+
         Game1.addHUDMessage(new HUDMessage(
             $"🐾 {triggeredBy} used the Auto-Petter! {count} animals were petted!",
             HUDMessage.newQuest_type));
@@ -86,6 +100,7 @@ public class CarePackageSabotage : ISabotage
                 var tile = playerTile + new Vector2(dx, dy);
                 if (loc.Objects.ContainsKey(tile)) continue;
                 if (!loc.isTilePassable(new xTile.Dimensions.Location((int)tile.X, (int)tile.Y), Game1.viewport)) continue;
+                if (loc.isWaterTile((int)tile.X, (int)tile.Y)) continue;
                 return tile;
             }
         }
@@ -190,8 +205,8 @@ public class GeodeCrackSabotage : ISabotage
             for (int s = 0; s < stack; s++)
             {
                 var loot = StardewValley.Utility.getTreasureFromGeode(item);
-                if (loot != null)
-                    Game1.player.addItemToInventoryBool(loot);
+                if (loot != null && !Game1.player.addItemToInventoryBool(loot))
+                    Game1.createItemDebris(loot, Game1.player.Position, -1, Game1.player.currentLocation);
                 cracked++;
             }
 

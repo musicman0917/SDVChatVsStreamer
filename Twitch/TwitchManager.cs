@@ -216,6 +216,26 @@ public class TwitchManager
 
     private async Task IrcReconnectLoop()
     {
+        // Everything in this method runs on a fire-and-forget Task.Run — an unhandled
+        // exception anywhere in here would otherwise leave _reconnecting stuck true
+        // forever, silently disabling auto-reconnect for the rest of the session.
+        try
+        {
+            await IrcReconnectLoopCore();
+            _monitor.Log("[TwitchManager] IRC reconnected successfully.", LogLevel.Info);
+        }
+        catch (Exception ex)
+        {
+            _monitor.Log($"[TwitchManager] IrcReconnectLoop failed unexpectedly: {ex.Message}", LogLevel.Error);
+        }
+        finally
+        {
+            _reconnecting = false;
+        }
+    }
+
+    private async Task IrcReconnectLoopCore()
+    {
         int attempt = 0;
         bool justRecreatedClient = false;
 
@@ -234,11 +254,18 @@ public class TwitchManager
             if (refreshed != null)
             {
                 _monitor.Log("[TwitchManager] Token refreshed — reinitializing IRC...", LogLevel.Info);
-                try { if (_client?.IsConnected == true) _client.Disconnect(); } catch { }
-                await Task.Delay(1000);
-                SetupIrcClient(refreshed);
-                await Task.Delay(4000);
-                justRecreatedClient = true;
+                try
+                {
+                    if (_client?.IsConnected == true) _client.Disconnect();
+                    await Task.Delay(1000);
+                    SetupIrcClient(refreshed);
+                    await Task.Delay(4000);
+                    justRecreatedClient = true;
+                }
+                catch (Exception ex)
+                {
+                    _monitor.Log($"[TwitchManager] Reinitializing IRC after token refresh failed: {ex.Message}", LogLevel.Warn);
+                }
             }
             else
             {
@@ -248,7 +275,6 @@ public class TwitchManager
         else if (_client?.IsConnected ?? false)
         {
             _monitor.Log("[TwitchManager] IRC already reconnected on its own and token is valid.", LogLevel.Info);
-            _reconnecting = false;
             return;
         }
 
@@ -300,9 +326,6 @@ public class TwitchManager
                 _monitor.Log($"[TwitchManager] IRC reconnect attempt {attempt} failed: {ex.Message}", LogLevel.Warn);
             }
         }
-
-        _reconnecting = false;
-        _monitor.Log("[TwitchManager] IRC reconnected successfully.", LogLevel.Info);
     }
 
     private bool IsIgnored(string username)

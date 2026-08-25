@@ -44,9 +44,10 @@ public class WarpSabotage : ISabotage
             }
         }
 
-        ModEntry.Logger?.Log("[WarpSabotage] All destinations failed SafeWarp.", LogLevel.Warn);
+        ModEntry.Logger?.Log("[WarpSabotage] All destinations failed SafeWarp — refunding.", LogLevel.Warn);
+        ModEntry.Ledger?.AddPoints(triggeredBy, Cost);
         Game1.addHUDMessage(new HUDMessage(
-            $"🌀 {triggeredBy} tried to warp you, but nowhere safe was found!",
+            $"🌀 {triggeredBy} tried to warp you, but nowhere safe was found! Refunded {Cost}pts.",
             HUDMessage.error_type));
     }
 }

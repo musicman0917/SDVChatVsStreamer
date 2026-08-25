@@ -140,6 +140,7 @@ public class OverlayServer
                 "/tiktok-test" => _chatHtmlPath,
                 "/alert"       => _alertHtmlPath,
                 "/alert-mobile" => _alertMobileHtmlPath,
+                "/debug"       => Path.Combine(Path.GetDirectoryName(_overlayHtmlPath) ?? "", "debug.html"),
                 _              => _overlayHtmlPath
             };
 

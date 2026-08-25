@@ -10,6 +10,9 @@ $Host.UI.RawUI.WindowTitle = "Chat vs Streamer Installer"
 
 function Clear-Screen { Clear-Host }
 
+$script:StepCurrent = 0
+$script:StepTotal   = 9   # recomputed once platform choices are known — see Get-OptionalPlatforms
+
 function Write-Header {
     param([string]$Title, [string]$Step = "", [string]$Total = "")
     Clear-Screen
@@ -26,6 +29,15 @@ function Write-Header {
     }
     Write-Host "  ------------------------------------------------------" -ForegroundColor DarkGray
     Write-Host ""
+}
+
+# Numbered top-level step header — increments a shared counter against a total
+# computed once the optional platforms are known, so the count is always right
+# regardless of which optional steps (TikTok, YouTube) end up running.
+function Write-StepHeader {
+    param([string]$Title)
+    $script:StepCurrent++
+    Write-Header $Title $script:StepCurrent $script:StepTotal
 }
 
 function Write-Success { param([string]$msg) Write-Host "  [OK] $msg" -ForegroundColor Green }
@@ -56,7 +68,7 @@ function Write-ProgressBar {
     Write-Host "`r  [$bar] $Percent% $Label" -NoNewline -ForegroundColor Cyan
 }
 
-# -- Screen 1: Welcome ---------------------------------------------
+# -- Screen: Welcome ------------------------------------------------
 
 function Show-Welcome {
     Write-Header "Welcome"
@@ -66,7 +78,8 @@ function Show-Welcome {
     Write-Host "  just by watching - then spend them to sabotage" -ForegroundColor Gray
     Write-Host "  (or bless) your Stardew Valley farm in real time." -ForegroundColor Gray
     Write-Host ""
-    Write-Host "  YouTube Live support is also included (beta)." -ForegroundColor Gray
+    Write-Host "  Optional extras: YouTube Live chat (beta), TikTok Live" -ForegroundColor Gray
+    Write-Host "  (via Tikfinity), and DonorDrive/Extra Life donations." -ForegroundColor Gray
     Write-Host ""
     Write-Host "  Built by NeighborhoodofMusic" -ForegroundColor DarkGray
     Write-Host "  twitch.tv/neighborhoodofmusic" -ForegroundColor DarkGray
@@ -76,41 +89,44 @@ function Show-Welcome {
     Write-Host "    - Install the mod to your Mods folder" -ForegroundColor Gray
     Write-Host "    - Set up your Twitch app credentials" -ForegroundColor Gray
     Write-Host "    - Walk you through the in-game auth flow" -ForegroundColor Gray
-    Write-Host "    - Optionally set up TikTok integration (use at your own risk)" -ForegroundColor DarkGray
+    Write-Host "    - Optionally set up TikTok and/or YouTube (both beta/at your own risk)" -ForegroundColor DarkGray
     Write-Host ""
     Prompt-Continue
 }
 
-# -- Screen 2: Platform Selection ---------------------------------
+# -- Screen: Optional Platforms -------------------------------------
 
-function Get-StreamingPlatform {
-    Write-Header "Streaming Platform" "2" "10"
+function Get-OptionalPlatforms {
+    Write-StepHeader "Additional Platforms"
 
-    Write-Host "  Where do you plan on streaming?" -ForegroundColor White
+    Write-Host "  Twitch is always set up - it's the core of the mod." -ForegroundColor White
+    Write-Host "  Optionally add either (or both) of these too:" -ForegroundColor White
     Write-Host ""
-    Write-Host "    1. Twitch only" -ForegroundColor Cyan
-    Write-Host "    2. Twitch + TikTok" -ForegroundColor Cyan
+    Write-Host "  TikTok Live (via Tikfinity)" -ForegroundColor Cyan
+    Write-Host "    Unsupported, provided as-is. TikTok's API policies may" -ForegroundColor DarkGray
+    Write-Host "    change at any time and could break this feature." -ForegroundColor DarkGray
     Write-Host ""
-    Write-Host "  NOTE: TikTok integration uses Tikfinity and is provided" -ForegroundColor DarkGray
-    Write-Host "  as-is. USE AT YOUR OWN RISK. TikTok's API policies may" -ForegroundColor DarkGray
-    Write-Host "  change at any time and could break this feature." -ForegroundColor DarkGray
-    Write-Host ""
+    $useTikTok = Prompt-YesNo "  Set up TikTok integration?"
 
-    $choice = Read-Host "  Enter 1 or 2"
-    switch ($choice.Trim()) {
-        "1" { return "twitch" }
-        "2" { return "both"   }
-        default {
-            Write-Warn "Invalid choice - defaulting to Twitch only."
-            return "twitch"
-        }
-    }
+    Write-Host ""
+    Write-Host "  YouTube Live chat (via Streamer.bot)" -ForegroundColor Cyan
+    Write-Host "    Beta - experimental and not yet fully tested. Requires" -ForegroundColor DarkGray
+    Write-Host "    Streamer.bot running separately and connected to YouTube." -ForegroundColor DarkGray
+    Write-Host ""
+    $useYouTube = Prompt-YesNo "  Set up YouTube integration?"
+
+    # Recompute the total step count now that we know which optional screens will run.
+    # Base flow: Platforms, License, Find Game, SMAPI, Mods Folder, Install Files,
+    # GMCM, Twitch Setup, Complete = 9, plus one more for each optional platform.
+    $script:StepTotal = 9 + [int]$useTikTok + [int]$useYouTube
+
+    return @{ TikTok = $useTikTok; YouTube = $useYouTube }
 }
 
-# -- Screen 3: License ---------------------------------------------
+# -- Screen: License -------------------------------------------------
 
 function Show-License {
-    Write-Header "License Agreement" "3" "10"
+    Write-StepHeader "License Agreement"
     Write-Host "  MIT License" -ForegroundColor White
     Write-Host ""
     Write-Host "  Copyright (c) 2026 NeighborhoodofMusic" -ForegroundColor Gray
@@ -137,10 +153,10 @@ function Show-License {
     }
 }
 
-# -- Screen 3: Find Stardew Valley --------------------------------
+# -- Screen: Find Stardew Valley -------------------------------------
 
 function Find-StardewValley {
-    Write-Header "Checking Prerequisites" "4" "10"
+    Write-StepHeader "Checking Prerequisites"
     Write-Step "Looking for Stardew Valley..."
     Write-Host ""
 
@@ -203,11 +219,11 @@ function Find-StardewValley {
     return $gamePath.Trim()
 }
 
-# -- Screen 4: SMAPI -----------------------------------------------
+# -- Screen: SMAPI -----------------------------------------------------
 
 function Install-SMAPI {
     param([string]$GamePath)
-    Write-Header "SMAPI Check" "5" "10"
+    Write-StepHeader "SMAPI Check"
 
     $smapiExe = Join-Path $GamePath "StardewModdingAPI.exe"
 
@@ -283,11 +299,11 @@ function Install-SMAPI {
     }
 }
 
-# -- Screen 5: Install Location -----------------------------------
+# -- Screen: Install Location -------------------------------------------
 
 function Get-ModsFolder {
     param([string]$GamePath)
-    Write-Header "Mod Manager" "6" "10"
+    Write-StepHeader "Mod Manager"
 
     $GamePath = $GamePath.Trim()
 
@@ -355,11 +371,11 @@ function Get-ModsFolder {
     }
 }
 
-# -- Screen 6: Install Files ---------------------------------------
+# -- Screen: Install Files -----------------------------------------------
 
 function Install-ModFiles {
     param([string]$ModsFolder)
-    Write-Header "Downloading & Installing" "7" "10"
+    Write-StepHeader "Downloading & Installing"
 
     $ModsFolder  = $ModsFolder.Trim()
     $destFolder  = Join-Path $ModsFolder "ChatVsStreamer"
@@ -443,17 +459,18 @@ function Install-ModFiles {
     return $destFolder
 }
 
-# -- Screen 7: GMCM -----------------------------------------------
+# -- Screen: GMCM -----------------------------------------------------
 
 function Install-GMCM {
     param([string]$ModsFolder)
-    Write-Header "Generic Mod Config Menu" "8" "10"
+    Write-StepHeader "Generic Mod Config Menu"
 
     $ModsFolder = $ModsFolder.Trim()
     $gmcmFolder = Join-Path $ModsFolder "GenericModConfigMenu"
 
     Write-Host "  Generic Mod Config Menu (GMCM) lets you configure" -ForegroundColor White
-    Write-Host "  Chat vs Streamer settings from inside the game." -ForegroundColor White
+    Write-Host "  Chat vs Streamer settings from inside the game -- " -ForegroundColor White
+    Write-Host "  points, sabotage costs, TikTok/YouTube/DonorDrive, and more." -ForegroundColor White
     Write-Host ""
     Write-Host "  It's optional but highly recommended." -ForegroundColor Gray
     Write-Host ""
@@ -489,11 +506,11 @@ function Install-GMCM {
     Read-Host "  Press ENTER once you've installed GMCM to continue"
 }
 
-# -- Screen 8: Twitch Setup ----------------------------------------
+# -- Screen: Twitch Setup ----------------------------------------------
 
 function Setup-Twitch {
     param([string]$ModFolder)
-    Write-Header "Twitch Setup" "9" "10"
+    Write-StepHeader "Twitch Setup"
 
     $authDir    = Join-Path $ModFolder "TwitchAuth"
     $configFile = Join-Path $authDir "secrets.json"
@@ -515,7 +532,7 @@ function Setup-Twitch {
 
     # -- Step 1: Create Twitch App ---------------------------------
     Clear-Screen
-    Write-Header "Twitch Setup - Create App" "8" "9"
+    Write-Header "Twitch Setup - Create App" $script:StepCurrent $script:StepTotal
 
     Write-Host "  STEP 1 - Create a Twitch Application" -ForegroundColor Cyan
     Write-Host ""
@@ -554,7 +571,7 @@ function Setup-Twitch {
     Set-Content -Path $configFile -Value $secrets -Encoding UTF8
 
     Clear-Screen
-    Write-Header "Twitch Setup - Authorization" "8" "9"
+    Write-Header "Twitch Setup - Authorization" $script:StepCurrent $script:StepTotal
 
     Write-Host "  STEP 2 - Authorize the mod with your bot account" -ForegroundColor Cyan
     Write-Host ""
@@ -573,16 +590,17 @@ function Setup-Twitch {
     Write-Host ""
     Write-Host "  Check the SMAPI console for:" -ForegroundColor White
     Write-Host "    [TwitchManager] IRC connected as <botname>" -ForegroundColor DarkGreen
+    Write-Host "    [TwitchManager] Joined channel: <yourchannel>" -ForegroundColor DarkGreen
     Write-Host "    [TwitchManager] PubSub connected" -ForegroundColor DarkGreen
     Write-Host ""
     Write-Success "Twitch credentials saved!"
     Prompt-Continue
 }
 
-# -- Screen 10: TikTok Setup ----------------------------------------
+# -- Screen: TikTok Setup -----------------------------------------------
 
 function Setup-TikTok {
-    Write-Header "TikTok Integration (USE AT YOUR OWN RISK)" "10" "10"
+    Write-StepHeader "TikTok Integration (USE AT YOUR OWN RISK)"
 
     Write-Host "  +--------------------------------------------------+" -ForegroundColor Yellow
     Write-Host "  *  WARNING: TikTok integration is unsupported and  *" -ForegroundColor Yellow
@@ -673,11 +691,49 @@ function Setup-TikTok {
     Prompt-Continue
 }
 
-# -- Screen 10: Complete -------------------------------------------
+# -- Screen: YouTube Setup ------------------------------------------------
+
+function Setup-YouTube {
+    Write-StepHeader "YouTube Integration (BETA)"
+
+    Write-Host "  +--------------------------------------------------+" -ForegroundColor Yellow
+    Write-Host "  *  BETA: YouTube Live chat integration is           *" -ForegroundColor Yellow
+    Write-Host "  *  experimental and not yet fully tested.           *" -ForegroundColor Yellow
+    Write-Host "  +--------------------------------------------------+" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  Unlike Twitch, this mod doesn't talk to YouTube directly --" -ForegroundColor White
+    Write-Host "  it connects through Streamer.bot, a separate free app that" -ForegroundColor White
+    Write-Host "  reads YouTube Live chat and forwards it over a local WebSocket." -ForegroundColor White
+    Write-Host ""
+    Write-Host "  Setup:" -ForegroundColor White
+    Write-Host "    1. Install Streamer.bot from streamer.bot" -ForegroundColor Gray
+    Write-Host "    2. Connect Streamer.bot to your YouTube channel" -ForegroundColor Gray
+    Write-Host "       (see Streamer.bot's own YouTube setup guide)" -ForegroundColor Gray
+    Write-Host "    3. Leave Streamer.bot's WebSocket server on its default port (8080)" -ForegroundColor Gray
+    Write-Host "    4. Launch Stardew Valley through SMAPI" -ForegroundColor Gray
+    Write-Host "    5. Open GMCM > Chat vs Streamer > YouTube (Streamer.bot) [BETA]" -ForegroundColor Gray
+    Write-Host "    6. Enable it, and set the port if you changed it in Streamer.bot" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  We won't try to install Streamer.bot for you -- grab it from:" -ForegroundColor Gray
+    Write-Host "    https://streamer.bot" -ForegroundColor Cyan
+    Write-Host ""
+
+    $open = Prompt-YesNo "Open the Streamer.bot website now?"
+    if ($open) {
+        Start-Process "https://streamer.bot"
+    }
+
+    Write-Host ""
+    Write-Info "Check the SMAPI console for '[YouTubeManager] Connected to Streamer.bot.'"
+    Write-Info "once you've enabled it in GMCM and Streamer.bot is running."
+    Prompt-Continue
+}
+
+# -- Screen: Complete -------------------------------------------------
 
 function Show-Complete {
-    param([string]$Platform = "twitch")
-    Write-Header "Installation Complete!" "10" "10"
+    param([bool]$TikTok = $false, [bool]$YouTube = $false)
+    Write-StepHeader "Installation Complete!"
 
     Write-Host "  +======================================================+" -ForegroundColor Green
     Write-Host "  *           Chat vs Streamer is installed!             *" -ForegroundColor Green
@@ -691,23 +747,39 @@ function Show-Complete {
     Write-Host "       Sign in as your BOT ACCOUNT and click Authorize" -ForegroundColor Yellow
     Write-Host "    4. Check SMAPI console for:" -ForegroundColor Gray
     Write-Host "         [TwitchManager] IRC connected" -ForegroundColor DarkGreen
+    Write-Host "         [TwitchManager] Joined channel: <yourchannel>" -ForegroundColor DarkGreen
     Write-Host "         [TwitchManager] PubSub connected" -ForegroundColor DarkGreen
     Write-Host "    5. Type !shop in your Twitch chat to test it" -ForegroundColor Gray
 
-    if ($Platform -eq "both") {
+    if ($TikTok) {
         Write-Host ""
         Write-Host "  TikTok:" -ForegroundColor Yellow
-        Write-Host "    6. Launch Tikfinity and connect to TikTok LIVE" -ForegroundColor DarkGray
-        Write-Host "    7. Enable TikTok in GMCM > Chat vs Streamer > TikTok" -ForegroundColor DarkGray
-        Write-Host "       (USE AT YOUR OWN RISK)" -ForegroundColor DarkGray
+        Write-Host "    - Launch Tikfinity and connect to TikTok LIVE" -ForegroundColor DarkGray
+        Write-Host "    - Enable TikTok in GMCM > Chat vs Streamer > TikTok" -ForegroundColor DarkGray
+        Write-Host "      (USE AT YOUR OWN RISK)" -ForegroundColor DarkGray
     }
+
+    if ($YouTube) {
+        Write-Host ""
+        Write-Host "  YouTube (beta):" -ForegroundColor Yellow
+        Write-Host "    - Make sure Streamer.bot is running and connected to YouTube" -ForegroundColor DarkGray
+        Write-Host "    - Enable it in GMCM > Chat vs Streamer > YouTube (Streamer.bot)" -ForegroundColor DarkGray
+    }
+
+    Write-Host ""
+    Write-Host "  Want donations (Extra Life / DonorDrive) to trigger chaos too?" -ForegroundColor White
+    Write-Host "    Open GMCM > Chat vs Streamer > DonorDrive, enable it, and" -ForegroundColor DarkGray
+    Write-Host "    enter your participant ID (found in your fundraising page's URL)." -ForegroundColor DarkGray
 
     Write-Host ""
     Write-Host "  OBS Browser Sources:" -ForegroundColor White
     Write-Host ""
-    Write-Host "    Chat overlay  -->  http://localhost:7373/chat" -ForegroundColor Cyan
-    Write-Host "    Shop sidebar  -->  http://localhost:7373/" -ForegroundColor Cyan
-    Write-Host "    Debug panel   -->  http://localhost:7373/debug" -ForegroundColor Cyan
+    Write-Host "    Shop sidebar     -->  http://localhost:7373/" -ForegroundColor Cyan
+    Write-Host "    Shop board       -->  http://localhost:7373/mobile" -ForegroundColor Cyan
+    Write-Host "    Chat overlay     -->  http://localhost:7373/chat" -ForegroundColor Cyan
+    Write-Host "    Alert popup      -->  http://localhost:7373/alert" -ForegroundColor Cyan
+    Write-Host "    Alert (vertical) -->  http://localhost:7373/alert-mobile" -ForegroundColor Cyan
+    Write-Host "    Debug panel      -->  http://localhost:7373/debug" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  GitHub:  github.com/musicman0917/SDVChatVsStreamer" -ForegroundColor DarkGray
     Write-Host "  Twitch:  twitch.tv/neighborhoodofmusic" -ForegroundColor DarkGray
@@ -721,7 +793,7 @@ function Show-Complete {
 
 try {
     Show-Welcome
-    $platform   = Get-StreamingPlatform
+    $platforms  = Get-OptionalPlatforms
     Show-License
     $gamePath   = Find-StardewValley
     Install-SMAPI -GamePath $gamePath
@@ -731,11 +803,10 @@ try {
     Install-GMCM -ModsFolder $modsFolder
     Setup-Twitch -ModFolder $modFolder
 
-    if ($platform -eq "both") {
-        Setup-TikTok
-    }
+    if ($platforms.TikTok)  { Setup-TikTok }
+    if ($platforms.YouTube) { Setup-YouTube }
 
-    Show-Complete -Platform $platform
+    Show-Complete -TikTok $platforms.TikTok -YouTube $platforms.YouTube
 }
 catch {
     Write-Host ""

@@ -29,6 +29,7 @@
     <None Update="Overlay/chat.html" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Overlay/alert.html" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Overlay/alertmobile.html" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Overlay/debug.html" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <Target Name="CopyNativeSQLite" AfterTargets="Build">

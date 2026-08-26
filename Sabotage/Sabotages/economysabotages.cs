@@ -35,6 +35,15 @@ public class NarcolepsySabotage : ISabotage
         if (DateTime.UtcNow >= ExpiresAt) { IsActive = false; return; }
         if (DateTime.UtcNow < _nextSleep) return;
 
+        // Overriding FarmerSprite mid tool-swing (axe, pickaxe, weapon, etc.) orphans
+        // the tool's own animation-finished callback, which never clears UsingTool —
+        // that leaves movement permanently locked. Wait for the swing to finish instead.
+        if (Game1.player.UsingTool)
+        {
+            _nextSleep = DateTime.UtcNow.AddSeconds(2);
+            return;
+        }
+
         _nextSleep = DateTime.UtcNow.AddSeconds(30);
 
         // Force sleep emote for 3 seconds

@@ -61,7 +61,7 @@ public static class AnimalChallengeState
         animalType.Contains("Ostrich", StringComparison.OrdinalIgnoreCase);
 
     private static bool HasRoom(Building building) =>
-        building.GetIndoors() is AnimalHouse house && house.animalsThatLiveHere.Count < house.animalLimit;
+        building.GetIndoors() is AnimalHouse house && house.animalsThatLiveHere.Count < house.animalLimit.Value;
 
     /// <summary>Finds a coop/barn (matching the given animal type's family) with free space.</summary>
     public static Building? FindOpenBuilding(string animalType)
@@ -96,8 +96,11 @@ public static class AnimalChallengeState
         error = null;
         try
         {
-            var farm  = Game1.getFarm();
-            var id    = Game1.multiplayer.getNewID();
+            var farm = Game1.getFarm();
+
+            long id;
+            do { id = Game1.random.NextInt64(); } while (farm.animals.ContainsKey(id));
+
             var animal = new FarmAnimal(animalType, id, Game1.player.UniqueMultiplayerID);
 
             animal.Position        = new Vector2(building.tileX.Value * 64f, building.tileY.Value * 64f);

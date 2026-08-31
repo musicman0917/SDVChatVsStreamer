@@ -157,6 +157,12 @@ public class ModConfig
     public bool ClipRaids                        { get; set; } = true;
     public int  ClipRaidsCooldownSeconds         { get; set; } = 150;
 
+    // ─── Animal Challenge (e.g. "100 Chicken Challenge") ─────────────────────
+    public bool   ChallengeModeEnabled  { get; set; } = false;
+    /// <summary>Substring matched against an animal's in-game type (e.g. "Chicken" matches White/Brown/Void/Golden Chicken). "Any" counts every farm animal.</summary>
+    public string ChallengeAnimalFilter { get; set; } = "Chicken";
+    public int    ChallengeGoalCount    { get; set; } = 100;
+
     // ─── Database ────────────────────────────────────────────────────────────
     public string DatabaseFileName { get; set; } = "ViewerLedger.db";
 }

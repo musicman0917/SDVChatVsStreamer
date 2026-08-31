@@ -36,6 +36,7 @@ public static class GmcmSetup
         api.AddPageLink(manifest, "overlay",   () => "🖥️  OBS Overlay (Shop/Feed)");
         api.AddPageLink(manifest, "chatfeed",  () => "💬 Chat Feed Display");
         api.AddPageLink(manifest, "autoclip",  () => "🎬 Auto-Clipping");
+        api.AddPageLink(manifest, "challenge", () => "🐔 Animal Challenge");
         api.AddPageLink(manifest, "ignored",   () => "🚫 Ignored Users");
 
         // ─── General ──────────────────────────────────────────────────────────
@@ -633,6 +634,28 @@ public static class GmcmSetup
             name: () => "Raid Clip Cooldown (seconds)",
             min: 0, max: 1800);
 
+        // ─── Animal Challenge ─────────────────────────────────────────────────
+
+        api.AddPage(manifest, "challenge", () => "Animal Challenge");
+
+        api.AddParagraph(manifest, () => "A togglable \"100 Chicken Challenge\"-style goal: try to reach a target number of a given animal type on the farm. Chat can buy !buy addanimal to help or !buy spookanimal to hurt your progress.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.ChallengeModeEnabled,
+            setValue: v => config.ChallengeModeEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Turns on the challenge counter and the addanimal/spookanimal shop commands");
+        api.AddTextOption(manifest,
+            getValue: () => config.ChallengeAnimalFilter,
+            setValue: v => config.ChallengeAnimalFilter = v,
+            name: () => "Animal Type",
+            tooltip: () => "Which animals count toward the goal — matches any animal type containing this text (e.g. \"Chicken\" matches White/Brown/Void/Golden Chicken). Use \"Any\" to count every farm animal.");
+        api.AddNumberOption(manifest,
+            getValue: () => config.ChallengeGoalCount,
+            setValue: v => config.ChallengeGoalCount = v,
+            name: () => "Goal Count",
+            tooltip: () => "How many matching animals counts as reaching the challenge",
+            min: 1, max: 999);
+
         // ─── Ignored Users ────────────────────────────────────────────────────
 
         api.AddPage(manifest, "ignored", () => "Ignored Users");
@@ -742,5 +765,8 @@ public static class GmcmSetup
         config.ClipDevastatingCooldownSeconds = defaults.ClipDevastatingCooldownSeconds;
         config.ClipRaids                      = defaults.ClipRaids;
         config.ClipRaidsCooldownSeconds       = defaults.ClipRaidsCooldownSeconds;
+        config.ChallengeModeEnabled           = defaults.ChallengeModeEnabled;
+        config.ChallengeAnimalFilter          = defaults.ChallengeAnimalFilter;
+        config.ChallengeGoalCount             = defaults.ChallengeGoalCount;
     }
 }

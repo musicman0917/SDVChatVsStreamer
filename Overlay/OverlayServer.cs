@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using SDVChatVsStreamer.Sabotage;
+using SDVChatVsStreamer.Sabotage.Sabotages;
 using SDVChatVsStreamer.UI;
 using StardewModdingAPI;
 
@@ -420,6 +421,19 @@ public class OverlayServer
         Broadcast(payload);
     }
 
+    public void PushChallenge(int count, int goal, string label)
+    {
+        var payload = JsonSerializer.Serialize(new
+        {
+            type = "challenge",
+            enabled = true,
+            count,
+            goal,
+            label
+        });
+        Broadcast(payload);
+    }
+
     // ─── State Builders ───────────────────────────────────────────────────────
 
     private string BuildFullState()
@@ -437,11 +451,20 @@ public class OverlayServer
 
         return JsonSerializer.Serialize(new
         {
-            type   = "init",
-            shop   = shopItems,
-            config = BuildConfigPayload()
+            type      = "init",
+            shop      = shopItems,
+            config    = BuildConfigPayload(),
+            challenge = BuildChallengePayload()
         });
     }
+
+    private object BuildChallengePayload() => new
+    {
+        enabled = AnimalChallengeState.IsEnabled,
+        count   = AnimalChallengeState.IsEnabled ? AnimalChallengeState.GetCount() : 0,
+        goal    = AnimalChallengeState.GoalCount,
+        label   = AnimalChallengeState.FilterLabel
+    };
 
     private string BuildShopState()
     {

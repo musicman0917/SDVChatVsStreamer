@@ -59,6 +59,7 @@ public class ModEntry : Mod
         _sabotage.SetClipService(_clipService);
         _clipService.SetOverlay(_overlay);
         SDVChatVsStreamer.Sabotage.Sabotages.ToolSabotageHelper.SetMonitor(Monitor);
+        SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.Init(_config);
         RegisterSabotages();
 
         // Wire raid event system into points engine for double points
@@ -220,6 +221,10 @@ public class ModEntry : Mod
         // ── Tool sabotages (24 commands) ──
         foreach (var toolSabotage in ToolSabotage.BuildAll())
             _sabotage.Register(toolSabotage);
+
+        // ── Animal Challenge (help/hurt commands) ──
+        _sabotage.Register(new SpookAnimalSabotage());
+        _sabotage.Register(new AddAnimalBlessing());
 
         // ── Bit pools ──
         _sabotage.RegisterBitEvent(new DrainEnergySabotage(), BitTier.Small);
@@ -406,6 +411,12 @@ public class ModEntry : Mod
                 raidEvents.IsHalvedCosts,
                 (int)(raidEvents.IsDoublePoints ? (raidEvents._doublePointsExpiry - DateTime.UtcNow).TotalSeconds : 0),
                 (int)(raidEvents.IsHalvedCosts  ? (raidEvents._halveCostsExpiry  - DateTime.UtcNow).TotalSeconds : 0));
+
+            if (SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.IsEnabled)
+                _overlay.PushChallenge(
+                    SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.GetCount(),
+                    SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.GoalCount,
+                    SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.FilterLabel);
         }
     }
 

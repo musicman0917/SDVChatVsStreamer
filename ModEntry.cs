@@ -349,6 +349,7 @@ public class ModEntry : Mod
             _sabotage.TickAutoTrigger(msg => _twitch.SendMessage(msg));
         SDVChatVsStreamer.Sabotage.Sabotages.BlindfoldSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.ConfusedSabotage.Tick();
+        ApplyConfusedControls();
         SDVChatVsStreamer.Sabotage.Sabotages.MashedSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.FreezeTimeSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.FloorIsLavaSabotage.Tick();
@@ -435,7 +436,7 @@ public class ModEntry : Mod
 
     private void OnButtonsChanged(object? sender, StardewModdingAPI.Events.ButtonsChangedEventArgs e)
     {
-        if (!ConfusedSabotage.IsActive || !Context.IsWorldReady) return;
+        if (!Context.IsWorldReady) return;
 
         // Sticky — suppress item switching and dropping
         if (StickySabotage.IsActive)
@@ -448,28 +449,34 @@ public class ModEntry : Mod
                     Helper.Input.Suppress(btn);
             }
         }
+    }
 
-        var moveButtons = new[] {
-            SButton.W, SButton.S, SButton.A, SButton.D,
-            SButton.Up, SButton.Down, SButton.Left, SButton.Right
-        };
+    private static readonly SButton[] MoveButtons = {
+        SButton.W, SButton.S, SButton.A, SButton.D,
+        SButton.Up, SButton.Down, SButton.Left, SButton.Right
+    };
 
-        foreach (var btn in moveButtons)
+    // Runs every tick (not just on ButtonsChanged) so a held key stays inverted
+    // for as long as it's held, instead of only flickering on the initial press.
+    private void ApplyConfusedControls()
+    {
+        if (!ConfusedSabotage.IsActive) return;
+
+        foreach (var btn in MoveButtons)
         {
-            if (Helper.Input.IsDown(btn))
+            if (!Helper.Input.IsDown(btn)) continue;
+
+            Helper.Input.Suppress(btn);
+            var opposite = btn switch
             {
-                Helper.Input.Suppress(btn);
-                var opposite = btn switch
-                {
-                    SButton.W    or SButton.Up    => 2, // down
-                    SButton.S    or SButton.Down  => 0, // up
-                    SButton.A    or SButton.Left  => 1, // right
-                    SButton.D    or SButton.Right => 3, // left
-                    _                             => -1
-                };
-                if (opposite >= 0 && !Game1.player.movementDirections.Contains(opposite))
-                    Game1.player.movementDirections.Add(opposite);
-            }
+                SButton.W    or SButton.Up    => 2, // down
+                SButton.S    or SButton.Down  => 0, // up
+                SButton.A    or SButton.Left  => 1, // right
+                SButton.D    or SButton.Right => 3, // left
+                _                             => -1
+            };
+            if (opposite >= 0 && !Game1.player.movementDirections.Contains(opposite))
+                Game1.player.movementDirections.Add(opposite);
         }
     }
 

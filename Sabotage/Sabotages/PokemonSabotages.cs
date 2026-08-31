@@ -60,6 +60,7 @@ public class LuckyChantBlessing : ISabotage
     public string Description  => "sets your daily luck to maximum";
     public int Cost            => 150;
     public int CooldownSeconds => 300;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {
@@ -79,6 +80,7 @@ public class PayDayBlessing : ISabotage
     public string Description  => "fills empty inventory slots with useful items";
     public int Cost            => 200;
     public int CooldownSeconds => 180;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     private static readonly string[] Pool = {
         "(O)388",  // Wood

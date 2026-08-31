@@ -46,6 +46,7 @@ public class SugarRushBlessing : ISabotage
     public string Description  => "max energy and a speed boost for 30 seconds";
     public int Cost            => 150;
     public int CooldownSeconds => 180;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {
@@ -75,6 +76,7 @@ public class GiftingTreeBlessing : ISabotage
     public string Description  => "spawns a random item into your inventory";
     public int Cost            => 175;
     public int CooldownSeconds => 120;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     private static readonly Random _rng = new();
 

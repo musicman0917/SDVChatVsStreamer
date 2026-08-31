@@ -9,6 +9,7 @@ public class RestoreEnergyBlessing : ISabotage
     public string Description  => "restores full energy";
     public int Cost            => 100;
     public int CooldownSeconds => 120;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {

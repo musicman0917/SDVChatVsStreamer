@@ -9,6 +9,7 @@ public class SpeedBoostBlessing : ISabotage
     public string Description  => "speed +2 for 60 seconds";
     public int Cost            => 100;
     public int CooldownSeconds => 180;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {

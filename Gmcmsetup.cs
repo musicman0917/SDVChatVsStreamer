@@ -489,6 +489,24 @@ public static class GmcmSetup
             name: () => "Max Leaderboard Items",
             min: 1, max: 10);
 
+        api.AddSectionTitle(manifest, () => "Embedded Chat & Alerts");
+        api.AddParagraph(manifest, () => "Fold the chat overlay and alert popup into this same browser source, so you only need to add one OBS source instead of three. Off by default so upgrading doesn't duplicate anything you've already added separately.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.OverlayIncludeChat,
+            setValue: v => config.OverlayIncludeChat = v,
+            name: () => "Include Chat",
+            tooltip: () => "Show the Twitch/TikTok chat feed inside this overlay instead of (or in addition to) the separate /chat browser source");
+        api.AddTextOption(manifest,
+            getValue: () => config.OverlayChatCorner,
+            setValue: v => config.OverlayChatCorner = v,
+            name: () => "Chat Corner",
+            allowedValues: new[] { "TopLeft", "TopRight", "BottomLeft", "BottomRight" });
+        api.AddBoolOption(manifest,
+            getValue: () => config.OverlayIncludeAlerts,
+            setValue: v => config.OverlayIncludeAlerts = v,
+            name: () => "Include Alert Popups",
+            tooltip: () => "Show the transient alert popup inside this overlay instead of (or in addition to) the separate /alert browser source");
+
         api.AddSectionTitle(manifest, () => "Appearance");
         api.AddNumberOption(manifest,
             getValue: () => config.OverlayWidth,
@@ -741,6 +759,9 @@ public static class GmcmSetup
         config.OverlayMaxShopItems       = defaults.OverlayMaxShopItems;
         config.OverlayMaxFeedItems       = defaults.OverlayMaxFeedItems;
         config.OverlayMaxLeaderboardItems = defaults.OverlayMaxLeaderboardItems;
+        config.OverlayIncludeChat        = defaults.OverlayIncludeChat;
+        config.OverlayIncludeAlerts      = defaults.OverlayIncludeAlerts;
+        config.OverlayChatCorner         = defaults.OverlayChatCorner;
         config.OverlayWidth              = defaults.OverlayWidth;
         config.OverlayFontSize           = defaults.OverlayFontSize;
         config.OverlayTheme              = defaults.OverlayTheme;

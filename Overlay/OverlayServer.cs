@@ -521,6 +521,10 @@ public class OverlayServer
         customBg          = _config.OverlayCustomBg,
         customAccent      = _config.OverlayCustomAccent,
         customText        = _config.OverlayCustomText,
+        showChat          = _config.OverlayIncludeChat,
+        showAlerts        = _config.OverlayIncludeAlerts,
+        chatCorner        = _config.OverlayChatCorner,
+        maxChatMessages   = _config.ChatOverlayMaxMessages,
     };
 
     // ─── Broadcast ────────────────────────────────────────────────────────────

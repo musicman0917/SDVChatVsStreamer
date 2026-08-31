@@ -132,6 +132,13 @@ public class ModConfig
     public string OverlayCustomAccent { get; set; } = "#9147ff";
     public string OverlayCustomText { get; set; } = "#efeff1";
 
+    // Embedded chat/alerts — off by default so upgrading users who already run
+    // separate /chat and /alert OBS sources don't suddenly get them twice.
+    // Turn these on to fold chat and alert popups into this one overlay instead.
+    public bool   OverlayIncludeChat   { get; set; } = false;
+    public bool   OverlayIncludeAlerts { get; set; } = false;
+    public string OverlayChatCorner    { get; set; } = "BottomRight"; // TopLeft | TopRight | BottomLeft | BottomRight
+
     // ─── YouTube / Streamer.bot ──────────────────────────────────────────────
     public bool YouTubeEnabled       { get; set; } = false;
     public int  StreamerbotPort      { get; set; } = 8080;

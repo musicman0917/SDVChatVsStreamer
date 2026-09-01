@@ -60,6 +60,7 @@ public class ModEntry : Mod
         _clipService.SetOverlay(_overlay);
         SDVChatVsStreamer.Sabotage.Sabotages.ToolSabotageHelper.SetMonitor(Monitor);
         SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.Init(_config);
+        SDVChatVsStreamer.Sabotage.Sabotages.JumpScareState.Init(helper, Monitor);
         RegisterSabotages();
 
         // Wire raid event system into points engine for double points
@@ -226,6 +227,9 @@ public class ModEntry : Mod
         _sabotage.Register(new SpookAnimalSabotage());
         _sabotage.Register(new AddAnimalBlessing());
 
+        // ── Jump Scare ──
+        _sabotage.Register(new JumpScareSabotage());
+
         // ── Bit pools ──
         _sabotage.RegisterBitEvent(new DrainEnergySabotage(), BitTier.Small);
         _sabotage.RegisterBitEvent(new RainSabotage(),        BitTier.Small);
@@ -353,6 +357,7 @@ public class ModEntry : Mod
         if (e.IsMultipleOf(3600))
             _sabotage.TickAutoTrigger(msg => _twitch.SendMessage(msg));
         SDVChatVsStreamer.Sabotage.Sabotages.BlindfoldSabotage.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.JumpScareState.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.ConfusedSabotage.Tick();
         ApplyConfusedControls();
         SDVChatVsStreamer.Sabotage.Sabotages.MashedSabotage.Tick();
@@ -572,6 +577,7 @@ public class ModEntry : Mod
         // External effect indicators — all share the same 'y' counter above
         // so nothing ever overlaps regardless of how many are active at once
         BlindfoldSabotage.Draw(sb);          // full-screen overlay, not a stacking line
+        JumpScareState.Draw(sb);             // brief full-screen flash, no stacking line — no warning either
         FloorIsLavaSabotage.Draw(sb, ref y); // haze overlay + stacking countdown line
         WarpWhistleState.Draw(sb, ref y);
         BanState.Draw(sb, ref y);

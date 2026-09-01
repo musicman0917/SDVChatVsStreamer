@@ -338,6 +338,11 @@ public static class GmcmSetup
             setValue: v => config.AutoTriggerPool = v,
             name: () => "Sabotage Pool",
             tooltip: () => "Comma-separated list of !buy commands to pick from");
+        api.AddTextOption(manifest,
+            getValue: () => config.ForceChaosKey,
+            setValue: v => config.ForceChaosKey = v,
+            name: () => "Force Chaos Key",
+            tooltip: () => "Press this key in-game to immediately fire a random sabotage from the pool above — ignores the Enabled toggle and quiet-period cooldown. Handy for clip farming on demand (default: F7)");
 
         // ─── TikTok ───────────────────────────────────────────────────────────
 
@@ -773,6 +778,7 @@ public static class GmcmSetup
         config.AutoTriggerEnabled        = defaults.AutoTriggerEnabled;
         config.AutoTriggerMinutes        = defaults.AutoTriggerMinutes;
         config.AutoTriggerPool           = defaults.AutoTriggerPool;
+        config.ForceChaosKey             = defaults.ForceChaosKey;
         config.AutoClipEnabled                = defaults.AutoClipEnabled;
         config.ClipNuisance                   = defaults.ClipNuisance;
         config.ClipDisruptive                 = defaults.ClipDisruptive;

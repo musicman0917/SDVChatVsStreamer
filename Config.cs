@@ -148,6 +148,8 @@ public class ModConfig
     public int  AutoTriggerMinutes          { get; set; } = 5;
     public string AutoTriggerPool           { get; set; } =
         "serpent,slime,bat,bomb,rain,storm,confused,blindfold,metronome,trickroom,trashday,taxman,freezetime,infestation";
+    /// <summary>Key that immediately fires a random sabotage from the Auto Trigger Pool, ignoring the enabled toggle and quiet-period cooldown — for manually kicking off chaos on demand (e.g. clip farming).</summary>
+    public string ForceChaosKey             { get; set; } = "F7";
 
     // ─── Auto Clipping ───────────────────────────────────────────────────────
     public bool AutoClipEnabled                  { get; set; } = true;

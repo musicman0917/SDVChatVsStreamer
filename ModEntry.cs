@@ -654,6 +654,18 @@ public class ModEntry : Mod
         {
             Game1.activeClickableMenu = new UI.IgnoreListMenu(_config, Helper);
         }
+
+        // Force the Chaos Gods to fire immediately — bypasses the enabled toggle
+        // and quiet-period cooldown, for clip farming or just testing on demand
+        if (e.Button.ToString().Equals(_config.ForceChaosKey, StringComparison.OrdinalIgnoreCase)
+            && Context.IsWorldReady)
+        {
+            bool fired = _sabotage.ForceAutoTrigger(msg => _twitch.SendMessage(msg));
+            if (!fired)
+                Game1.addHUDMessage(new HUDMessage(
+                    "⚡ Chaos Gods have nothing to fire — check your Auto Trigger Pool in GMCM.",
+                    HUDMessage.error_type));
+        }
     }
 
 }

@@ -66,16 +66,26 @@ public static class NuclearChaosState
         _pendingAftershocks.Add(now.AddMilliseconds(1100));
         _pendingAftershocks.Add(now.AddMilliseconds(1900));
 
-        // The Wizard senses doom. Always shown as a HUD line; also tried as a
-        // speech bubble above his actual head if he happens to be nearby.
-        var line = WizardLines[_rng.Next(WizardLines.Length)];
-        try
+        // Usually the Wizard senses doom. Super rarely (~1 in 20), it's your own
+        // farmer breaking the fourth wall instead. Always shown as a HUD line;
+        // also tried as a speech bubble above the speaker's actual head.
+        if (_rng.Next(20) == 0)
         {
-            var wizard = Game1.getCharacterFromName("Wizard");
-            wizard?.showTextAboveHead(line);
+            const string line = "Blame your chat for this. Not me.";
+            try { Game1.player.showTextAboveHead(line); } catch { }
+            Game1.addHUDMessage(new HUDMessage($"🗣️ {Game1.player.Name}: \"{line}\"", HUDMessage.error_type));
         }
-        catch { }
-        Game1.addHUDMessage(new HUDMessage($"🧙 Wizard: \"{line}\"", HUDMessage.error_type));
+        else
+        {
+            var line = WizardLines[_rng.Next(WizardLines.Length)];
+            try
+            {
+                var wizard = Game1.getCharacterFromName("Wizard");
+                wizard?.showTextAboveHead(line);
+            }
+            catch { }
+            Game1.addHUDMessage(new HUDMessage($"🧙 Wizard: \"{line}\"", HUDMessage.error_type));
+        }
     }
 
     public static void Tick()

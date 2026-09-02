@@ -66,14 +66,13 @@ public static class NuclearChaosState
         _pendingAftershocks.Add(now.AddMilliseconds(1100));
         _pendingAftershocks.Add(now.AddMilliseconds(1900));
 
-        // Usually the Wizard senses doom. Super rarely (~1 in 20), it's your own
-        // farmer breaking the fourth wall instead. Always shown as a HUD line;
-        // also tried as a speech bubble above the speaker's actual head.
+        // Usually the Wizard senses doom. Super rarely (~1 in 20), the mod's own
+        // dev breaks the fourth wall instead — a plain HUD line, no in-game
+        // character to attach a speech bubble to.
         if (_rng.Next(20) == 0)
         {
             const string line = "Blame your chat for this. Not me.";
-            try { Game1.player.showTextAboveHead(line); } catch { }
-            Game1.addHUDMessage(new HUDMessage($"🗣️ {Game1.player.Name}: \"{line}\"", HUDMessage.error_type));
+            Game1.addHUDMessage(new HUDMessage($"🛠️ NeighborhoodofMusic (the dev): \"{line}\"", HUDMessage.error_type));
         }
         else
         {

@@ -16,13 +16,13 @@ public static class NuclearChaosState
 {
     private static readonly Random _rng = new();
 
-    private static readonly string[] LewisLines =
+    private static readonly string[] WizardLines =
     {
-        "GOOD LORD, WHAT HAVE YOU DONE?!",
-        "MY WORD! Is that... is that a MUSHROOM CLOUD?!",
-        "I'm calling an emergency town meeting about this.",
-        "PELICAN TOWN, TAKE COVER!!",
-        "That's coming out of your taxes, you know.",
+        "I sense... a GIANT FIREBALL, hurtling toward your farm as we speak!",
+        "The arcane winds warn me: a sphere of pure flame descends upon you!",
+        "By my beard! A fireball of unspeakable size approaches your land!",
+        "The stars foretold this. A great fire falls from the heavens, mortal.",
+        "Flee if you must — a colossal fireball is already in the air!",
     };
 
     private static DateTime _flashUntil = DateTime.MinValue;
@@ -51,16 +51,16 @@ public static class NuclearChaosState
         _pendingAftershocks.Add(now.AddMilliseconds(1100));
         _pendingAftershocks.Add(now.AddMilliseconds(1900));
 
-        // Mayor Lewis has thoughts. Always shown as a HUD line; also tried as a
+        // The Wizard senses doom. Always shown as a HUD line; also tried as a
         // speech bubble above his actual head if he happens to be nearby.
-        var line = LewisLines[_rng.Next(LewisLines.Length)];
+        var line = WizardLines[_rng.Next(WizardLines.Length)];
         try
         {
-            var lewis = Game1.getCharacterFromName("Lewis");
-            lewis?.showTextAboveHead(line);
+            var wizard = Game1.getCharacterFromName("Wizard");
+            wizard?.showTextAboveHead(line);
         }
         catch { }
-        Game1.addHUDMessage(new HUDMessage($"📢 Mayor Lewis: \"{line}\"", HUDMessage.error_type));
+        Game1.addHUDMessage(new HUDMessage($"🧙 Wizard: \"{line}\"", HUDMessage.error_type));
     }
 
     public static void Tick()

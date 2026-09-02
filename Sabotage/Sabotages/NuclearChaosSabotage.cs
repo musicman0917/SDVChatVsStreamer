@@ -23,6 +23,21 @@ public static class NuclearChaosState
         "By my beard! A fireball of unspeakable size approaches your land!",
         "The stars foretold this. A great fire falls from the heavens, mortal.",
         "Flee if you must — a colossal fireball is already in the air!",
+        "My crystal ball shows only fire. SO MUCH FIRE.",
+        "This was not in my calculations. A meteor of flame descends!",
+        "I have seen many omens, farmer. None so dire as this blazing sphere.",
+        "The ley lines tremble! Something enormous and burning approaches!",
+        "Quickly, gather your belongings — the sky itself is about to ignite!",
+        "Junimo, hide! A fireball vast enough to swallow the valley draws near!",
+        "I warned the Guild about this. They did not listen. NOBODY listens.",
+        "This magic is beyond even me. Brace yourself, mortal.",
+        "The tower's windows rattle — a fireball of ancient power nears your farm!",
+        "I felt the disturbance from my tower. A great flame comes for your crops.",
+        "Do not look directly at it! ...too late. Well, good luck.",
+        "The prophecy spoke of this day. I did not think it would be a Tuesday.",
+        "Rasmodius warns you: incoming fireball, of truly cosmic proportions!",
+        "My familiar just fainted. That's never a good sign. FIREBALL INBOUND!",
+        "Hold onto something. The heavens are hurling fire at your farm!",
     };
 
     private static DateTime _flashUntil = DateTime.MinValue;

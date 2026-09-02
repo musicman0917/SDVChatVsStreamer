@@ -361,6 +361,7 @@ public class ModEntry : Mod
             _sabotage.TickAutoTrigger(msg => _twitch.SendMessage(msg));
         SDVChatVsStreamer.Sabotage.Sabotages.BlindfoldSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.JumpScareState.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.NuclearChaosState.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.ConfusedSabotage.Tick();
         ApplyConfusedControls();
         SDVChatVsStreamer.Sabotage.Sabotages.MashedSabotage.Tick();
@@ -581,6 +582,7 @@ public class ModEntry : Mod
         // so nothing ever overlaps regardless of how many are active at once
         BlindfoldSabotage.Draw(sb);          // full-screen overlay, not a stacking line
         JumpScareState.Draw(sb);             // brief full-screen flash, no stacking line — no warning either
+        NuclearChaosState.Draw(sb);          // blast flash + lingering haze, no stacking line
         FloorIsLavaSabotage.Draw(sb, ref y); // haze overlay + stacking countdown line
         WarpWhistleState.Draw(sb, ref y);
         BanState.Draw(sb, ref y);

@@ -1,9 +1,109 @@
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
 using StardewValley.Buildings;
 using StardewValley.Objects;
 using StardewValley.TerrainFeatures;
 
 namespace SDVChatVsStreamer.Sabotage.Sabotages;
+
+/// <summary>
+/// The flash, the boom(s), and Lewis's reaction. Kept separate from the actual
+/// destruction logic so a problem here can never affect whether the farm itself
+/// gets wiped.
+/// </summary>
+public static class NuclearChaosState
+{
+    private static readonly Random _rng = new();
+
+    private static readonly string[] LewisLines =
+    {
+        "GOOD LORD, WHAT HAVE YOU DONE?!",
+        "MY WORD! Is that... is that a MUSHROOM CLOUD?!",
+        "I'm calling an emergency town meeting about this.",
+        "PELICAN TOWN, TAKE COVER!!",
+        "That's coming out of your taxes, you know.",
+    };
+
+    private static DateTime _flashUntil = DateTime.MinValue;
+    private static DateTime _hazeUntil  = DateTime.MinValue;
+    private static readonly List<DateTime> _pendingAftershocks = new();
+
+    public static void Trigger()
+    {
+        var now = DateTime.UtcNow;
+        _flashUntil = now.AddMilliseconds(600);
+        _hazeUntil  = now.AddSeconds(6);
+
+        // The real blast — reuses the exact same GameLocation.explode(...) call
+        // BombSabotage already uses, for a proven-correct sound/VFX/damage boom.
+        try
+        {
+            var loc = Game1.player.currentLocation;
+            var pos = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+            loc.explode(pos, 5, Game1.player);
+        }
+        catch { /* explosion is a nice-to-have, never worth crashing over */ }
+
+        // Staggered aftershocks nearby — the "alarms going off" cascade
+        _pendingAftershocks.Clear();
+        _pendingAftershocks.Add(now.AddMilliseconds(500));
+        _pendingAftershocks.Add(now.AddMilliseconds(1100));
+        _pendingAftershocks.Add(now.AddMilliseconds(1900));
+
+        // Mayor Lewis has thoughts. Always shown as a HUD line; also tried as a
+        // speech bubble above his actual head if he happens to be nearby.
+        var line = LewisLines[_rng.Next(LewisLines.Length)];
+        try
+        {
+            var lewis = Game1.getCharacterFromName("Lewis");
+            lewis?.showTextAboveHead(line);
+        }
+        catch { }
+        Game1.addHUDMessage(new HUDMessage($"📢 Mayor Lewis: \"{line}\"", HUDMessage.error_type));
+    }
+
+    public static void Tick()
+    {
+        if (_pendingAftershocks.Count == 0 || !StardewModdingAPI.Context.IsWorldReady) return;
+
+        var now = DateTime.UtcNow;
+        for (int i = _pendingAftershocks.Count - 1; i >= 0; i--)
+        {
+            if (now < _pendingAftershocks[i]) continue;
+            _pendingAftershocks.RemoveAt(i);
+
+            try
+            {
+                var loc    = Game1.player.currentLocation;
+                var offset = new Vector2(_rng.Next(-3, 4), _rng.Next(-3, 4));
+                var pos    = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y) + offset;
+                loc.explode(pos, 2, Game1.player);
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>Bright white flash, fading into a lingering orange haze. Draw every frame; no-ops outside its window.</summary>
+    public static void Draw(SpriteBatch sb)
+    {
+        var now = DateTime.UtcNow;
+        if (now >= _hazeUntil) return;
+
+        var viewport = Game1.graphics.GraphicsDevice.Viewport;
+        var screen   = new Rectangle(0, 0, viewport.Width, viewport.Height);
+
+        if (now < _flashUntil)
+        {
+            var frac = (_flashUntil - now).TotalMilliseconds / 600.0;
+            sb.Draw(Game1.fadeToBlackRect, screen, Color.White * (float)Math.Clamp(frac, 0, 1));
+        }
+        else
+        {
+            sb.Draw(Game1.fadeToBlackRect, screen, Color.OrangeRed * 0.22f);
+        }
+    }
+}
 
 // ─── NUCLEAR CHAOS — wipes the farm down to the house, cabins, greenhouse, and shipping bin ──
 
@@ -21,6 +121,8 @@ public class NuclearChaosSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        NuclearChaosState.Trigger();
+
         var farm = Game1.getFarm();
         int buildingsDestroyed = 0, animalsLost = 0, cropsKilled = 0, treesFelled = 0, rocksCleared = 0, fencesDestroyed = 0;
 

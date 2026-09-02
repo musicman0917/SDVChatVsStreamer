@@ -230,6 +230,9 @@ public class ModEntry : Mod
         // ── Jump Scare ──
         _sabotage.Register(new JumpScareSabotage());
 
+        // ── Nuclear Chaos ──
+        _sabotage.Register(new NuclearChaosSabotage());
+
         // ── Bit pools ──
         _sabotage.RegisterBitEvent(new DrainEnergySabotage(), BitTier.Small);
         _sabotage.RegisterBitEvent(new RainSabotage(),        BitTier.Small);

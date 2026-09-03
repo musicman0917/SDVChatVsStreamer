@@ -163,6 +163,53 @@ public class TwitchManager
         // so a bad channel name or a flaky auto-join shows up as a clear log line either way.
         if (_client?.JoinedChannels.Count == 0)
             _client?.JoinChannel(_config.ChannelName);
+
+        SyncCoopChannels();
+    }
+
+    // ─── Multiplayer Targeting — co-op player channels ─────────────────────────
+
+    private IEnumerable<(bool Enabled, string Channel)> CoopSlots() => new[]
+    {
+        (_config.MultiplayerPlayer2Enabled, _config.MultiplayerPlayer2Channel),
+        (_config.MultiplayerPlayer3Enabled, _config.MultiplayerPlayer3Channel),
+        (_config.MultiplayerPlayer4Enabled, _config.MultiplayerPlayer4Channel),
+    };
+
+    /// <summary>
+    /// Joins every enabled co-op player channel and parts any previously-joined co-op channel
+    /// that's since been disabled or renamed, based on the current config. Safe to call anytime
+    /// — a no-op before the IRC client is connected (the normal post-connect join covers that
+    /// case), and callable again from GMCM's save callback so toggling a slot takes effect
+    /// immediately instead of requiring a restart.
+    /// </summary>
+    public void SyncCoopChannels()
+    {
+        if (_client == null || !_client.IsConnected) return;
+
+        var desired = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (_config.MultiplayerTargetingEnabled)
+        {
+            foreach (var (enabled, channel) in CoopSlots())
+                if (enabled && !string.IsNullOrWhiteSpace(channel))
+                    desired.Add(channel.Trim());
+        }
+
+        foreach (var channel in desired)
+        {
+            if (_client.JoinedChannels.Any(c => c.Channel.Equals(channel, StringComparison.OrdinalIgnoreCase)))
+                continue;
+            _monitor.Log($"[TwitchManager] Joining co-op player channel: {channel}", LogLevel.Info);
+            _client.JoinChannel(channel);
+        }
+
+        foreach (var joined in _client.JoinedChannels.ToList())
+        {
+            if (joined.Channel.Equals(_config.ChannelName, StringComparison.OrdinalIgnoreCase)) continue;
+            if (desired.Contains(joined.Channel)) continue;
+            _monitor.Log($"[TwitchManager] Leaving co-op player channel: {joined.Channel}", LogLevel.Info);
+            _client.LeaveChannel(joined.Channel);
+        }
     }
 
     private void OnIrcJoinedChannel(object? sender, TwitchLib.Client.Events.OnJoinedChannelArgs e)
@@ -394,6 +441,23 @@ public class TwitchManager
     {
         if (!_config.EnableChatCommands) return;
 
+        // Names which channel this message came from for MultiplayerTargeting.Resolve — cleared
+        // in the finally below. Safe as an ambient static: everything downstream of this handler
+        // (command parsing, SabotageEngine.TryBuy, ISabotage.Execute) runs synchronously within
+        // this one TwitchLib event callback.
+        MultiplayerTargeting.CurrentChannel = e.ChatMessage.Channel;
+        try
+        {
+            HandleMessage(e);
+        }
+        finally
+        {
+            MultiplayerTargeting.CurrentChannel = null;
+        }
+    }
+
+    private void HandleMessage(OnMessageReceivedArgs e)
+    {
         var username = e.ChatMessage.Username;
         var message  = e.ChatMessage.Message.Trim();
 

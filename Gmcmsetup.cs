@@ -5,7 +5,9 @@ namespace SDVChatVsStreamer;
 
 public static class GmcmSetup
 {
-    public static void Register(IModHelper helper, IManifest manifest, ModConfig config)
+    /// <param name="onMultiplayerConfigChanged">Invoked after every GMCM save so co-op channel
+    /// joins/parts can be reconciled live instead of requiring a restart to take effect.</param>
+    public static void Register(IModHelper helper, IManifest manifest, ModConfig config, Action? onMultiplayerConfigChanged = null)
     {
         var api = helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
         if (api == null)
@@ -17,7 +19,11 @@ public static class GmcmSetup
         api.Register(
             mod:   manifest,
             reset: () => ResetConfig(config),
-            save:  () => helper.WriteConfig(config)
+            save:  () =>
+            {
+                helper.WriteConfig(config);
+                onMultiplayerConfigChanged?.Invoke();
+            }
         );
 
         // ─── Pages ────────────────────────────────────────────────────────────
@@ -684,18 +690,49 @@ public static class GmcmSetup
 
         api.AddPage(manifest, "multiplayer", () => "Multiplayer Targeting");
 
-        api.AddParagraph(manifest, () => "Playing co-op with viewers who are also in your chat? Turn this on and effects a listed viewer triggers land on their own farmhand instead of you — no mod install needed on their end. Their in-game character name must match their Twitch username EXACTLY (case-insensitive) or targeting falls back to you.");
+        api.AddParagraph(manifest, () => "Playing co-op with other streamers? Each co-op player is their own broadcaster with their own Twitch channel. Enable a slot below, type in their channel name, and this mod joins that channel too — any command typed there (by them or their own viewers) lands on THEIR farmhand instead of you, no mod install needed on their end. Their in-game character name must match their channel name EXACTLY (case-insensitive) or targeting falls back to you.");
         api.AddParagraph(manifest, () => "Only sabotages that change save-file state (money, health/stamina, buffs, inventory, nearby monster/explosion spawns) can be redirected this way. Effects that read your keyboard or draw straight to a screen — Confused, jump scares, bans, warps — can only ever affect whoever's game is actually running this mod, so those always land on you regardless of this setting.");
         api.AddBoolOption(manifest,
             getValue: () => config.MultiplayerTargetingEnabled,
             setValue: v => config.MultiplayerTargetingEnabled = v,
             name: () => "Enabled",
-            tooltip: () => "Turn on farmhand targeting for the eligible sabotages");
+            tooltip: () => "Master switch — turns co-op channel joining and farmhand targeting on or off");
+
+        api.AddSectionTitle(manifest, () => "Player 2");
         api.AddTextOption(manifest,
-            getValue: () => config.MultiplayerPlayers,
-            setValue: v => config.MultiplayerPlayers = v,
-            name: () => "Co-op Players",
-            tooltip: () => "Comma-separated Twitch usernames of chatters who are also playing in this save, e.g. \"twitchname1, twitchname2\"");
+            getValue: () => config.MultiplayerPlayer2Channel,
+            setValue: v => config.MultiplayerPlayer2Channel = v,
+            name: () => "Twitch Channel",
+            tooltip: () => "Their Twitch channel name (lowercase) — must match their in-game character name exactly");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer2Enabled,
+            setValue: v => config.MultiplayerPlayer2Enabled = v,
+            name: () => "Connect",
+            tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
+
+        api.AddSectionTitle(manifest, () => "Player 3");
+        api.AddTextOption(manifest,
+            getValue: () => config.MultiplayerPlayer3Channel,
+            setValue: v => config.MultiplayerPlayer3Channel = v,
+            name: () => "Twitch Channel",
+            tooltip: () => "Their Twitch channel name (lowercase) — must match their in-game character name exactly");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer3Enabled,
+            setValue: v => config.MultiplayerPlayer3Enabled = v,
+            name: () => "Connect",
+            tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
+
+        api.AddSectionTitle(manifest, () => "Player 4");
+        api.AddTextOption(manifest,
+            getValue: () => config.MultiplayerPlayer4Channel,
+            setValue: v => config.MultiplayerPlayer4Channel = v,
+            name: () => "Twitch Channel",
+            tooltip: () => "Their Twitch channel name (lowercase) — must match their in-game character name exactly");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer4Enabled,
+            setValue: v => config.MultiplayerPlayer4Enabled = v,
+            name: () => "Connect",
+            tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
 
         // ─── Ignored Users ────────────────────────────────────────────────────
 
@@ -814,6 +851,11 @@ public static class GmcmSetup
         config.ChallengeAnimalFilter          = defaults.ChallengeAnimalFilter;
         config.ChallengeGoalCount             = defaults.ChallengeGoalCount;
         config.MultiplayerTargetingEnabled    = defaults.MultiplayerTargetingEnabled;
-        config.MultiplayerPlayers             = defaults.MultiplayerPlayers;
+        config.MultiplayerPlayer2Enabled      = defaults.MultiplayerPlayer2Enabled;
+        config.MultiplayerPlayer2Channel      = defaults.MultiplayerPlayer2Channel;
+        config.MultiplayerPlayer3Enabled      = defaults.MultiplayerPlayer3Enabled;
+        config.MultiplayerPlayer3Channel      = defaults.MultiplayerPlayer3Channel;
+        config.MultiplayerPlayer4Enabled      = defaults.MultiplayerPlayer4Enabled;
+        config.MultiplayerPlayer4Channel      = defaults.MultiplayerPlayer4Channel;
     }
 }

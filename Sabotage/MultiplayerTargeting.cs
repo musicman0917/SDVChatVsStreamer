@@ -11,6 +11,13 @@ namespace SDVChatVsStreamer.Sabotage;
 /// Effects that read local input or draw directly to a screen (Confused, jump scares, bans,
 /// warps) have no way to reach a farmhand who doesn't run the mod, and intentionally keep
 /// using Game1.player untouched.
+///
+/// Targeting is routed by CHANNEL, not by chatter username: each co-op player is their own
+/// streamer with their own Twitch channel, and TwitchManager joins those channels alongside
+/// the host's own. Any command typed in a co-op player's channel — by them or one of their
+/// own viewers — targets THAT player's farmhand, the same way any command in the host's own
+/// channel already targets the host. The channel-to-farmhand link is an exact (case-insensitive)
+/// match between the channel name and a connected farmhand's character name.
 /// </summary>
 public static class MultiplayerTargeting
 {
@@ -19,26 +26,48 @@ public static class MultiplayerTargeting
     public static void Init(ModConfig config) => _config = config;
 
     /// <summary>
-    /// Resolves the Farmer a triggering chatter's effect should land on. If multiplayer
-    /// targeting is off, the chatter isn't on the configured player list, or no currently
-    /// connected farmhand's character name matches their Twitch name exactly, falls back
-    /// to Game1.player (the host) — the same behavior as before this feature existed.
+    /// Set by TwitchManager immediately before dispatching a chat-triggered command, naming the
+    /// Twitch channel the message came from, and cleared right after in a finally block. Safe as
+    /// an ambient static because the whole chat-command dispatch chain (OnMessageReceived →
+    /// SabotageEngine.TryBuy → ISabotage.Execute) runs synchronously within a single TwitchLib
+    /// event callback — no other message can interleave between the set and the clear.
+    /// </summary>
+    public static string? CurrentChannel { get; set; }
+
+    /// <summary>The host's own channel plus every enabled co-op player channel from config.</summary>
+    public static IEnumerable<(string Channel, bool Enabled)> ConfiguredCoopChannels()
+    {
+        if (_config == null) yield break;
+        yield return (_config.MultiplayerPlayer2Channel, _config.MultiplayerPlayer2Enabled);
+        yield return (_config.MultiplayerPlayer3Channel, _config.MultiplayerPlayer3Enabled);
+        yield return (_config.MultiplayerPlayer4Channel, _config.MultiplayerPlayer4Enabled);
+    }
+
+    /// <summary>
+    /// Resolves the Farmer a chat-triggered command should land on. If multiplayer targeting is
+    /// off, the message didn't come from a configured co-op channel, or no currently connected
+    /// farmhand's character name matches that channel exactly, falls back to Game1.player (the
+    /// host) — the same behavior as before this feature existed. Commands from the host's own
+    /// channel always resolve to Game1.player.
     /// </summary>
     public static Farmer Resolve(string triggeredBy)
     {
-        if (_config == null || !_config.MultiplayerTargetingEnabled || string.IsNullOrWhiteSpace(triggeredBy))
-            return Game1.player;
+        if (_config == null || !_config.MultiplayerTargetingEnabled) return Game1.player;
 
-        var listed = _config.MultiplayerPlayers
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (!listed.Contains(triggeredBy, StringComparer.OrdinalIgnoreCase))
-            return Game1.player;
+        var channel = CurrentChannel;
+        if (string.IsNullOrWhiteSpace(channel)) return Game1.player;
+        if (channel.Equals(_config.ChannelName, StringComparison.OrdinalIgnoreCase)) return Game1.player;
+
+        bool isConfiguredCoopChannel = ConfiguredCoopChannels().Any(c =>
+            c.Enabled && !string.IsNullOrWhiteSpace(c.Channel) &&
+            c.Channel.Trim().Equals(channel, StringComparison.OrdinalIgnoreCase));
+        if (!isConfiguredCoopChannel) return Game1.player;
 
         try
         {
             foreach (var farmer in Game1.getOnlineFarmers())
             {
-                if (farmer.Name == triggeredBy)
+                if (farmer.Name.Equals(channel, StringComparison.OrdinalIgnoreCase))
                     return farmer;
             }
         }

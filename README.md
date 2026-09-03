@@ -77,7 +77,7 @@ The installer will:
 
 ### 👥 Multiplayer Targeting (Alpha)
 
-⚠️ **Alpha feature — untested in a real multiplayer session.** Playing co-op with viewers who are also in your chat? Enable this in GMCM and list their Twitch usernames — a sabotage or blessing they trigger lands on their own farmhand instead of you, as long as their in-game character name matches their Twitch username **exactly**. No mod install needed on their end.
+⚠️ **Alpha feature — untested in a real multiplayer session.** Playing co-op with other streamers? In GMCM's "Multiplayer Targeting" page, enable a player slot and type in their Twitch channel name — the mod joins their channel too, and any command typed there (by them or their own viewers) lands on **their** farmhand instead of you, as long as their in-game character name matches their channel name **exactly**. Up to 3 co-op players (host + 3 = the vanilla 4-player cap). No mod install needed on their end — just their channel name.
 
 Only effects that change save-file state (money, health/stamina, buffs, inventory, nearby monster/explosion spawns) can be redirected this way. Effects that read your keyboard or draw straight to a screen — Confused, jump scares, bans, warps — can only ever affect whoever's game is actually running this mod, so those always land on the host regardless of this setting. See the in-game GMCM tooltip on the "Multiplayer Targeting" page for the full explanation.
 

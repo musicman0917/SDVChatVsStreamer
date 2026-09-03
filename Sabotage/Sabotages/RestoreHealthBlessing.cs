@@ -13,9 +13,10 @@ public class RestoreHealthBlessing : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        Game1.player.health = Game1.player.maxHealth;
-        Game1.addHUDMessage(new HUDMessage(
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        target.health = target.maxHealth;
+        MultiplayerTargeting.Notify(target,
             $"💚 {triggeredBy} restored your health to full!",
-            HUDMessage.newQuest_type));
+            HUDMessage.newQuest_type);
     }
 }

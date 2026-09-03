@@ -13,9 +13,10 @@ public class RestoreEnergyBlessing : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        Game1.player.Stamina = Game1.player.MaxStamina;
-        Game1.addHUDMessage(new HUDMessage(
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        target.Stamina = target.MaxStamina;
+        MultiplayerTargeting.Notify(target,
             $"✨ {triggeredBy} restored your energy to full!",
-            HUDMessage.newQuest_type));
+            HUDMessage.newQuest_type);
     }
 }

@@ -75,6 +75,12 @@ The installer will:
 **Blessings:**
 - Restore energy and health, water crops, fertilize, clear debris, give gold, speed boost, force sunny weather
 
+### 👥 Multiplayer Targeting (Alpha)
+
+⚠️ **Alpha feature — untested in a real multiplayer session.** Playing co-op with viewers who are also in your chat? Enable this in GMCM and list their Twitch usernames — a sabotage or blessing they trigger lands on their own farmhand instead of you, as long as their in-game character name matches their Twitch username **exactly**. No mod install needed on their end.
+
+Only effects that change save-file state (money, health/stamina, buffs, inventory, nearby monster/explosion spawns) can be redirected this way. Effects that read your keyboard or draw straight to a screen — Confused, jump scares, bans, warps — can only ever affect whoever's game is actually running this mod, so those always land on the host regardless of this setting. See the in-game GMCM tooltip on the "Multiplayer Targeting" page for the full explanation.
+
 ### 💬 Chat Overlay
 - **In-game HUD** — live Twitch + TikTok chat in a configurable corner with TTL expiry
 - **OBS Browser Source** at `http://localhost:7373/chat` — Twitch emote images, emoji support, auto-reconnects

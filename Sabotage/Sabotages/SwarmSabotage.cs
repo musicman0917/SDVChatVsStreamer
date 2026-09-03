@@ -16,21 +16,22 @@ public class SwarmSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var location = Game1.player.currentLocation;
-        int season   = Game1.player.currentLocation.GetSeasonIndex();
+        var target   = MultiplayerTargeting.Resolve(triggeredBy);
+        var location = target.currentLocation;
+        int season   = location.GetSeasonIndex();
 
         for (int i = 0; i < 5; i++)
         {
             var offset = new Vector2(
-                Game1.player.TilePoint.X + _rng.Next(-3, 4),
-                Game1.player.TilePoint.Y + _rng.Next(-3, 4)
+                target.TilePoint.X + _rng.Next(-3, 4),
+                target.TilePoint.Y + _rng.Next(-3, 4)
             ) * 64f;
 
             location.characters.Add(new GreenSlime(offset, season));
         }
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🟢🟢🟢 {triggeredBy} sent a slime SWARM after you!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

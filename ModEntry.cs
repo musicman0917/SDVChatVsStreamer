@@ -61,6 +61,7 @@ public class ModEntry : Mod
         SDVChatVsStreamer.Sabotage.Sabotages.ToolSabotageHelper.SetMonitor(Monitor);
         SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.Init(_config);
         SDVChatVsStreamer.Sabotage.Sabotages.JumpScareState.Init(helper, Monitor);
+        SDVChatVsStreamer.Sabotage.MultiplayerTargeting.Init(_config);
         RegisterSabotages();
 
         // Wire raid event system into points engine for double points

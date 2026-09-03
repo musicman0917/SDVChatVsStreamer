@@ -37,6 +37,7 @@ public static class GmcmSetup
         api.AddPageLink(manifest, "chatfeed",  () => "💬 Chat Feed Display");
         api.AddPageLink(manifest, "autoclip",  () => "🎬 Auto-Clipping");
         api.AddPageLink(manifest, "challenge", () => "🐔 Animal Challenge");
+        api.AddPageLink(manifest, "multiplayer", () => "👥 Multiplayer Targeting");
         api.AddPageLink(manifest, "ignored",   () => "🚫 Ignored Users");
 
         // ─── General ──────────────────────────────────────────────────────────
@@ -679,6 +680,23 @@ public static class GmcmSetup
             tooltip: () => "How many matching animals counts as reaching the challenge",
             min: 1, max: 999);
 
+        // ─── Multiplayer Targeting ────────────────────────────────────────────
+
+        api.AddPage(manifest, "multiplayer", () => "Multiplayer Targeting");
+
+        api.AddParagraph(manifest, () => "Playing co-op with viewers who are also in your chat? Turn this on and effects a listed viewer triggers land on their own farmhand instead of you — no mod install needed on their end. Their in-game character name must match their Twitch username EXACTLY (case-insensitive) or targeting falls back to you.");
+        api.AddParagraph(manifest, () => "Only sabotages that change save-file state (money, health/stamina, buffs, inventory, nearby monster/explosion spawns) can be redirected this way. Effects that read your keyboard or draw straight to a screen — Confused, jump scares, bans, warps — can only ever affect whoever's game is actually running this mod, so those always land on you regardless of this setting.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerTargetingEnabled,
+            setValue: v => config.MultiplayerTargetingEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Turn on farmhand targeting for the eligible sabotages");
+        api.AddTextOption(manifest,
+            getValue: () => config.MultiplayerPlayers,
+            setValue: v => config.MultiplayerPlayers = v,
+            name: () => "Co-op Players",
+            tooltip: () => "Comma-separated Twitch usernames of chatters who are also playing in this save, e.g. \"twitchname1, twitchname2\"");
+
         // ─── Ignored Users ────────────────────────────────────────────────────
 
         api.AddPage(manifest, "ignored", () => "Ignored Users");
@@ -795,5 +813,7 @@ public static class GmcmSetup
         config.ChallengeModeEnabled           = defaults.ChallengeModeEnabled;
         config.ChallengeAnimalFilter          = defaults.ChallengeAnimalFilter;
         config.ChallengeGoalCount             = defaults.ChallengeGoalCount;
+        config.MultiplayerTargetingEnabled    = defaults.MultiplayerTargetingEnabled;
+        config.MultiplayerPlayers             = defaults.MultiplayerPlayers;
     }
 }

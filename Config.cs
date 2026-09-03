@@ -172,6 +172,20 @@ public class ModConfig
     public string ChallengeAnimalFilter { get; set; } = "Chicken";
     public int    ChallengeGoalCount    { get; set; } = 100;
 
+    // ─── Multiplayer Targeting ────────────────────────────────────────────────
+    /// <summary>When on, a sabotage triggered by a chatter listed below lands on their own
+    /// connected farmhand (matched by character name, EXACT match) instead of the host —
+    /// no mod install required on the farmhand's end. Only applies to sabotages that mutate
+    /// host-authoritative state (money, health/stamina, buffs, inventory, nearby monster/
+    /// explosion spawns). Effects that read local input or draw to a screen directly
+    /// (Confused, jump scares, bans, warps) can only ever affect whoever's game is actually
+    /// running this mod, so they keep hitting the host regardless of this setting.</summary>
+    public bool   MultiplayerTargetingEnabled { get; set; } = false;
+    /// <summary>Comma-separated Twitch usernames of chatters who are also playing in this
+    /// save. Their in-game character name must match their Twitch name exactly (case-insensitive)
+    /// for targeting to resolve to them.</summary>
+    public string MultiplayerPlayers          { get; set; } = "";
+
     // ─── Database ────────────────────────────────────────────────────────────
     public string DatabaseFileName { get; set; } = "ViewerLedger.db";
 }

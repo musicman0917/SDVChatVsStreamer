@@ -40,14 +40,15 @@ public class MetronomeSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var hotbar = Game1.player.Items.Take(12).ToList();
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var hotbar = target.Items.Take(12).ToList();
         var shuffled = hotbar.OrderBy(_ => _rng.Next()).ToList();
         for (int i = 0; i < 12; i++)
-            Game1.player.Items[i] = shuffled[i];
+            target.Items[i] = shuffled[i];
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🎵 {triggeredBy} used Metronome! Your hotbar is shuffled!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -99,20 +100,21 @@ public class PayDayBlessing : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
         int filled = 0;
-        for (int i = 0; i < Game1.player.Items.Count; i++)
+        for (int i = 0; i < target.Items.Count; i++)
         {
-            if (Game1.player.Items[i] == null)
+            if (target.Items[i] == null)
             {
                 var id = Pool[_rng.Next(Pool.Length)];
-                Game1.player.Items[i] = ItemRegistry.Create(id, _rng.Next(5, 20));
+                target.Items[i] = ItemRegistry.Create(id, _rng.Next(5, 20));
                 filled++;
             }
         }
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"💰 {triggeredBy} used Pay Day! {filled} slots filled with goodies!",
-            HUDMessage.newQuest_type));
+            HUDMessage.newQuest_type);
     }
 }
 
@@ -139,20 +141,21 @@ public class TrashDaySabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
         int filled = 0;
-        for (int i = 0; i < Game1.player.Items.Count; i++)
+        for (int i = 0; i < target.Items.Count; i++)
         {
-            if (Game1.player.Items[i] == null)
+            if (target.Items[i] == null)
             {
                 var id = TrashPool[_rng.Next(TrashPool.Length)];
-                Game1.player.Items[i] = ItemRegistry.Create(id, _rng.Next(1, 5));
+                target.Items[i] = ItemRegistry.Create(id, _rng.Next(1, 5));
                 filled++;
             }
         }
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🗑️ {triggeredBy} used Trash Day! {filled} slots filled with junk!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 

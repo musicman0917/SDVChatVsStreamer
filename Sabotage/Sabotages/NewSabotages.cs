@@ -19,21 +19,23 @@ public class TaxManSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        if (Game1.player.Money <= 0)
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+
+        if (target.Money <= 0)
         {
-            Game1.addHUDMessage(new HUDMessage(
+            MultiplayerTargeting.Notify(target,
                 $"💸 {triggeredBy} sent the Tax Man but you're already broke!",
-                HUDMessage.error_type));
+                HUDMessage.error_type);
             return;
         }
 
         int pct    = _rng.Next(10, 26);
-        int amount = (int)(Game1.player.Money * (pct / 100.0));
-        Game1.player.Money -= amount;
+        int amount = (int)(target.Money * (pct / 100.0));
+        target.Money -= amount;
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"💸 {triggeredBy} sent the Tax Man! Lost {amount}g ({pct}% tax)!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -50,9 +52,10 @@ public class SugarRushBlessing : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        Game1.player.Stamina = Game1.player.MaxStamina;
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        target.Stamina = target.MaxStamina;
 
-        Game1.player.buffs.Apply(new Buff(
+        target.buffs.Apply(new Buff(
             id:            "CVS_SugarRush",
             source:        "Chat vs Streamer",
             displaySource: triggeredBy,
@@ -61,9 +64,9 @@ public class SugarRushBlessing : ISabotage
             displayName:   "Sugar Rush",
             description:   "Chat gave you a sugar rush!"));
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"⚡ {triggeredBy} used Sugar Rush! Max energy + speed boost!",
-            HUDMessage.newQuest_type));
+            HUDMessage.newQuest_type);
     }
 }
 
@@ -99,6 +102,7 @@ public class GiftingTreeBlessing : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
         try
         {
             var data = Game1.content.Load<Dictionary<string, ObjectData>>("Data/Objects");
@@ -112,25 +116,25 @@ public class GiftingTreeBlessing : ISabotage
 
             if (eligible.Count == 0)
             {
-                Game1.addHUDMessage(new HUDMessage("Gifting Tree found nothing to give!", HUDMessage.error_type));
+                MultiplayerTargeting.Notify(target, "Gifting Tree found nothing to give!", HUDMessage.error_type);
                 return;
             }
 
             var chosen = eligible[_rng.Next(eligible.Count)];
             var item   = ItemRegistry.Create($"(O){chosen.Key}");
 
-            if (Game1.player.addItemToInventory(item) == null)
-                Game1.addHUDMessage(new HUDMessage(
+            if (target.addItemToInventory(item) == null)
+                MultiplayerTargeting.Notify(target,
                     $"🎁 {triggeredBy} used Gifting Tree! You received: {item.DisplayName}!",
-                    HUDMessage.newQuest_type));
+                    HUDMessage.newQuest_type);
             else
-                Game1.addHUDMessage(new HUDMessage(
+                MultiplayerTargeting.Notify(target,
                     $"🎁 {triggeredBy} used Gifting Tree but your inventory is full!",
-                    HUDMessage.error_type));
+                    HUDMessage.error_type);
         }
         catch
         {
-            Game1.addHUDMessage(new HUDMessage("Gifting Tree failed to find an item!", HUDMessage.error_type));
+            MultiplayerTargeting.Notify(target, "Gifting Tree failed to find an item!", HUDMessage.error_type);
         }
     }
 }
@@ -164,11 +168,12 @@ public class BankruptcySabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        Game1.player.Money = 1;
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        target.Money = 1;
         var msg = Messages[_rng.Next(Messages.Length)];
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"💸 {triggeredBy} {msg}",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 

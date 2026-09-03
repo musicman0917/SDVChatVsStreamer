@@ -12,8 +12,10 @@ public class DrunkSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+
         // Heavy tipsy — speed -3 for 60 seconds
-        Game1.player.buffs.Apply(new Buff(
+        target.buffs.Apply(new Buff(
             id:          "CVS_Drunk",
             source:      "Chat vs Streamer",
             displaySource: triggeredBy,
@@ -26,12 +28,16 @@ public class DrunkSabotage : ISabotage
             description: $"{triggeredBy} got you absolutely hammered!"
         ));
 
-        // Also blur the screen with tipsy effect
-        Game1.player.temporarilyInvincible       = false;
-        Game1.screenGlowOnce(Microsoft.Xna.Framework.Color.DarkBlue * 0.5f, false);
+        // Screen glow only renders on whichever client calls it — meaningless to fire
+        // for a farmhand target since this code only runs on the host's screen.
+        if (target == Game1.player)
+        {
+            Game1.player.temporarilyInvincible = false;
+            Game1.screenGlowOnce(Microsoft.Xna.Framework.Color.DarkBlue * 0.5f, false);
+        }
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🍺 {triggeredBy} got you absolutely wasted! Speed -3 for 60 seconds.",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

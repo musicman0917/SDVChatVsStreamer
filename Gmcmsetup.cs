@@ -709,6 +709,11 @@ public static class GmcmSetup
             setValue: v => config.MultiplayerPlayer2Enabled = v,
             name: () => "Connect",
             tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer2AllowReplies,
+            setValue: v => config.MultiplayerPlayer2AllowReplies = v,
+            name: () => "Allow Bot Replies",
+            tooltip: () => "Turn off if this player would rather their chat stayed bot-silent. The bot still reads their channel either way — that's what makes targeting work — it just won't post anything back when this is off.");
 
         api.AddSectionTitle(manifest, () => "Player 3");
         api.AddTextOption(manifest,
@@ -721,6 +726,11 @@ public static class GmcmSetup
             setValue: v => config.MultiplayerPlayer3Enabled = v,
             name: () => "Connect",
             tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer3AllowReplies,
+            setValue: v => config.MultiplayerPlayer3AllowReplies = v,
+            name: () => "Allow Bot Replies",
+            tooltip: () => "Turn off if this player would rather their chat stayed bot-silent. The bot still reads their channel either way — that's what makes targeting work — it just won't post anything back when this is off.");
 
         api.AddSectionTitle(manifest, () => "Player 4");
         api.AddTextOption(manifest,
@@ -733,6 +743,11 @@ public static class GmcmSetup
             setValue: v => config.MultiplayerPlayer4Enabled = v,
             name: () => "Connect",
             tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer4AllowReplies,
+            setValue: v => config.MultiplayerPlayer4AllowReplies = v,
+            name: () => "Allow Bot Replies",
+            tooltip: () => "Turn off if this player would rather their chat stayed bot-silent. The bot still reads their channel either way — that's what makes targeting work — it just won't post anything back when this is off.");
 
         // ─── Ignored Users ────────────────────────────────────────────────────
 
@@ -853,9 +868,12 @@ public static class GmcmSetup
         config.MultiplayerTargetingEnabled    = defaults.MultiplayerTargetingEnabled;
         config.MultiplayerPlayer2Enabled      = defaults.MultiplayerPlayer2Enabled;
         config.MultiplayerPlayer2Channel      = defaults.MultiplayerPlayer2Channel;
+        config.MultiplayerPlayer2AllowReplies = defaults.MultiplayerPlayer2AllowReplies;
         config.MultiplayerPlayer3Enabled      = defaults.MultiplayerPlayer3Enabled;
         config.MultiplayerPlayer3Channel      = defaults.MultiplayerPlayer3Channel;
+        config.MultiplayerPlayer3AllowReplies = defaults.MultiplayerPlayer3AllowReplies;
         config.MultiplayerPlayer4Enabled      = defaults.MultiplayerPlayer4Enabled;
         config.MultiplayerPlayer4Channel      = defaults.MultiplayerPlayer4Channel;
+        config.MultiplayerPlayer4AllowReplies = defaults.MultiplayerPlayer4AllowReplies;
     }
 }

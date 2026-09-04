@@ -169,12 +169,32 @@ public class TwitchManager
 
     // ─── Multiplayer Targeting — co-op player channels ─────────────────────────
 
-    private IEnumerable<(bool Enabled, string Channel)> CoopSlots() => new[]
+    private IEnumerable<(bool Enabled, string Channel, bool AllowReplies)> CoopSlots() => new[]
     {
-        (_config.MultiplayerPlayer2Enabled, _config.MultiplayerPlayer2Channel),
-        (_config.MultiplayerPlayer3Enabled, _config.MultiplayerPlayer3Channel),
-        (_config.MultiplayerPlayer4Enabled, _config.MultiplayerPlayer4Channel),
+        (_config.MultiplayerPlayer2Enabled, _config.MultiplayerPlayer2Channel, _config.MultiplayerPlayer2AllowReplies),
+        (_config.MultiplayerPlayer3Enabled, _config.MultiplayerPlayer3Channel, _config.MultiplayerPlayer3AllowReplies),
+        (_config.MultiplayerPlayer4Enabled, _config.MultiplayerPlayer4Channel, _config.MultiplayerPlayer4AllowReplies),
     };
+
+    /// <summary>
+    /// Whether the bot is allowed to post into the given channel. Your own channel is always
+    /// allowed; a co-op channel is allowed unless that player's "Allow Bot Replies" toggle is
+    /// off. The bot still joins and reads an opted-out channel — reading is what makes targeting
+    /// work — it just never types anything back into it.
+    /// </summary>
+    private bool CanPostTo(string channel)
+    {
+        if (channel.Equals(_config.ChannelName, StringComparison.OrdinalIgnoreCase)) return true;
+
+        foreach (var (enabled, coopChannel, allowReplies) in CoopSlots())
+        {
+            if (enabled && !string.IsNullOrWhiteSpace(coopChannel) &&
+                coopChannel.Trim().Equals(channel, StringComparison.OrdinalIgnoreCase))
+                return allowReplies;
+        }
+
+        return true; // not one of our configured channels — nothing to suppress
+    }
 
     /// <summary>
     /// Joins every enabled co-op player channel and parts any previously-joined co-op channel
@@ -190,7 +210,7 @@ public class TwitchManager
         var desired = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (_config.MultiplayerTargetingEnabled)
         {
-            foreach (var (enabled, channel) in CoopSlots())
+            foreach (var (enabled, channel, _) in CoopSlots())
                 if (enabled && !string.IsNullOrWhiteSpace(channel))
                     desired.Add(channel.Trim());
         }
@@ -460,6 +480,7 @@ public class TwitchManager
     {
         var username = e.ChatMessage.Username;
         var message  = e.ChatMessage.Message.Trim();
+        var channel  = e.ChatMessage.Channel;
 
         if (IsIgnored(username)) return;
 
@@ -489,13 +510,13 @@ public class TwitchManager
         if (message.Equals("!balance", StringComparison.OrdinalIgnoreCase))
         {
             var balance = _points.GetBalance(username);
-            SendMessage($"@{username} you have {balance} chaos points! 🎯");
+            SendMessage(channel, $"@{username} you have {balance} chaos points! 🎯");
             return;
         }
 
         if (message.Equals("!shop", StringComparison.OrdinalIgnoreCase))
         {
-            SendShopList();
+            SendShopList(channel);
             return;
         }
 
@@ -504,9 +525,9 @@ public class TwitchManager
             var cmd = message.Substring(6).Trim().ToLower();
             var def = _sabotage.GetDefinition(cmd);
             if (def == null)
-                SendMessage($"@{username} '{cmd}' wasn't found in the shop. Type !shop to see all commands.");
+                SendMessage(channel, $"@{username} '{cmd}' wasn't found in the shop. Type !shop to see all commands.");
             else
-                SendMessage($"📖 !buy {def.BuyCommand} — {def.Description} | Cost: {def.Cost}pts | Cooldown: {def.Sabotage.CooldownSeconds}s");
+                SendMessage(channel, $"📖 !buy {def.BuyCommand} — {def.Description} | Cost: {def.Cost}pts | Cooldown: {def.Sabotage.CooldownSeconds}s");
             return;
         }
 
@@ -514,31 +535,31 @@ public class TwitchManager
         {
             if (!_gameActive)
             {
-                SendMessage($"@{username} sabotages are disabled outside of a game session!");
+                SendMessage(channel, $"@{username} sabotages are disabled outside of a game session!");
                 return;
             }
             var sabotageName = message.Substring(5).Trim();
-            HandleBuy(username, sabotageName);
+            HandleBuy(username, sabotageName, channel);
             return;
         }
 
         if (message.StartsWith("!give ", StringComparison.OrdinalIgnoreCase))
         {
-            HandleGive(username, e.ChatMessage.IsModerator, e.ChatMessage.IsBroadcaster, message);
+            HandleGive(username, e.ChatMessage.IsModerator, e.ChatMessage.IsBroadcaster, message, channel);
             return;
         }
 
         if (message.StartsWith("!setpoints ", StringComparison.OrdinalIgnoreCase))
         {
-            HandleSetPoints(username, e.ChatMessage.IsModerator, e.ChatMessage.IsBroadcaster, message);
+            HandleSetPoints(username, e.ChatMessage.IsModerator, e.ChatMessage.IsBroadcaster, message, channel);
         }
     }
 
-    private void HandleSetPoints(string sender, bool isMod, bool isBroadcaster, string message)
+    private void HandleSetPoints(string sender, bool isMod, bool isBroadcaster, string message, string channel)
     {
         if (!isMod && !isBroadcaster)
         {
-            SendMessage($"@{sender} only mods and the broadcaster can set points.");
+            SendMessage(channel, $"@{sender} only mods and the broadcaster can set points.");
             return;
         }
 
@@ -546,28 +567,28 @@ public class TwitchManager
         var parts = message.Substring(11).Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 2)
         {
-            SendMessage($"@{sender} usage: !setpoints <username> <amount>");
+            SendMessage(channel, $"@{sender} usage: !setpoints <username> <amount>");
             return;
         }
 
         var target = parts[0].TrimStart('@');
         if (!int.TryParse(parts[1], out var amount) || amount < 0)
         {
-            SendMessage($"@{sender} amount must be a non-negative number.");
+            SendMessage(channel, $"@{sender} amount must be a non-negative number.");
             return;
         }
 
         var current = _ledger.GetPoints(target);
         _ledger.SetPoints(target, amount);
-        SendMessage($"✨ {sender} set @{target}'s chaos points to {amount}pts (was {current}pts)");
+        SendMessage(channel, $"✨ {sender} set @{target}'s chaos points to {amount}pts (was {current}pts)");
         _monitor.Log($"[TwitchManager] {sender} set {target}'s points to {amount} (was {current})", LogLevel.Info);
     }
 
-    private void HandleGive(string sender, bool isMod, bool isBroadcaster, string message)
+    private void HandleGive(string sender, bool isMod, bool isBroadcaster, string message, string channel)
     {
         if (!isMod && !isBroadcaster)
         {
-            SendMessage($"@{sender} only mods and the broadcaster can give points.");
+            SendMessage(channel, $"@{sender} only mods and the broadcaster can give points.");
             return;
         }
 
@@ -575,20 +596,20 @@ public class TwitchManager
         var parts = message.Substring(6).Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 2)
         {
-            SendMessage($"@{sender} usage: !give <username> <amount>");
+            SendMessage(channel, $"@{sender} usage: !give <username> <amount>");
             return;
         }
 
         var target = parts[0].TrimStart('@');
         if (!int.TryParse(parts[1], out var amount) || amount <= 0)
         {
-            SendMessage($"@{sender} amount must be a positive number.");
+            SendMessage(channel, $"@{sender} amount must be a positive number.");
             return;
         }
 
         _ledger.AddPoints(target, amount);
         var newBalance = _points.GetBalance(target);
-        SendMessage($"✨ {sender} gave {amount} chaos points to @{target}! (balance: {newBalance}pts)");
+        SendMessage(channel, $"✨ {sender} gave {amount} chaos points to @{target}! (balance: {newBalance}pts)");
         _monitor.Log($"[TwitchManager] {sender} gave {amount}pts to {target}", LogLevel.Info);
     }
 
@@ -915,7 +936,7 @@ public class TwitchManager
 
     // ─── Buy Handler ──────────────────────────────────────────────────────────
 
-    private void HandleBuy(string username, string fullCommand)
+    private void HandleBuy(string username, string fullCommand, string channel)
     {
         // Split command from optional args: "renameanimal Pengu" -> command="renameanimal", args="Pengu"
         var parts   = fullCommand.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
@@ -927,30 +948,30 @@ public class TwitchManager
         switch (result.Status)
         {
             case BuyStatus.Success:
-                SendMessage($"@{username} spent {result.Cost} pts — {result.Description} 😈");
+                SendMessage(channel, $"@{username} spent {result.Cost} pts — {result.Description} 😈");
                 break;
             case BuyStatus.NotFound:
-                SendMessage($"@{username} '{command}' isn't in the shop. Type !shop to see options.");
+                SendMessage(channel, $"@{username} '{command}' isn't in the shop. Type !shop to see options.");
                 break;
             case BuyStatus.InsufficientFunds:
-                SendMessage($"@{username} you need {result.Cost} pts but only have {result.Balance} pts.");
+                SendMessage(channel, $"@{username} you need {result.Cost} pts but only have {result.Balance} pts.");
                 break;
             case BuyStatus.OnCooldown:
-                SendMessage($"@{username} {command} is on cooldown for {result.CooldownRemaining}s.");
+                SendMessage(channel, $"@{username} {command} is on cooldown for {result.CooldownRemaining}s.");
                 break;
             case BuyStatus.Rejected:
-                SendMessage($"@{username} {result.Description} Your points have been refunded.");
+                SendMessage(channel, $"@{username} {result.Description} Your points have been refunded.");
                 break;
         }
     }
 
     // ─── Shop List ────────────────────────────────────────────────────────────
 
-    private void SendShopList()
+    private void SendShopList(string channel)
     {
-        if (!_sabotage.GetShopList().Any()) { SendMessage("The chaos shop is empty!"); return; }
+        if (!_sabotage.GetShopList().Any()) { SendMessage(channel, "The chaos shop is empty!"); return; }
 
-        SendMessage($"🛒 Full chaos shop & prices: {_config.ShopUrl} — !buy <command> | !info <command> for details");
+        SendMessage(channel, $"🛒 Full chaos shop & prices: {_config.ShopUrl} — !buy <command> | !info <command> for details");
     }
 
     // ─── Active Viewer Tracking ───────────────────────────────────────────────
@@ -994,10 +1015,22 @@ public class TwitchManager
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    public void SendMessage(string message)
+    /// <summary>Posts to your own channel. Use the (channel, message) overload to reply into
+    /// whichever channel actually triggered the message — bit/follow/channel-point events are
+    /// always host-channel concepts, so they keep using this default.</summary>
+    public void SendMessage(string message) => SendMessage(_config.ChannelName, message);
+
+    /// <summary>Posts into a specific channel, silently suppressed if that channel's "Allow Bot
+    /// Replies" toggle is off.</summary>
+    public void SendMessage(string channel, string message)
     {
-        if (_client?.IsConnected == true)
-            _client.SendMessage(_config.ChannelName, message);
+        if (_client?.IsConnected != true) return;
+        if (!CanPostTo(channel))
+        {
+            _monitor.Log($"[TwitchManager] Suppressed reply to '{channel}' — bot replies are disabled for that channel.", LogLevel.Debug);
+            return;
+        }
+        _client.SendMessage(channel, message);
     }
 
     private static SubTier ParseSubTier(string plan) => plan switch

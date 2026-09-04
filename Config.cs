@@ -186,13 +186,19 @@ public class ModConfig
 
     /// <summary>Up to 3 additional co-op players (host + 3 = vanilla's 4-player cap). Each slot's
     /// Channel is that player's own Twitch channel name; Enabled joins it and starts routing
-    /// commands typed there to their farmhand.</summary>
-    public bool   MultiplayerPlayer2Enabled { get; set; } = false;
-    public string MultiplayerPlayer2Channel { get; set; } = "";
-    public bool   MultiplayerPlayer3Enabled { get; set; } = false;
-    public string MultiplayerPlayer3Channel { get; set; } = "";
-    public bool   MultiplayerPlayer4Enabled { get; set; } = false;
-    public string MultiplayerPlayer4Channel { get; set; } = "";
+    /// commands typed there to their farmhand. AllowReplies controls whether the bot is allowed
+    /// to post anything back into their channel at all — turn it off if that player would rather
+    /// their chat stayed bot-silent; the bot still reads their channel either way, since reading
+    /// is what makes targeting work, it just won't ever type there when this is off.</summary>
+    public bool   MultiplayerPlayer2Enabled      { get; set; } = false;
+    public string MultiplayerPlayer2Channel      { get; set; } = "";
+    public bool   MultiplayerPlayer2AllowReplies { get; set; } = true;
+    public bool   MultiplayerPlayer3Enabled      { get; set; } = false;
+    public string MultiplayerPlayer3Channel      { get; set; } = "";
+    public bool   MultiplayerPlayer3AllowReplies { get; set; } = true;
+    public bool   MultiplayerPlayer4Enabled      { get; set; } = false;
+    public string MultiplayerPlayer4Channel      { get; set; } = "";
+    public bool   MultiplayerPlayer4AllowReplies { get; set; } = true;
 
     // ─── Database ────────────────────────────────────────────────────────────
     public string DatabaseFileName { get; set; } = "ViewerLedger.db";

@@ -11,6 +11,7 @@ public class ClearDebrisBlessing : ISabotage
     public string Description  => "clears all weeds and debris from the farm";
     public int Cost            => 200;
     public int CooldownSeconds => 300;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {

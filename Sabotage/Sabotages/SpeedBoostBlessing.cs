@@ -9,10 +9,12 @@ public class SpeedBoostBlessing : ISabotage
     public string Description  => "speed +2 for 60 seconds";
     public int Cost            => 100;
     public int CooldownSeconds => 180;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {
-        Game1.player.buffs.Apply(new Buff(
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        target.buffs.Apply(new Buff(
             id:            "CVS_SpeedBoost",
             source:        "Chat vs Streamer",
             displaySource: triggeredBy,
@@ -21,8 +23,8 @@ public class SpeedBoostBlessing : ISabotage
             displayName:   "Speed Boost",
             description:   $"{triggeredBy} gave you a speed boost!"));
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"⚡ {triggeredBy} gave you a speed boost! Speed +2 for 60 seconds.",
-            HUDMessage.newQuest_type));
+            HUDMessage.newQuest_type);
     }
 }

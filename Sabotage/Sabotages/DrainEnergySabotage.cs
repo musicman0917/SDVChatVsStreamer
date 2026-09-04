@@ -12,9 +12,10 @@ public class DrainEnergySabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        Game1.player.Stamina = Math.Max(0, Game1.player.Stamina - 50f);
-        Game1.addHUDMessage(new HUDMessage(
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        target.Stamina = Math.Max(0, target.Stamina - 50f);
+        MultiplayerTargeting.Notify(target,
             $"⚡ {triggeredBy} drained your energy! -50 stamina.",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

@@ -59,6 +59,9 @@ public class ModEntry : Mod
         _sabotage.SetClipService(_clipService);
         _clipService.SetOverlay(_overlay);
         SDVChatVsStreamer.Sabotage.Sabotages.ToolSabotageHelper.SetMonitor(Monitor);
+        SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.Init(_config);
+        SDVChatVsStreamer.Sabotage.Sabotages.JumpScareState.Init(helper, Monitor);
+        SDVChatVsStreamer.Sabotage.MultiplayerTargeting.Init(_config);
         RegisterSabotages();
 
         // Wire raid event system into points engine for double points
@@ -221,6 +224,16 @@ public class ModEntry : Mod
         foreach (var toolSabotage in ToolSabotage.BuildAll())
             _sabotage.Register(toolSabotage);
 
+        // ── Animal Challenge (help/hurt commands) ──
+        _sabotage.Register(new SpookAnimalSabotage());
+        _sabotage.Register(new AddAnimalBlessing());
+
+        // ── Jump Scare ──
+        _sabotage.Register(new JumpScareSabotage());
+
+        // ── Nuclear Chaos ──
+        _sabotage.Register(new NuclearChaosSabotage());
+
         // ── Bit pools ──
         _sabotage.RegisterBitEvent(new DrainEnergySabotage(), BitTier.Small);
         _sabotage.RegisterBitEvent(new RainSabotage(),        BitTier.Small);
@@ -281,7 +294,7 @@ public class ModEntry : Mod
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
     {
         // Register GMCM config menu
-        GmcmSetup.Register(Helper, ModManifest, _config);
+        GmcmSetup.Register(Helper, ModManifest, _config, () => _twitch.SyncCoopChannels());
 
         var overlayPath = Path.Combine(Helper.DirectoryPath, "Overlay", "overlay.html");
         var mobilePath  = Path.Combine(Helper.DirectoryPath, "Overlay", "mobile.html");
@@ -348,7 +361,10 @@ public class ModEntry : Mod
         if (e.IsMultipleOf(3600))
             _sabotage.TickAutoTrigger(msg => _twitch.SendMessage(msg));
         SDVChatVsStreamer.Sabotage.Sabotages.BlindfoldSabotage.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.JumpScareState.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.NuclearChaosState.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.ConfusedSabotage.Tick();
+        ApplyConfusedControls();
         SDVChatVsStreamer.Sabotage.Sabotages.MashedSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.FreezeTimeSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.FloorIsLavaSabotage.Tick();
@@ -405,6 +421,12 @@ public class ModEntry : Mod
                 raidEvents.IsHalvedCosts,
                 (int)(raidEvents.IsDoublePoints ? (raidEvents._doublePointsExpiry - DateTime.UtcNow).TotalSeconds : 0),
                 (int)(raidEvents.IsHalvedCosts  ? (raidEvents._halveCostsExpiry  - DateTime.UtcNow).TotalSeconds : 0));
+
+            if (SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.IsEnabled)
+                _overlay.PushChallenge(
+                    SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.GetCount(),
+                    SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.GoalCount,
+                    SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.FilterLabel);
         }
     }
 
@@ -435,7 +457,7 @@ public class ModEntry : Mod
 
     private void OnButtonsChanged(object? sender, StardewModdingAPI.Events.ButtonsChangedEventArgs e)
     {
-        if (!ConfusedSabotage.IsActive || !Context.IsWorldReady) return;
+        if (!Context.IsWorldReady) return;
 
         // Sticky — suppress item switching and dropping
         if (StickySabotage.IsActive)
@@ -448,28 +470,34 @@ public class ModEntry : Mod
                     Helper.Input.Suppress(btn);
             }
         }
+    }
 
-        var moveButtons = new[] {
-            SButton.W, SButton.S, SButton.A, SButton.D,
-            SButton.Up, SButton.Down, SButton.Left, SButton.Right
-        };
+    private static readonly SButton[] MoveButtons = {
+        SButton.W, SButton.S, SButton.A, SButton.D,
+        SButton.Up, SButton.Down, SButton.Left, SButton.Right
+    };
 
-        foreach (var btn in moveButtons)
+    // Runs every tick (not just on ButtonsChanged) so a held key stays inverted
+    // for as long as it's held, instead of only flickering on the initial press.
+    private void ApplyConfusedControls()
+    {
+        if (!ConfusedSabotage.IsActive) return;
+
+        foreach (var btn in MoveButtons)
         {
-            if (Helper.Input.IsDown(btn))
+            if (!Helper.Input.IsDown(btn)) continue;
+
+            Helper.Input.Suppress(btn);
+            var opposite = btn switch
             {
-                Helper.Input.Suppress(btn);
-                var opposite = btn switch
-                {
-                    SButton.W    or SButton.Up    => 2, // down
-                    SButton.S    or SButton.Down  => 0, // up
-                    SButton.A    or SButton.Left  => 1, // right
-                    SButton.D    or SButton.Right => 3, // left
-                    _                             => -1
-                };
-                if (opposite >= 0 && !Game1.player.movementDirections.Contains(opposite))
-                    Game1.player.movementDirections.Add(opposite);
-            }
+                SButton.W    or SButton.Up    => 2, // down
+                SButton.S    or SButton.Down  => 0, // up
+                SButton.A    or SButton.Left  => 1, // right
+                SButton.D    or SButton.Right => 3, // left
+                _                             => -1
+            };
+            if (opposite >= 0 && !Game1.player.movementDirections.Contains(opposite))
+                Game1.player.movementDirections.Add(opposite);
         }
     }
 
@@ -554,6 +582,8 @@ public class ModEntry : Mod
         // External effect indicators — all share the same 'y' counter above
         // so nothing ever overlaps regardless of how many are active at once
         BlindfoldSabotage.Draw(sb);          // full-screen overlay, not a stacking line
+        JumpScareState.Draw(sb);             // brief full-screen flash, no stacking line — no warning either
+        NuclearChaosState.Draw(sb);          // blast flash + lingering haze, no stacking line
         FloorIsLavaSabotage.Draw(sb, ref y); // haze overlay + stacking countdown line
         WarpWhistleState.Draw(sb, ref y);
         BanState.Draw(sb, ref y);
@@ -629,6 +659,18 @@ public class ModEntry : Mod
             && Game1.activeClickableMenu == null)
         {
             Game1.activeClickableMenu = new UI.IgnoreListMenu(_config, Helper);
+        }
+
+        // Force the Chaos Gods to fire immediately — bypasses the enabled toggle
+        // and quiet-period cooldown, for clip farming or just testing on demand
+        if (e.Button.ToString().Equals(_config.ForceChaosKey, StringComparison.OrdinalIgnoreCase)
+            && Context.IsWorldReady)
+        {
+            bool fired = _sabotage.ForceAutoTrigger(msg => _twitch.SendMessage(msg));
+            if (!fired)
+                Game1.addHUDMessage(new HUDMessage(
+                    "⚡ Chaos Gods have nothing to fire — check your Auto Trigger Pool in GMCM.",
+                    HUDMessage.error_type));
         }
     }
 

@@ -13,20 +13,17 @@ public class BombSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var location = Game1.player.currentLocation;
-        var pos      = new Vector2(
-            Game1.player.TilePoint.X,
-            Game1.player.TilePoint.Y
-        ) * 64f;
+        var target   = MultiplayerTargeting.Resolve(triggeredBy);
+        var location = target.currentLocation;
 
         // Create a bomb explosion — radius 3, damage 50
         location.explode(
-            new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y),
+            new Vector2(target.TilePoint.X, target.TilePoint.Y),
             3,
-            Game1.player);
+            target);
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"💣 {triggeredBy} dropped a bomb on you!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

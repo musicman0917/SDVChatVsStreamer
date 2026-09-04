@@ -21,29 +21,30 @@ public class InfestationSabotage : ISabotage
     private static readonly Random _rng = new();
 
     // Pull from existing monster pool — works indoors too
-    private static readonly Func<Vector2, Monster>[] MonsterFactory = {
-        pos => new GreenSlime(pos, Game1.player.currentLocation.GetSeasonIndex()),
-        pos => new Bat(pos, -555),   // Frost bat
-        pos => new Serpent(pos),
-        pos => new ShadowBrute(pos),
-        pos => new Ghost(pos),
-        pos => new DustSpirit(pos, false),
-        pos => new SquidKid(pos),
+    private static readonly Func<Vector2, GameLocation, Monster>[] MonsterFactory = {
+        (pos, loc) => new GreenSlime(pos, loc.GetSeasonIndex()),
+        (pos, loc) => new Bat(pos, -555),   // Frost bat
+        (pos, loc) => new Serpent(pos),
+        (pos, loc) => new ShadowBrute(pos),
+        (pos, loc) => new Ghost(pos),
+        (pos, loc) => new DustSpirit(pos, false),
+        (pos, loc) => new SquidKid(pos),
     };
 
     public void Execute(string triggeredBy)
     {
-        var loc    = Game1.player.currentLocation;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc    = target.currentLocation;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var tiles  = MonsterSpawnHelper.FindSpawnTiles(loc, origin, 8, maxRadius: 10);
         var factory = MonsterFactory[_rng.Next(MonsterFactory.Length)];
 
         foreach (var pos in tiles)
-            loc.characters.Add(factory(pos));
+            loc.characters.Add(factory(pos, loc));
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🐛 {triggeredBy} triggered an Infestation! Monsters everywhere!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 

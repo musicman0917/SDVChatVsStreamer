@@ -5,7 +5,9 @@ namespace SDVChatVsStreamer;
 
 public static class GmcmSetup
 {
-    public static void Register(IModHelper helper, IManifest manifest, ModConfig config)
+    /// <param name="onMultiplayerConfigChanged">Invoked after every GMCM save so co-op channel
+    /// joins/parts can be reconciled live instead of requiring a restart to take effect.</param>
+    public static void Register(IModHelper helper, IManifest manifest, ModConfig config, Action? onMultiplayerConfigChanged = null)
     {
         var api = helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
         if (api == null)
@@ -17,7 +19,11 @@ public static class GmcmSetup
         api.Register(
             mod:   manifest,
             reset: () => ResetConfig(config),
-            save:  () => helper.WriteConfig(config)
+            save:  () =>
+            {
+                helper.WriteConfig(config);
+                onMultiplayerConfigChanged?.Invoke();
+            }
         );
 
         // ─── Pages ────────────────────────────────────────────────────────────
@@ -36,6 +42,8 @@ public static class GmcmSetup
         api.AddPageLink(manifest, "overlay",   () => "🖥️  OBS Overlay (Shop/Feed)");
         api.AddPageLink(manifest, "chatfeed",  () => "💬 Chat Feed Display");
         api.AddPageLink(manifest, "autoclip",  () => "🎬 Auto-Clipping");
+        api.AddPageLink(manifest, "challenge", () => "🐔 Animal Challenge");
+        api.AddPageLink(manifest, "multiplayer", () => "👥 Multiplayer Targeting");
         api.AddPageLink(manifest, "ignored",   () => "🚫 Ignored Users");
 
         // ─── General ──────────────────────────────────────────────────────────
@@ -337,6 +345,11 @@ public static class GmcmSetup
             setValue: v => config.AutoTriggerPool = v,
             name: () => "Sabotage Pool",
             tooltip: () => "Comma-separated list of !buy commands to pick from");
+        api.AddTextOption(manifest,
+            getValue: () => config.ForceChaosKey,
+            setValue: v => config.ForceChaosKey = v,
+            name: () => "Force Chaos Key",
+            tooltip: () => "Press this key in-game to immediately fire a random sabotage from the pool above — ignores the Enabled toggle and quiet-period cooldown. Handy for clip farming on demand (default: F7)");
 
         // ─── TikTok ───────────────────────────────────────────────────────────
 
@@ -488,6 +501,24 @@ public static class GmcmSetup
             name: () => "Max Leaderboard Items",
             min: 1, max: 10);
 
+        api.AddSectionTitle(manifest, () => "Embedded Chat & Alerts");
+        api.AddParagraph(manifest, () => "Fold the chat overlay and alert popup into this same browser source, so you only need to add one OBS source instead of three. Off by default so upgrading doesn't duplicate anything you've already added separately.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.OverlayIncludeChat,
+            setValue: v => config.OverlayIncludeChat = v,
+            name: () => "Include Chat",
+            tooltip: () => "Show the Twitch/TikTok chat feed inside this overlay instead of (or in addition to) the separate /chat browser source");
+        api.AddTextOption(manifest,
+            getValue: () => config.OverlayChatCorner,
+            setValue: v => config.OverlayChatCorner = v,
+            name: () => "Chat Corner",
+            allowedValues: new[] { "TopLeft", "TopRight", "BottomLeft", "BottomRight" });
+        api.AddBoolOption(manifest,
+            getValue: () => config.OverlayIncludeAlerts,
+            setValue: v => config.OverlayIncludeAlerts = v,
+            name: () => "Include Alert Popups",
+            tooltip: () => "Show the transient alert popup inside this overlay instead of (or in addition to) the separate /alert browser source");
+
         api.AddSectionTitle(manifest, () => "Appearance");
         api.AddNumberOption(manifest,
             getValue: () => config.OverlayWidth,
@@ -633,6 +664,91 @@ public static class GmcmSetup
             name: () => "Raid Clip Cooldown (seconds)",
             min: 0, max: 1800);
 
+        // ─── Animal Challenge ─────────────────────────────────────────────────
+
+        api.AddPage(manifest, "challenge", () => "Animal Challenge");
+
+        api.AddParagraph(manifest, () => "A togglable \"100 Chicken Challenge\"-style goal: try to reach a target number of a given animal type on the farm. Chat can buy !buy addanimal to help or !buy spookanimal to hurt your progress.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.ChallengeModeEnabled,
+            setValue: v => config.ChallengeModeEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Turns on the challenge counter and the addanimal/spookanimal shop commands");
+        api.AddTextOption(manifest,
+            getValue: () => config.ChallengeAnimalFilter,
+            setValue: v => config.ChallengeAnimalFilter = v,
+            name: () => "Animal Type",
+            tooltip: () => "Which animals count toward the goal — matches any animal type containing this text (e.g. \"Chicken\" matches White/Brown/Void/Golden Chicken). Use \"Any\" to count every farm animal.");
+        api.AddNumberOption(manifest,
+            getValue: () => config.ChallengeGoalCount,
+            setValue: v => config.ChallengeGoalCount = v,
+            name: () => "Goal Count",
+            tooltip: () => "How many matching animals counts as reaching the challenge",
+            min: 1, max: 999);
+
+        // ─── Multiplayer Targeting ────────────────────────────────────────────
+
+        api.AddPage(manifest, "multiplayer", () => "Multiplayer Targeting");
+
+        api.AddParagraph(manifest, () => "Playing co-op with other streamers? Each co-op player is their own broadcaster with their own Twitch channel. Enable a slot below, type in their channel name, and this mod joins that channel too — any command typed there (by them or their own viewers) lands on THEIR farmhand instead of you, no mod install needed on their end. Their in-game character name must match their channel name EXACTLY (case-insensitive) or targeting falls back to you.");
+        api.AddParagraph(manifest, () => "Only sabotages that change save-file state (money, health/stamina, buffs, inventory, nearby monster/explosion spawns) can be redirected this way. Effects that read your keyboard or draw straight to a screen — Confused, jump scares, bans, warps — can only ever affect whoever's game is actually running this mod, so those always land on you regardless of this setting.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerTargetingEnabled,
+            setValue: v => config.MultiplayerTargetingEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Master switch — turns co-op channel joining and farmhand targeting on or off");
+
+        api.AddSectionTitle(manifest, () => "Player 2");
+        api.AddTextOption(manifest,
+            getValue: () => config.MultiplayerPlayer2Channel,
+            setValue: v => config.MultiplayerPlayer2Channel = v,
+            name: () => "Twitch Channel",
+            tooltip: () => "Their Twitch channel name (lowercase) — must match their in-game character name exactly");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer2Enabled,
+            setValue: v => config.MultiplayerPlayer2Enabled = v,
+            name: () => "Connect",
+            tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer2AllowReplies,
+            setValue: v => config.MultiplayerPlayer2AllowReplies = v,
+            name: () => "Allow Bot Replies",
+            tooltip: () => "Turn off if this player would rather their chat stayed bot-silent. The bot still reads their channel either way — that's what makes targeting work — it just won't post anything back when this is off.");
+
+        api.AddSectionTitle(manifest, () => "Player 3");
+        api.AddTextOption(manifest,
+            getValue: () => config.MultiplayerPlayer3Channel,
+            setValue: v => config.MultiplayerPlayer3Channel = v,
+            name: () => "Twitch Channel",
+            tooltip: () => "Their Twitch channel name (lowercase) — must match their in-game character name exactly");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer3Enabled,
+            setValue: v => config.MultiplayerPlayer3Enabled = v,
+            name: () => "Connect",
+            tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer3AllowReplies,
+            setValue: v => config.MultiplayerPlayer3AllowReplies = v,
+            name: () => "Allow Bot Replies",
+            tooltip: () => "Turn off if this player would rather their chat stayed bot-silent. The bot still reads their channel either way — that's what makes targeting work — it just won't post anything back when this is off.");
+
+        api.AddSectionTitle(manifest, () => "Player 4");
+        api.AddTextOption(manifest,
+            getValue: () => config.MultiplayerPlayer4Channel,
+            setValue: v => config.MultiplayerPlayer4Channel = v,
+            name: () => "Twitch Channel",
+            tooltip: () => "Their Twitch channel name (lowercase) — must match their in-game character name exactly");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer4Enabled,
+            setValue: v => config.MultiplayerPlayer4Enabled = v,
+            name: () => "Connect",
+            tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerPlayer4AllowReplies,
+            setValue: v => config.MultiplayerPlayer4AllowReplies = v,
+            name: () => "Allow Bot Replies",
+            tooltip: () => "Turn off if this player would rather their chat stayed bot-silent. The bot still reads their channel either way — that's what makes targeting work — it just won't post anything back when this is off.");
+
         // ─── Ignored Users ────────────────────────────────────────────────────
 
         api.AddPage(manifest, "ignored", () => "Ignored Users");
@@ -718,6 +834,9 @@ public static class GmcmSetup
         config.OverlayMaxShopItems       = defaults.OverlayMaxShopItems;
         config.OverlayMaxFeedItems       = defaults.OverlayMaxFeedItems;
         config.OverlayMaxLeaderboardItems = defaults.OverlayMaxLeaderboardItems;
+        config.OverlayIncludeChat        = defaults.OverlayIncludeChat;
+        config.OverlayIncludeAlerts      = defaults.OverlayIncludeAlerts;
+        config.OverlayChatCorner         = defaults.OverlayChatCorner;
         config.OverlayWidth              = defaults.OverlayWidth;
         config.OverlayFontSize           = defaults.OverlayFontSize;
         config.OverlayTheme              = defaults.OverlayTheme;
@@ -729,6 +848,7 @@ public static class GmcmSetup
         config.AutoTriggerEnabled        = defaults.AutoTriggerEnabled;
         config.AutoTriggerMinutes        = defaults.AutoTriggerMinutes;
         config.AutoTriggerPool           = defaults.AutoTriggerPool;
+        config.ForceChaosKey             = defaults.ForceChaosKey;
         config.AutoClipEnabled                = defaults.AutoClipEnabled;
         config.ClipNuisance                   = defaults.ClipNuisance;
         config.ClipDisruptive                 = defaults.ClipDisruptive;
@@ -742,5 +862,18 @@ public static class GmcmSetup
         config.ClipDevastatingCooldownSeconds = defaults.ClipDevastatingCooldownSeconds;
         config.ClipRaids                      = defaults.ClipRaids;
         config.ClipRaidsCooldownSeconds       = defaults.ClipRaidsCooldownSeconds;
+        config.ChallengeModeEnabled           = defaults.ChallengeModeEnabled;
+        config.ChallengeAnimalFilter          = defaults.ChallengeAnimalFilter;
+        config.ChallengeGoalCount             = defaults.ChallengeGoalCount;
+        config.MultiplayerTargetingEnabled    = defaults.MultiplayerTargetingEnabled;
+        config.MultiplayerPlayer2Enabled      = defaults.MultiplayerPlayer2Enabled;
+        config.MultiplayerPlayer2Channel      = defaults.MultiplayerPlayer2Channel;
+        config.MultiplayerPlayer2AllowReplies = defaults.MultiplayerPlayer2AllowReplies;
+        config.MultiplayerPlayer3Enabled      = defaults.MultiplayerPlayer3Enabled;
+        config.MultiplayerPlayer3Channel      = defaults.MultiplayerPlayer3Channel;
+        config.MultiplayerPlayer3AllowReplies = defaults.MultiplayerPlayer3AllowReplies;
+        config.MultiplayerPlayer4Enabled      = defaults.MultiplayerPlayer4Enabled;
+        config.MultiplayerPlayer4Channel      = defaults.MultiplayerPlayer4Channel;
+        config.MultiplayerPlayer4AllowReplies = defaults.MultiplayerPlayer4AllowReplies;
     }
 }

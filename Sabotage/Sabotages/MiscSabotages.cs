@@ -60,7 +60,8 @@ public class CarePackageSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc = Game1.player.currentLocation;
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc = target.currentLocation;
 
         var items = new[]
         {
@@ -69,7 +70,7 @@ public class CarePackageSabotage : ISabotage
             StardewValley.ItemRegistry.Create("(O)395", 2), // Coffee
         };
 
-        var tile = FindEmptyTile(loc, Game1.player.Tile);
+        var tile = FindEmptyTile(loc, target.Tile);
         if (tile.HasValue)
         {
             var chest = new Chest(true) { Name = "Care Package" };
@@ -81,12 +82,12 @@ public class CarePackageSabotage : ISabotage
             // No free tile nearby — drop the items on the ground instead of overwriting
             // whatever's already placed there (sprinkler, scarecrow, another chest, etc.)
             foreach (var item in items)
-                Game1.createItemDebris(item, Game1.player.Position, -1, loc);
+                Game1.createItemDebris(item, target.Position, -1, loc);
         }
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"📦 {triggeredBy} sent a care package! A chest appeared nearby with some essentials.",
-            HUDMessage.newQuest_type));
+            HUDMessage.newQuest_type);
     }
 
     private static Vector2? FindEmptyTile(GameLocation loc, Vector2 playerTile)
@@ -122,6 +123,7 @@ public class AirdropSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
         var farm = Game1.getFarm();
 
         var items = new[]
@@ -155,19 +157,19 @@ public class AirdropSabotage : ISabotage
             foreach (var item in items) chest.Items.Add(item);
             farm.objects[tile.Value] = chest;
 
-            Game1.addHUDMessage(new HUDMessage(
+            MultiplayerTargeting.Notify(target,
                 $"🎁 {triggeredBy} called in an airdrop! A loot-packed chest landed somewhere on your farm!",
-                HUDMessage.newQuest_type));
+                HUDMessage.newQuest_type);
         }
         else
         {
-            // Farm's too built-up to find an open tile — drop the loot at the player's feet instead
+            // Farm's too built-up to find an open tile — drop the loot at the target's feet instead
             foreach (var item in items)
-                Game1.createItemDebris(item, Game1.player.Position, -1, Game1.player.currentLocation);
+                Game1.createItemDebris(item, target.Position, -1, target.currentLocation);
 
-            Game1.addHUDMessage(new HUDMessage(
+            MultiplayerTargeting.Notify(target,
                 $"🎁 {triggeredBy} called in an airdrop, but there was nowhere to land it — the loot dropped at your feet instead!",
-                HUDMessage.newQuest_type));
+                HUDMessage.newQuest_type);
         }
     }
 }
@@ -192,8 +194,9 @@ public class GeodeCrackSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
         int cracked = 0;
-        var items = Game1.player.Items;
+        var items = target.Items;
 
         for (int i = 0; i < items.Count; i++)
         {
@@ -205,19 +208,19 @@ public class GeodeCrackSabotage : ISabotage
             for (int s = 0; s < stack; s++)
             {
                 var loot = StardewValley.Utility.getTreasureFromGeode(item);
-                if (loot != null && !Game1.player.addItemToInventoryBool(loot))
-                    Game1.createItemDebris(loot, Game1.player.Position, -1, Game1.player.currentLocation);
+                if (loot != null && !target.addItemToInventoryBool(loot))
+                    Game1.createItemDebris(loot, target.Position, -1, target.currentLocation);
                 cracked++;
             }
 
             items[i] = null;
         }
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             cracked > 0
                 ? $"💎 {triggeredBy} cracked {cracked} geode(s) for you! No Clint required."
                 : $"💎 {triggeredBy} tried to crack your geodes, but you didn't have any!",
-            HUDMessage.newQuest_type));
+            HUDMessage.newQuest_type);
     }
 }
 

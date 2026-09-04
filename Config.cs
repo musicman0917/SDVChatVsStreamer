@@ -132,6 +132,13 @@ public class ModConfig
     public string OverlayCustomAccent { get; set; } = "#9147ff";
     public string OverlayCustomText { get; set; } = "#efeff1";
 
+    // Embedded chat/alerts — off by default so upgrading users who already run
+    // separate /chat and /alert OBS sources don't suddenly get them twice.
+    // Turn these on to fold chat and alert popups into this one overlay instead.
+    public bool   OverlayIncludeChat   { get; set; } = false;
+    public bool   OverlayIncludeAlerts { get; set; } = false;
+    public string OverlayChatCorner    { get; set; } = "BottomRight"; // TopLeft | TopRight | BottomLeft | BottomRight
+
     // ─── YouTube / Streamer.bot ──────────────────────────────────────────────
     public bool YouTubeEnabled       { get; set; } = false;
     public int  StreamerbotPort      { get; set; } = 8080;
@@ -141,6 +148,8 @@ public class ModConfig
     public int  AutoTriggerMinutes          { get; set; } = 5;
     public string AutoTriggerPool           { get; set; } =
         "serpent,slime,bat,bomb,rain,storm,confused,blindfold,metronome,trickroom,trashday,taxman,freezetime,infestation";
+    /// <summary>Key that immediately fires a random sabotage from the Auto Trigger Pool, ignoring the enabled toggle and quiet-period cooldown — for manually kicking off chaos on demand (e.g. clip farming).</summary>
+    public string ForceChaosKey             { get; set; } = "F7";
 
     // ─── Auto Clipping ───────────────────────────────────────────────────────
     public bool AutoClipEnabled                  { get; set; } = true;
@@ -156,6 +165,40 @@ public class ModConfig
     public int  ClipDevastatingCooldownSeconds   { get; set; } = 90;
     public bool ClipRaids                        { get; set; } = true;
     public int  ClipRaidsCooldownSeconds         { get; set; } = 150;
+
+    // ─── Animal Challenge (e.g. "100 Chicken Challenge") ─────────────────────
+    public bool   ChallengeModeEnabled  { get; set; } = false;
+    /// <summary>Substring matched against an animal's in-game type (e.g. "Chicken" matches White/Brown/Void/Golden Chicken). "Any" counts every farm animal.</summary>
+    public string ChallengeAnimalFilter { get; set; } = "Chicken";
+    public int    ChallengeGoalCount    { get; set; } = 100;
+
+    // ─── Multiplayer Targeting ────────────────────────────────────────────────
+    /// <summary>When on, the mod also joins each co-op player's own Twitch channel below (in
+    /// addition to your own). Any command typed in a co-op player's channel — by them or their
+    /// own viewers — lands on THAT player's connected farmhand instead of the host, as long as
+    /// their in-game character name matches their channel name EXACTLY (case-insensitive). No
+    /// mod install is required on the co-op player's end; only their channel name. Only applies
+    /// to sabotages that mutate host-authoritative state (money, health/stamina, buffs,
+    /// inventory, nearby monster/explosion spawns). Effects that read local input or draw to a
+    /// screen directly (Confused, jump scares, bans, warps) can only ever affect whoever's game
+    /// is actually running this mod, so they keep hitting the host regardless of this setting.</summary>
+    public bool   MultiplayerTargetingEnabled { get; set; } = false;
+
+    /// <summary>Up to 3 additional co-op players (host + 3 = vanilla's 4-player cap). Each slot's
+    /// Channel is that player's own Twitch channel name; Enabled joins it and starts routing
+    /// commands typed there to their farmhand. AllowReplies controls whether the bot is allowed
+    /// to post anything back into their channel at all — turn it off if that player would rather
+    /// their chat stayed bot-silent; the bot still reads their channel either way, since reading
+    /// is what makes targeting work, it just won't ever type there when this is off.</summary>
+    public bool   MultiplayerPlayer2Enabled      { get; set; } = false;
+    public string MultiplayerPlayer2Channel      { get; set; } = "";
+    public bool   MultiplayerPlayer2AllowReplies { get; set; } = true;
+    public bool   MultiplayerPlayer3Enabled      { get; set; } = false;
+    public string MultiplayerPlayer3Channel      { get; set; } = "";
+    public bool   MultiplayerPlayer3AllowReplies { get; set; } = true;
+    public bool   MultiplayerPlayer4Enabled      { get; set; } = false;
+    public string MultiplayerPlayer4Channel      { get; set; } = "";
+    public bool   MultiplayerPlayer4AllowReplies { get; set; } = true;
 
     // ─── Database ────────────────────────────────────────────────────────────
     public string DatabaseFileName { get; set; } = "ViewerLedger.db";

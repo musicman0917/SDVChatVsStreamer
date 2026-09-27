@@ -114,7 +114,7 @@ public class YouTubeManager
 
     private void HandleMessage(string json)
     {
-        var doc = JsonDocument.Parse(json);
+        using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
         // Only handle YouTube chat message events
@@ -245,9 +245,10 @@ public class YouTubeManager
         _monitor.Log($"[YouTubeManager] SuperChat from {username}: ${amount}", LogLevel.Info);
         ModEntry.PendingActions.Enqueue(() =>
         {
-            // Convert dollars to bits equivalent then to points
+            // Convert dollars to bits equivalent (Twitch's 100-bits-per-dollar ratio), then
+            // apply the same bits-to-points rate PointsEngine.OnBits uses for Twitch cheers.
             int bits = (int)(amount * 100);
-            int pts  = Math.Max(1, bits / Math.Max(1, _config.BitsPerPoint));
+            int pts  = Math.Max(1, bits * _config.BitsPerPoint);
             _ledger.AddPoints(username, pts);
             Game1.addHUDMessage(new HUDMessage(
                 $"💛 {username} sent a Super Chat! +{pts}pts",

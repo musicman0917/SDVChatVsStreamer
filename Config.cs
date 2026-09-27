@@ -34,6 +34,15 @@ public class ModConfig
     public int ChatBonusPoints { get; set; } = 5;
     public int ChatBonusCooldownSeconds { get; set; } = 60;
 
+    // ─── Point Drop ──────────────────────────────────────────────────────────
+    /// <summary>Mod/broadcaster-only chat command (!pointdrop) that posts an announcement,
+    /// collects everyone who types the claim keyword within the window, then awards them all
+    /// at once. Works per-channel — the host's own, or a co-op player's channel if triggered
+    /// there.</summary>
+    public int    PointDropAmount        { get; set; } = 500;
+    public int    PointDropWindowSeconds { get; set; } = 30;
+    public string PointDropClaimKeyword  { get; set; } = "!1";
+
     // ─── Event Bonuses ───────────────────────────────────────────────────────
     public int FollowBonus { get; set; } = 25;
     public int SubBonus { get; set; } = 100;

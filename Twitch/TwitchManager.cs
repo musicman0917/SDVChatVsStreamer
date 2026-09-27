@@ -32,6 +32,12 @@ public class TwitchManager
     private UI.ChatFeed? _chatFeed;
     private Overlay.OverlayServer? _overlay;
 
+    // ─── Point Drop ─────────────────────────────────────────────────────────
+    private readonly object _pointDropLock = new();
+    private bool _pointDropActive;
+    private string? _pointDropChannel;
+    private HashSet<string> _pointDropClaimants = new(StringComparer.OrdinalIgnoreCase);
+
     public TwitchManager(
         ModConfig config,
         PointsEngine points,
@@ -499,6 +505,16 @@ public class TwitchManager
         _chatFeed?.Add(username, message, UI.ChatPlatform.Twitch, e.ChatMessage.Id,
             BuildRenderedMessage(e.ChatMessage.Message.Trim(), e.ChatMessage.EmoteSet?.Emotes));
 
+        // Point drop claim — checked before anything else so it works regardless of
+        // whatever other commands/messages happen to be active at the same time.
+        if (_pointDropActive && channel.Equals(_pointDropChannel, StringComparison.OrdinalIgnoreCase)
+            && message.Equals(_config.PointDropClaimKeyword, StringComparison.OrdinalIgnoreCase))
+        {
+            lock (_pointDropLock)
+                _pointDropClaimants.Add(username);
+            return;
+        }
+
         // Raider bonus — if active, award extra points on first chat
         if (_sabotage.RaidEvents.IsRaiderBonusActive)
         {
@@ -552,7 +568,77 @@ public class TwitchManager
         if (message.StartsWith("!setpoints ", StringComparison.OrdinalIgnoreCase))
         {
             HandleSetPoints(username, e.ChatMessage.IsModerator, e.ChatMessage.IsBroadcaster, message, channel);
+            return;
         }
+
+        if (message.Equals("!pointdrop", StringComparison.OrdinalIgnoreCase))
+        {
+            HandlePointDrop(username, e.ChatMessage.IsModerator, e.ChatMessage.IsBroadcaster, channel);
+        }
+    }
+
+    // ─── Point Drop ─────────────────────────────────────────────────────────
+    // Mod/broadcaster-only giveaway: announce, collect everyone who types the claim
+    // keyword within the window, then award them all at once. Scoped to whichever
+    // channel it's triggered in — the host's own, or a co-op player's channel if they
+    // (or one of their mods) run it there.
+
+    private void HandlePointDrop(string sender, bool isMod, bool isBroadcaster, string channel)
+    {
+        if (!isMod && !isBroadcaster)
+        {
+            SendMessage(channel, $"@{sender} only mods and the broadcaster can start a point drop.");
+            return;
+        }
+
+        lock (_pointDropLock)
+        {
+            if (_pointDropActive)
+            {
+                SendMessage(channel, $"@{sender} a point drop is already running!");
+                return;
+            }
+            _pointDropActive   = true;
+            _pointDropChannel  = channel;
+            _pointDropClaimants = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var amount  = _config.PointDropAmount;
+        var seconds = _config.PointDropWindowSeconds;
+        var keyword = _config.PointDropClaimKeyword;
+
+        SendMessage(channel, $"🎉 POINT DROP! Type {keyword} in the next {seconds} seconds to grab {amount} chaos points!");
+        _monitor.Log($"[TwitchManager] Point drop started by {sender} in {channel} — {amount}pts, {seconds}s window.", LogLevel.Info);
+
+        Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(seconds));
+
+            HashSet<string> claimants;
+            lock (_pointDropLock)
+            {
+                claimants          = _pointDropClaimants;
+                _pointDropActive   = false;
+                _pointDropChannel  = null;
+            }
+
+            foreach (var claimant in claimants)
+                _ledger.AddPoints(claimant, amount);
+
+            _monitor.Log($"[TwitchManager] Point drop closed in {channel} — {claimants.Count} claimed {amount}pts each.", LogLevel.Info);
+
+            if (claimants.Count == 0)
+            {
+                SendMessage(channel, "⏰ Point drop closed — nobody claimed it!");
+                return;
+            }
+
+            var names = claimants.Count <= 15
+                ? string.Join(", ", claimants.Select(c => $"@{c}"))
+                : string.Join(", ", claimants.Take(15).Select(c => $"@{c}")) + $" and {claimants.Count - 15} more";
+
+            SendMessage(channel, $"⏰ Point drop closed! {claimants.Count} viewer(s) grabbed {amount} chaos points each: {names}");
+        });
     }
 
     private void HandleSetPoints(string sender, bool isMod, bool isBroadcaster, string message, string channel)

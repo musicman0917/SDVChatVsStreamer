@@ -105,6 +105,7 @@ Only effects that change save-file state (money, health/stamina, buffs, inventor
 | `!buy <command>` | Spend points on a sabotage or blessing |
 | `!info <command>` | Get details on a specific sabotage |
 | `!give <user> <amount>` | Transfer points (mods only) |
+| `!pointdrop` | Start a timed giveaway — announces a claim keyword (default `!1`), then awards points (default 500) to everyone who types it within the window (default 30s). Mods/broadcaster only. |
 
 ---
 

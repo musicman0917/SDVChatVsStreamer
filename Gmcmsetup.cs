@@ -113,6 +113,26 @@ public static class GmcmSetup
             tooltip: () => "How long before the same viewer can earn chat bonus again",
             min: 10, max: 600);
 
+        api.AddSectionTitle(manifest, () => "Point Drop");
+        api.AddParagraph(manifest, () => "A mod/broadcaster-only giveaway: !pointdrop posts an announcement, then anyone who types the claim keyword within the window gets the points. Works in whichever channel it's triggered from.");
+        api.AddNumberOption(manifest,
+            getValue: () => config.PointDropAmount,
+            setValue: v => config.PointDropAmount = v,
+            name: () => "Points Awarded",
+            tooltip: () => "How many chaos points each claimant receives",
+            min: 1, max: 100000);
+        api.AddNumberOption(manifest,
+            getValue: () => config.PointDropWindowSeconds,
+            setValue: v => config.PointDropWindowSeconds = v,
+            name: () => "Claim Window (seconds)",
+            tooltip: () => "How long chat has to type the claim keyword after the announcement",
+            min: 5, max: 300);
+        api.AddTextOption(manifest,
+            getValue: () => config.PointDropClaimKeyword,
+            setValue: v => config.PointDropClaimKeyword = v,
+            name: () => "Claim Keyword",
+            tooltip: () => "What chatters type to claim points, e.g. !1");
+
         api.AddSectionTitle(manifest, () => "Event Bonuses");
         api.AddNumberOption(manifest,
             getValue: () => config.FollowBonus,
@@ -773,6 +793,9 @@ public static class GmcmSetup
         config.BasePassivePoints         = defaults.BasePassivePoints;
         config.ChatBonusPoints           = defaults.ChatBonusPoints;
         config.ChatBonusCooldownSeconds  = defaults.ChatBonusCooldownSeconds;
+        config.PointDropAmount           = defaults.PointDropAmount;
+        config.PointDropWindowSeconds    = defaults.PointDropWindowSeconds;
+        config.PointDropClaimKeyword     = defaults.PointDropClaimKeyword;
         config.MultiplierNone            = defaults.MultiplierNone;
         config.MultiplierPrime           = defaults.MultiplierPrime;
         config.MultiplierT1              = defaults.MultiplierT1;

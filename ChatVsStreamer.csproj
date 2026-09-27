@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>ChatVsStreamer</AssemblyName>
-    <GamePath>F:\SteamLibrary\steamapps\Common\Stardew Valley</GamePath>
-    <GameModsPath>C:\Users\music\AppData\Roaming\Stardrop\Data\Selected Mods</GameModsPath>
+    <GamePath>E:\SteamLibrary\steamapps\Common\Stardew Valley</GamePath>
+    <GameModsPath>$(APPDATA)\Stardrop\Data\Selected Mods</GameModsPath>
     <BundleExtraAssemblies>ThirdParty</BundleExtraAssemblies>
     <EnableModZip>false</EnableModZip>
   </PropertyGroup>

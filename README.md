@@ -55,6 +55,25 @@ The installer will:
 
 - **Diamond tier system** for all other gifts (Nuisance → Disruptive → Painful → Devastating → Blessing)
 
+### 📺 YouTube Integration (via Streamer.bot) — Beta
+
+⚠️ **Experimental.** Connects to a local [Streamer.bot](https://streamer.bot/) WebSocket, which relays your YouTube Live chat events into the mod.
+
+- Chat messages award the normal chat bonus, same as Twitch/TikTok
+- Memberships award the sub bonus and set the member's multiplier tier
+- Super Chats convert to points using Twitch's bits-to-dollar ratio (100 "bits" per $1), then the same Points-Per-Bit rate as Twitch cheers
+- `!balance`, `!shop`, `!info`, and `!buy` all work — points are checked/deducted and sabotages fire correctly
+
+**Known limitation:** none of those commands reply in YouTube chat yet — only to the SMAPI log. Unlike Twitch IRC, Streamer.bot can't just be told "send this string"; it has to run a pre-built **Action** that you configure once, and the mod triggers it by name. Setup for that, whenever you're ready to enable it:
+
+1. In Streamer.bot, create a new **Action** (any name — e.g. `SendYouTubeMessage`).
+2. Add a sub-action: **YouTube → Send Message to Channel**.
+3. Set **Broadcast** to `Latest` (or `Variable` if you ever run multiple concurrent broadcasts).
+4. Set the **Message** field to `%message%` — Streamer.bot auto-populates this variable from whatever the mod passes in over the WebSocket.
+5. Save it, then send me the exact Action name (or its GUID, shown in the Actions list) — that's the one piece the mod's code needs to trigger it via a `DoAction` WebSocket request.
+
+Once that's wired up, `!balance`/`!buy`/etc. will post real replies into your YouTube Live chat the same way they already do on Twitch.
+
 ### 👹 Sabotages & Blessings
 
 **Sabotages:**

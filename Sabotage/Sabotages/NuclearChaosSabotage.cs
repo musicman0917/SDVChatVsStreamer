@@ -148,7 +148,7 @@ public class NuclearChaosSabotage : ISabotage
         NuclearChaosState.Trigger();
 
         var farm = Game1.getFarm();
-        int buildingsDestroyed = 0, animalsLost = 0, cropsKilled = 0, treesFelled = 0, rocksCleared = 0, fencesDestroyed = 0;
+        int buildingsDestroyed = 0, animalsLost = 0, cropsKilled = 0, treesFelled = 0, rocksCleared = 0, fencesDestroyed = 0, itemsRescued = 0;
 
         // ── Buildings (and any animals living in them) ──
         try
@@ -158,6 +158,25 @@ public class NuclearChaosSabotage : ISabotage
                 var type = building.buildingType.Value ?? "";
                 if (KeepBuildingTypes.Any(k => type.Contains(k, StringComparison.OrdinalIgnoreCase)))
                     continue;
+
+                // Rescue chests and their contents before the building (and everything in it)
+                // is gone — losing stored items, tools especially, is real progress loss, not
+                // fun chaos. The empty chest itself is still lost with the building; only its
+                // contents are saved.
+                var indoors = building.GetIndoors();
+                if (indoors != null)
+                {
+                    foreach (var chest in indoors.objects.Values.OfType<Chest>().ToList())
+                    {
+                        foreach (var item in chest.Items.ToList())
+                        {
+                            if (item == null) continue;
+                            if (Game1.player.addItemToInventory(item) != null)
+                                Game1.createItemDebris(item, Game1.player.Position, -1, Game1.player.currentLocation);
+                            itemsRescued++;
+                        }
+                    }
+                }
 
                 var homed = farm.animals.Values.Where(a => a.home == building).ToList();
                 foreach (var animal in homed)
@@ -223,12 +242,15 @@ public class NuclearChaosSabotage : ISabotage
         }
 
         // ── Rocks — smaller mineable stones/ore nodes, and fences (both live in .objects) ──
+        // Chests are explicitly excluded — "Stone Chest" (a 1.6 chest skin) would otherwise
+        // match the "Stone" name check below and get swept up with its contents.
         try
         {
             var toRemove = farm.objects.Pairs
                 .Where(kv =>
                     kv.Value is Fence ||
-                    (kv.Value.Name != null &&
+                    (kv.Value is not Chest &&
+                     kv.Value.Name != null &&
                      (kv.Value.Name.Contains("Stone", StringComparison.OrdinalIgnoreCase) ||
                       kv.Value.Name.Contains("Node", StringComparison.OrdinalIgnoreCase))))
                 .ToList();
@@ -246,7 +268,7 @@ public class NuclearChaosSabotage : ISabotage
         }
 
         Game1.addHUDMessage(new HUDMessage(
-            $"☢️ {triggeredBy} unleashed NUCLEAR CHAOS! {buildingsDestroyed} buildings demolished, {animalsLost} animals lost, {cropsKilled} crops killed, {treesFelled} trees felled, {rocksCleared} rocks cleared, {fencesDestroyed} fences destroyed. Only the house stands.",
+            $"☢️ {triggeredBy} unleashed NUCLEAR CHAOS! {buildingsDestroyed} buildings demolished, {animalsLost} animals lost, {cropsKilled} crops killed, {treesFelled} trees felled, {rocksCleared} rocks cleared, {fencesDestroyed} fences destroyed, {itemsRescued} items rescued from doomed chests. Only the house stands.",
             HUDMessage.error_type));
     }
 }

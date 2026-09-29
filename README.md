@@ -83,6 +83,8 @@ Once that's wired up, `!balance`/`!buy`/etc. will post real replies into your Yo
 - Player debuffs — dizzy, drunk, speedup, forced sleep, warp
 - Tool sabotage — upgrade or downgrade any tool mid-session
 - Explosions — bombs and mega bombs
+- **Jump Scare** (`!buy jumpscare`) — a startling full-screen flash and sound at a random moment in the next ~40 seconds. No warning when it's bought, none when it hits.
+- **Nuclear Chaos** (`!buy nuclearchaos`, 50,000pts) — the ultimate sabotage. Demolishes every non-housing building (animals inside included), kills every crop, fells every tree, clears every rock and fence on the farm. Screen flash, explosion sounds, aftershocks, and the Wizard (or, very rarely, the mod's own dev) warning you it's coming.
 
 **Weapons (give the farmer a random weapon):**
 - `!buy weaponnormal` — early game weapons
@@ -93,6 +95,16 @@ Once that's wired up, `!balance`/`!buy`/etc. will post real replies into your Yo
 
 **Blessings:**
 - Restore energy and health, water crops, fertilize, clear debris, give gold, speed boost, force sunny weather
+
+### 🐔 Animal Challenge
+
+A togglable "100 Chicken Challenge"-style goal — enable it in GMCM, pick an animal type (or "Any"), and set a target count. A live counter shows on the overlay and ticker. Chat can help or hurt progress:
+- `!buy addanimal` (blessing) — buys the farm a free matching animal, if a coop/barn has room
+- `!buy spookanimal` (sabotage) — permanently scares off a random matching animal
+
+### ⚡ Chaos Gods Auto-Trigger
+
+If chat goes quiet, the mod can fire a random sabotage on its own from a configurable command pool (GMCM → Sabotage Behavior). There's also a hotkey (default `F7`) to force-fire one immediately, ignoring the quiet-period cooldown — handy for clip farming on demand.
 
 ### 👥 Multiplayer Targeting (Alpha)
 

@@ -159,10 +159,11 @@ public class DebtCollectorSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
         var eligible = new List<(StardewValley.Item item, int idx)>();
-        for (int i = 0; i < Game1.player.Items.Count; i++)
+        for (int i = 0; i < target.Items.Count; i++)
         {
-            var item = Game1.player.Items[i];
+            var item = target.Items[i];
             if (item == null) continue;
 
             // Skip tools — this catches Axe, Pickaxe, Hoe, WateringCan, FishingRod, Scythe, etc.
@@ -179,18 +180,18 @@ public class DebtCollectorSabotage : ISabotage
 
         if (eligible.Count == 0)
         {
-            Game1.addHUDMessage(new HUDMessage(
+            MultiplayerTargeting.Notify(target,
                 $"💼 {triggeredBy} sent the Debt Collector but your inventory is already bare!",
-                HUDMessage.error_type));
+                HUDMessage.error_type);
             return;
         }
 
         var chosen = eligible[_rng.Next(eligible.Count)];
         var name   = chosen.item.DisplayName;
-        Game1.player.Items[chosen.idx] = null;
+        target.Items[chosen.idx] = null;
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"💼 {triggeredBy} sent the Debt Collector! They took your {name}!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

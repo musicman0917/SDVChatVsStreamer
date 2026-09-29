@@ -55,6 +55,25 @@ The installer will:
 
 - **Diamond tier system** for all other gifts (Nuisance → Disruptive → Painful → Devastating → Blessing)
 
+### 📺 YouTube Integration (via Streamer.bot) — Beta
+
+⚠️ **Experimental.** Connects to a local [Streamer.bot](https://streamer.bot/) WebSocket, which relays your YouTube Live chat events into the mod.
+
+- Chat messages award the normal chat bonus, same as Twitch/TikTok
+- Memberships award the sub bonus and set the member's multiplier tier
+- Super Chats convert to points using Twitch's bits-to-dollar ratio (100 "bits" per $1), then the same Points-Per-Bit rate as Twitch cheers
+- `!balance`, `!shop`, `!info`, and `!buy` all work — points are checked/deducted and sabotages fire correctly
+
+**Known limitation:** none of those commands reply in YouTube chat yet — only to the SMAPI log. Unlike Twitch IRC, Streamer.bot can't just be told "send this string"; it has to run a pre-built **Action** that you configure once, and the mod triggers it by name. Setup for that, whenever you're ready to enable it:
+
+1. In Streamer.bot, create a new **Action** (any name — e.g. `SendYouTubeMessage`).
+2. Add a sub-action: **YouTube → Send Message to Channel**.
+3. Set **Broadcast** to `Latest` (or `Variable` if you ever run multiple concurrent broadcasts).
+4. Set the **Message** field to `%message%` — Streamer.bot auto-populates this variable from whatever the mod passes in over the WebSocket.
+5. Save it, then send me the exact Action name (or its GUID, shown in the Actions list) — that's the one piece the mod's code needs to trigger it via a `DoAction` WebSocket request.
+
+Once that's wired up, `!balance`/`!buy`/etc. will post real replies into your YouTube Live chat the same way they already do on Twitch.
+
 ### 👹 Sabotages & Blessings
 
 **Sabotages:**
@@ -64,6 +83,8 @@ The installer will:
 - Player debuffs — dizzy, drunk, speedup, forced sleep, warp
 - Tool sabotage — upgrade or downgrade any tool mid-session
 - Explosions — bombs and mega bombs
+- **Jump Scare** (`!buy jumpscare`) — a startling full-screen flash and sound at a random moment in the next ~40 seconds. No warning when it's bought, none when it hits.
+- **Nuclear Chaos** (`!buy nuclearchaos`, 50,000pts) — the ultimate sabotage. Demolishes every non-housing building (animals inside included), kills every crop, fells every tree, clears every rock and fence on the farm. Screen flash, explosion sounds, aftershocks, and the Wizard (or, very rarely, the mod's own dev) warning you it's coming.
 
 **Weapons (give the farmer a random weapon):**
 - `!buy weaponnormal` — early game weapons
@@ -74,6 +95,22 @@ The installer will:
 
 **Blessings:**
 - Restore energy and health, water crops, fertilize, clear debris, give gold, speed boost, force sunny weather
+
+### 🐔 Animal Challenge
+
+A togglable "100 Chicken Challenge"-style goal — enable it in GMCM, pick an animal type (or "Any"), and set a target count. A live counter shows on the overlay and ticker. Chat can help or hurt progress:
+- `!buy addanimal` (blessing) — buys the farm a free matching animal, if a coop/barn has room
+- `!buy spookanimal` (sabotage) — permanently scares off a random matching animal
+
+### ⚡ Chaos Gods Auto-Trigger
+
+If chat goes quiet, the mod can fire a random sabotage on its own from a configurable command pool (GMCM → Sabotage Behavior). There's also a hotkey (default `F7`) to force-fire one immediately, ignoring the quiet-period cooldown — handy for clip farming on demand.
+
+### 👥 Multiplayer Targeting (Alpha)
+
+⚠️ **Alpha feature — untested in a real multiplayer session.** Playing co-op with other streamers? In GMCM's "Multiplayer Targeting" page, enable a player slot and type in their Twitch channel name — the mod joins their channel too, and any command typed there (by them or their own viewers) lands on **their** farmhand instead of you, as long as their in-game character name matches their channel name **exactly**. Up to 3 co-op players (host + 3 = the vanilla 4-player cap). No mod install needed on their end — just their channel name. Replies (`!balance`, `!buy` confirmations, etc.) post back into whichever channel triggered them, not always your own. Each player slot also has its own **Allow Bot Replies** toggle — turn it off if that player would rather the bot stayed silent in their chat; it still reads their channel either way, since that's what makes targeting work.
+
+Only effects that change save-file state (money, health/stamina, buffs, inventory, nearby monster/explosion spawns) can be redirected this way. Effects that read your keyboard or draw straight to a screen — Confused, jump scares, bans, warps — can only ever affect whoever's game is actually running this mod, so those always land on the host regardless of this setting. See the in-game GMCM tooltip on the "Multiplayer Targeting" page for the full explanation.
 
 ### 💬 Chat Overlay
 - **In-game HUD** — live Twitch + TikTok chat in a configurable corner with TTL expiry
@@ -99,6 +136,7 @@ The installer will:
 | `!buy <command>` | Spend points on a sabotage or blessing |
 | `!info <command>` | Get details on a specific sabotage |
 | `!give <user> <amount>` | Transfer points (mods only) |
+| `!pointdrop` | Start a timed giveaway — announces a claim keyword (default `!1`), then awards points (default 500) to everyone who types it within the window (default 30s). Mods/broadcaster only. |
 
 ---
 

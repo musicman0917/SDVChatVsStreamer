@@ -39,22 +39,24 @@ internal static class WeaponPool
 
     public static void GiveWeapon(MeleeWeapon? weapon, string triggeredBy, string emoji)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+
         if (weapon == null)
         {
-            Game1.addHUDMessage(new HUDMessage(
+            MultiplayerTargeting.Notify(target,
                 $"{emoji} {triggeredBy} tried to give you a weapon but something went wrong!",
-                HUDMessage.error_type));
+                HUDMessage.error_type);
             return;
         }
 
-        if (Game1.player.addItemToInventory(weapon) == null)
-            Game1.addHUDMessage(new HUDMessage(
+        if (target.addItemToInventory(weapon) == null)
+            MultiplayerTargeting.Notify(target,
                 $"{emoji} {triggeredBy} gave you a {weapon.DisplayName}!",
-                HUDMessage.newQuest_type));
+                HUDMessage.newQuest_type);
         else
-            Game1.addHUDMessage(new HUDMessage(
+            MultiplayerTargeting.Notify(target,
                 $"{emoji} {triggeredBy} tried to give you a {weapon.DisplayName} but your inventory is full!",
-                HUDMessage.error_type));
+                HUDMessage.error_type);
     }
 }
 

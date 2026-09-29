@@ -10,6 +10,7 @@ public class FertilizeCropsBlessing : ISabotage
     public string Description  => "applies basic fertilizer to all crops";
     public int Cost            => 200;
     public int CooldownSeconds => 600;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {

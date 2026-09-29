@@ -62,8 +62,10 @@ public static class ToolSabotageHelper
     /// <summary>Execute a tool operation on a specific or random tool. Returns a result message.</summary>
     public static string Execute(string triggeredBy, ToolOperation op, string? targetToolName = null)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+
         // Collect eligible tools from inventory by type
-        var tools = Game1.player.Items
+        var tools = target.Items
             .OfType<Tool>()
             .Where(t => t is WateringCan || t is Hoe || t is Pickaxe || t is Axe || t is FishingRod)
             .ToList();
@@ -82,7 +84,7 @@ public static class ToolSabotageHelper
         var tool     = tools[_rng.Next(tools.Count)];
         var oldLevel = tool.UpgradeLevel;
         var toolName = GetBaseName(tool);
-        var toolSlot = Game1.player.Items.IndexOf(tool);
+        var toolSlot = target.Items.IndexOf(tool);
 
         int newLevel = oldLevel;
 
@@ -159,10 +161,10 @@ public static class ToolSabotageHelper
 
         QueueAction(() =>
         {
-            if (toolSlot >= 0 && toolSlot < Game1.player.Items.Count)
+            if (toolSlot >= 0 && toolSlot < target.Items.Count)
             {
                 _monitor?.Log($"[ToolHelper] Main thread swap: slot {toolSlot}", LogLevel.Debug);
-                Game1.player.Items[toolSlot] = newTool;
+                target.Items[toolSlot] = newTool;
             }
         });
 

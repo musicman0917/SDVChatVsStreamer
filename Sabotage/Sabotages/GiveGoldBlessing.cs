@@ -9,13 +9,15 @@ public class GiveGoldBlessing : ISabotage
     public string Description  => "gives 500g";
     public int Cost            => 150;
     public int CooldownSeconds => 120;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {
-        Game1.player.Money += 500;
-        Game1.addHUDMessage(new HUDMessage(
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        target.Money += 500;
+        MultiplayerTargeting.Notify(target,
             $"💰 {triggeredBy} gave you 500g!",
-            HUDMessage.newQuest_type));
+            HUDMessage.newQuest_type);
     }
 }
 
@@ -26,13 +28,15 @@ public class GiveMoreGoldBlessing : ISabotage
     public string Description  => "gives 5000g";
     public int Cost            => 200;
     public int CooldownSeconds => 180;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {
-        Game1.player.Money += 5000;
-        Game1.addHUDMessage(new HUDMessage(
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        target.Money += 5000;
+        MultiplayerTargeting.Notify(target,
             $"💰 {triggeredBy} gave you 5000g!",
-            HUDMessage.newQuest_type));
+            HUDMessage.newQuest_type);
     }
 }
 
@@ -43,12 +47,14 @@ public class GiveMostGoldBlessing : ISabotage
     public string Description  => "gives 50000g";
     public int Cost            => 1000;
     public int CooldownSeconds => 600;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {
-        Game1.player.Money += 50000;
-        Game1.addHUDMessage(new HUDMessage(
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        target.Money += 50000;
+        MultiplayerTargeting.Notify(target,
             $"💰 {triggeredBy} gave you 50000g! What a legend!",
-            HUDMessage.newQuest_type));
+            HUDMessage.newQuest_type);
     }
 }

@@ -215,13 +215,29 @@ public class SabotageEngine
         if (!StardewModdingAPI.Context.IsWorldReady) return;
         if ((DateTime.UtcNow - _lastSabotageTime).TotalMinutes < _config.AutoTriggerMinutes) return;
 
+        FireRandomAutoTrigger(sendChat);
+    }
+
+    /// <summary>
+    /// Immediately fires a random sabotage from the Auto Trigger Pool, bypassing
+    /// the enabled toggle and quiet-period cooldown. For a manual "force it now"
+    /// hotkey, not the passive ambient system — e.g. clip farming on demand.
+    /// </summary>
+    public bool ForceAutoTrigger(Action<string> sendChat)
+    {
+        if (!StardewModdingAPI.Context.IsWorldReady) return false;
+        return FireRandomAutoTrigger(sendChat);
+    }
+
+    private bool FireRandomAutoTrigger(Action<string> sendChat)
+    {
         var pool = _config.AutoTriggerPool
             .Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => s.Trim().ToLower())
             .Where(s => _shop.ContainsKey(s))
             .ToList();
 
-        if (pool.Count == 0) return;
+        if (pool.Count == 0) return false;
 
         var command = pool[_autoRng.Next(pool.Count)];
         var def     = _shop[command];
@@ -235,6 +251,7 @@ public class SabotageEngine
 
         sendChat($"🌩️ The Chaos Gods grow restless... !buy {command} was triggered automatically! Type !shop to join the chaos!");
         _monitor.Log($"[SabotageEngine] Auto-trigger fired: {command}", LogLevel.Info);
+        return true;
     }
 
     public bool DebugBuy(string username, string buyCommand)

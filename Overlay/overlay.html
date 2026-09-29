@@ -32,7 +32,8 @@ body.theme-stardew .shop-item,
 body.theme-stardew .feed-item,
 body.theme-stardew .lb-item,
 body.theme-stardew .meta-item,
-body.theme-stardew .minimal-box {
+body.theme-stardew .minimal-box,
+body.theme-stardew .challenge-bar-wrap {
   box-shadow: inset 0 0 0 1px rgba(91,58,33,0.25);
 }
 body.theme-dark {
@@ -72,9 +73,9 @@ body.mode-minimal #minimal { display: block; }
   box-shadow: inset 2px 2px 0 var(--surface), inset -2px -2px 0 rgba(0,0,0,0.4), 3px 3px 0 rgba(0,0,0,0.5);
   padding: 10px 12px;
 }
-.minimal-label { font-size: 6px; color: var(--accent); margin-bottom: 6px; letter-spacing: 1px; }
-.minimal-event { font-size: 7px; color: var(--text); line-height: 1.6; }
-.minimal-prompt { font-size: 6px; color: var(--muted); line-height: 1.6; }
+.minimal-label { font-size: .75em; color: var(--accent); margin-bottom: 6px; letter-spacing: 1px; }
+.minimal-event { font-size: .875em; color: var(--text); line-height: 1.6; }
+.minimal-prompt { font-size: .75em; color: var(--muted); line-height: 1.6; }
 
 
 /* SIDEBAR */
@@ -82,40 +83,110 @@ body.mode-minimal #minimal { display: block; }
 body.mode-sidebar #sidebar { display: flex; }
 
 .panel { background: var(--bg); border: 3px solid var(--border); box-shadow: inset 2px 2px 0 var(--surface), inset -2px -2px 0 rgba(0,0,0,0.4), 3px 3px 0 rgba(0,0,0,0.5); padding: 8px; }
-.panel-title { font-size: 7px; color: var(--accent); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 6px; }
+.panel-title { font-size: .875em; color: var(--accent); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px solid var(--border); display: flex; align-items: center; gap: 6px; }
 .shop-list, .feed-list, .lb-list { display: flex; flex-direction: column; gap: 4px; }
 .shop-item { display: flex; align-items: center; justify-content: space-between; background: var(--surface); border: 2px solid var(--border); padding: 5px 6px; transition: opacity 0.3s; }
 .shop-item.on-cooldown { opacity: 0.45; }
 .shop-item-left { display: flex; flex-direction: column; gap: 3px; }
-.shop-item-name { font-size: 7px; color: var(--text); }
-.shop-item-cmd  { font-size: 6px; color: var(--green); }
+.shop-item-name { font-size: .875em; color: var(--text); }
+.shop-item-cmd  { font-size: .75em; color: var(--green); }
 .shop-item-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
-.shop-item-cost { font-size: 7px; color: var(--accent); }
+.shop-item-cost { font-size: .875em; color: var(--accent); }
 .cd-bar-wrap { width: 60px; height: 4px; background: var(--bg); border: 1px solid var(--border); overflow: hidden; }
 .cd-bar { height: 100%; background: var(--red); transition: width 1s linear; }
-.cd-txt  { font-size: 5px; color: var(--red); }
+.cd-txt  { font-size: .625em; color: var(--red); }
 .feed-item { background: var(--surface); border: 2px solid var(--border); border-left: 4px solid var(--green); padding: 5px 6px; animation: slideIn 0.3s ease; }
 .feed-item.raid { border-left-color: var(--gold); }
 .feed-item.bits { border-left-color: var(--blue); }
 .feed-item.meta { border-left-color: var(--accent); }
 @keyframes slideIn { from { transform: translateX(-10px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-.feed-username { color: var(--green); font-size: 7px; margin-bottom: 2px; }
-.feed-action   { color: var(--muted); font-size: 6px; line-height: 1.4; }
+.feed-username { color: var(--green); font-size: .875em; margin-bottom: 2px; }
+.feed-action   { color: var(--muted); font-size: .75em; line-height: 1.4; }
 .lb-item { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: var(--surface); border: 2px solid var(--border); }
-.lb-rank { font-size: 6px; color: var(--muted); width: 14px; flex-shrink: 0; }
+.lb-rank { font-size: .75em; color: var(--muted); width: 14px; flex-shrink: 0; }
 .lb-rank.gold   { color: var(--gold); }
 .lb-rank.silver { color: #b0b0b0; }
 .lb-rank.bronze { color: #cd7f32; }
-.lb-name { font-size: 6px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lb-pts  { font-size: 6px; color: var(--accent); flex-shrink: 0; }
+.lb-name { font-size: .75em; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-pts  { font-size: .75em; color: var(--accent); flex-shrink: 0; }
 .meta-panel { display: flex; flex-direction: column; gap: 4px; }
 .meta-item { background: var(--surface); border: 2px solid var(--accent); padding: 5px 8px; display: flex; justify-content: space-between; align-items: center; animation: pulse 2s infinite; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
-.meta-label { font-size: 6px; color: var(--accent); }
-.meta-timer { font-size: 6px; color: var(--text); }
+.meta-label { font-size: .75em; color: var(--accent); }
+.meta-timer { font-size: .75em; color: var(--text); }
+
+.challenge-count { font-size: 1em; color: var(--text); text-align: center; margin-bottom: 6px; }
+.challenge-bar-wrap { width: 100%; height: 10px; background: var(--bg); border: 1px solid var(--border); overflow: hidden; }
+.challenge-bar { height: 100%; background: var(--green); transition: width 0.5s ease; }
+
+/* EMBEDDED CHAT (optional — GMCM: OverlayIncludeChat) */
+#chat-overlay {
+  display: none;
+  position: fixed;
+  width: 320px;
+  max-height: 60vh;
+  overflow: hidden;
+  padding: 8px;
+  font-family: 'Space Mono', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', monospace;
+  font-size: 12px;
+  flex-direction: column;
+  gap: 4px;
+}
+body.show-chat #chat-overlay { display: flex; }
+body.chat-corner-topleft     #chat-overlay { top: 0; left: 0; flex-direction: column-reverse; }
+body.chat-corner-topright    #chat-overlay { top: 0; right: 0; flex-direction: column-reverse; }
+body.chat-corner-bottomleft  #chat-overlay { bottom: 0; left: 0; }
+body.chat-corner-bottomright #chat-overlay { bottom: 0; right: 0; }
+.chat-msg { display: flex; align-items: flex-start; gap: 6px; background: var(--surface); border: 2px solid var(--border); border-radius: 4px; box-shadow: 2px 2px 0 rgba(0,0,0,0.4); padding: 5px 8px; animation: fadeIn 0.3s ease; line-height: 1.4; word-break: break-word; }
+.chat-msg.twitch { border-left: 5px solid #9146ff; }
+.chat-msg.tiktok { border-left: 5px solid #ff2d55; }
+.chat-msg .icon { font-size: 10px; margin-top: 1px; flex-shrink: 0; }
+.chat-msg .icon svg { width: 16px; height: 16px; display: block; }
+.chat-msg.twitch .icon { color: #9146ff; }
+.chat-msg.tiktok .icon { color: #ff2d55; }
+.chat-msg .username { font-family: 'Pixelify Sans', 'Courier New', monospace; font-weight: 700; flex-shrink: 0; }
+.chat-msg.twitch .username { color: #9146ff; }
+.chat-msg.tiktok .username { color: #ff2d55; }
+.chat-msg .sep { color: var(--muted); flex-shrink: 0; }
+.chat-msg .text { color: var(--text); flex: 1; }
+.chat-msg .text img.emote { height: 1.8em; width: auto; vertical-align: middle; display: inline-block; margin: 0 1px; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* EMBEDDED ALERT POPUP (optional — GMCM: OverlayIncludeAlerts) */
+#alert-overlay {
+  display: none;
+  position: fixed;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(94vw, 640px);
+  z-index: 900;
+}
+body.show-alerts #alert-overlay { display: block; }
+#alert-card {
+  background: var(--surface);
+  border: 6px solid var(--border);
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 3px var(--gold), 0 8px 0 rgba(0,0,0,0.35), 0 14px 24px rgba(0,0,0,0.5);
+  padding: 18px 26px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  opacity: 0;
+  transform: translateY(-30px) scale(0.9);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  font-family: 'Space Mono', monospace;
+}
+#alert-card.show { opacity: 1; transform: translateY(0) scale(1); }
+.alert-icon { font-size: 40px; flex-shrink: 0; }
+.alert-body { min-width: 0; }
+.alert-title { font-family: 'Pixelify Sans', monospace; font-weight: 500; font-size: 20px; color: var(--text); margin-bottom: 4px; word-break: break-word; }
+.alert-title b { color: var(--red); }
+.alert-desc { font-size: 14px; color: var(--muted); line-height: 1.4; word-break: break-word; }
+.alert-cost { font-size: 13px; color: var(--accent); font-weight: 700; margin-top: 4px; }
 
 /* TICKER */
-#ticker { display: none; width: 100vw; height: 36px; background: var(--bg); border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); overflow: hidden; position: relative; }
+#ticker { display: none; width: 100vw; min-height: 36px; padding: 6px 0; background: var(--bg); border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); overflow: hidden; position: relative; }
 body.mode-ticker #ticker { display: flex; align-items: center; }
 body.mode-ticker.ticker-top    #ticker { position: fixed; top: 0; left: 0; }
 body.mode-ticker.ticker-bottom #ticker { position: fixed; bottom: 0; left: 0; }
@@ -124,7 +195,7 @@ body.mode-ticker.ticker-bottom #ticker { position: fixed; bottom: 0; left: 0; }
 body.ticker-slow   #ticker-track { animation-duration: 120s; }
 body.ticker-medium #ticker-track { animation-duration: 70s; }
 body.ticker-fast   #ticker-track { animation-duration: 35s; }
-.ticker-item { display: inline-flex; align-items: center; gap: 6px; padding: 0 20px; font-size: 8px; color: var(--text); border-right: 1px solid var(--border); }
+.ticker-item { display: inline-flex; align-items: center; gap: 6px; padding: 0 20px; font-size: 1em; color: var(--text); border-right: 1px solid var(--border); }
 .ticker-item.buy  { color: var(--accent); }
 .ticker-item.raid { color: var(--gold); }
 .ticker-item.meta { color: var(--green); }
@@ -167,6 +238,11 @@ body.ticker-fast   #ticker-track { animation-duration: 35s; }
     <div class="panel-title">🌟 ACTIVE EFFECTS</div>
     <div class="meta-panel" id="meta-list"></div>
   </div>
+  <div id="panel-challenge" class="panel" style="display:none">
+    <div class="panel-title" id="challenge-title">🐔 ANIMAL CHALLENGE</div>
+    <div class="challenge-count" id="challenge-count">0 / 100</div>
+    <div class="challenge-bar-wrap"><div class="challenge-bar" id="challenge-bar" style="width:0%"></div></div>
+  </div>
 </div>
 
 <div id="ticker">
@@ -177,6 +253,19 @@ body.ticker-fast   #ticker-track { animation-duration: 35s; }
   <div class="minimal-box">
     <div class="minimal-label">CHAT VS STREAMER</div>
     <div id="minimal-content" class="minimal-prompt">Type !shop to see what you can do!</div>
+  </div>
+</div>
+
+<div id="chat-overlay"></div>
+
+<div id="alert-overlay">
+  <div id="alert-card">
+    <div class="alert-icon" id="alert-icon">🛒</div>
+    <div class="alert-body">
+      <div class="alert-title" id="alert-title"></div>
+      <div class="alert-desc" id="alert-desc"></div>
+      <div class="alert-cost" id="alert-cost" style="display:none"></div>
+    </div>
   </div>
 </div>
 
@@ -197,7 +286,16 @@ body.ticker-fast   #ticker-track { animation-duration: 35s; }
     <label><input type="checkbox" id="s-show-feed" checked> Show Feed</label>
     <label><input type="checkbox" id="s-show-lb" checked> Show Leaderboard</label>
     <label><input type="checkbox" id="s-show-meta" checked> Show Meta Effects</label>
+    <label><input type="checkbox" id="s-show-chat"> Show Chat (embedded)</label>
+    <label><input type="checkbox" id="s-show-alerts"> Show Alerts (embedded)</label>
   </div>
+  <div class="settings-row"><label>Chat Corner</label>
+    <select id="s-chat-corner">
+      <option value="TopLeft">Top Left</option>
+      <option value="TopRight">Top Right</option>
+      <option value="BottomLeft">Bottom Left</option>
+      <option value="BottomRight">Bottom Right</option>
+    </select></div>
   <div class="settings-row"><label>Max Shop Items</label><input type="number" id="s-max-shop" value="8" min="1" max="30"></div>
   <div class="settings-row"><label>Max Feed Items</label><input type="number" id="s-max-feed" value="5" min="1" max="20"></div>
   <div class="settings-row"><label>Panel Order</label><input type="text" id="s-order" value="shop,feed,leaderboard"></div>
@@ -215,6 +313,7 @@ body.ticker-fast   #ticker-track { animation-duration: 35s; }
 <script>
 const WS_PORT = location.port || 7373;
 let shop=[], feed=[], leaderboard=[], metaEffects={doublePoints:false,halveCosts:false,dpSecs:0,hcSecs:0};
+let challenge={enabled:false,count:0,goal:100,label:'Animal'};
 let cdInterval=null, metaInterval=null;
 let cfg = loadLocal();
 
@@ -237,6 +336,7 @@ function handle(msg) {
   if (msg.type==='init') {
     shop = msg.shop || [];
     if (msg.config) mergeServerCfg(msg.config);
+    if (msg.challenge) { challenge = msg.challenge; renderChallenge(); }
     renderShop(); startCdTick(); renderTicker();
   } else if (msg.type==='config') {
     if (msg.config) mergeServerCfg(msg.config);
@@ -245,13 +345,26 @@ function handle(msg) {
     renderShop(); renderTicker();
   } else if (msg.type==='feed') {
     feed.unshift(msg); if(feed.length>cfg.maxFeedItems) feed.pop();
-    renderFeed(); renderTicker(); renderMinimal();
+    renderFeed(); renderTicker(); renderMinimal(); enqueueAlert(msg);
   } else if (msg.type==='leaderboard') {
     leaderboard = msg.entries||[]; renderLeaderboard();
   } else if (msg.type==='meta') {
     metaEffects = {doublePoints:msg.doublePoints,halveCosts:msg.halveCosts,dpSecs:msg.doublePointsSecondsLeft,hcSecs:msg.halveCostsSecondsLeft};
     renderMeta();
+  } else if (msg.type==='challenge') {
+    challenge = {enabled:msg.enabled,count:msg.count,goal:msg.goal,label:msg.label};
+    renderChallenge(); renderTicker();
   }
+}
+
+function renderChallenge() {
+  const panel = document.getElementById('panel-challenge');
+  if (!challenge.enabled) { panel.style.display='none'; return; }
+  panel.style.display = '';
+  document.getElementById('challenge-title').textContent = `🐔 ${esc((challenge.label||'ANIMAL').toUpperCase())} CHALLENGE`;
+  document.getElementById('challenge-count').textContent = `${challenge.count} / ${challenge.goal}`;
+  const pct = challenge.goal>0 ? Math.max(0,Math.min(100,Math.round(challenge.count/challenge.goal*100))) : 0;
+  document.getElementById('challenge-bar').style.width = pct+'%';
 }
 
 function mergeServerCfg(c) {
@@ -286,10 +399,15 @@ function applyConfig(c) {
   vis('panel-shop',        c.showShop!==false);
   vis('panel-feed',        c.showFeed!==false);
   vis('panel-leaderboard', c.showLeaderboard!==false);
+  b.classList.toggle('show-chat',   c.showChat===true);
+  b.classList.toggle('show-alerts', c.showAlerts===true);
+  b.className = b.className.replace(/chat-corner-\S+/,'').trim();
+  b.classList.add('chat-corner-'+((c.chatCorner||'BottomRight').toLowerCase()));
   if (c.panelOrder) {
     const sb = document.getElementById('sidebar');
     c.panelOrder.split(',').map(s=>s.trim()).forEach(name => { const el=document.getElementById('panel-'+name); if(el) sb.appendChild(el); });
     sb.appendChild(document.getElementById('panel-meta'));
+    sb.appendChild(document.getElementById('panel-challenge'));
   }
   syncSettingsUI(c);
 }
@@ -385,6 +503,7 @@ function renderTicker() {
   feed.slice(0,3).forEach(i=>parts.push(`<span class="ticker-item ${esc(i.eventType||'')}">💥 ${esc(i.username)}: ${esc(i.description)}</span>`));
   if(metaEffects.doublePoints) parts.push(`<span class="ticker-item meta">🌟 DOUBLE POINTS — ${metaEffects.dpSecs}s</span>`);
   if(metaEffects.halveCosts)   parts.push(`<span class="ticker-item meta">🔽 COSTS HALVED — ${metaEffects.hcSecs}s</span>`);
+  if(challenge.enabled)        parts.push(`<span class="ticker-item meta">🐔 ${esc(challenge.label)} Challenge: ${challenge.count}/${challenge.goal}</span>`);
   track.innerHTML=parts.join('<span style="color:var(--border);padding:0 8px">•</span>')||'<span class="ticker-item">🛒 Connecting...</span>';
 }
 
@@ -397,6 +516,8 @@ function syncSettingsUI(c) {
   g('s-ticker-pos').value=c.tickerPosition||'Bottom'; g('s-ticker-speed').value=c.tickerSpeed||'Medium';
   g('s-show-shop').checked=c.showShop!==false; g('s-show-feed').checked=c.showFeed!==false;
   g('s-show-lb').checked=c.showLeaderboard!==false; g('s-show-meta').checked=c.showMetaEffects!==false;
+  g('s-show-chat').checked=c.showChat===true; g('s-show-alerts').checked=c.showAlerts===true;
+  g('s-chat-corner').value=c.chatCorner||'BottomRight';
   g('s-max-shop').value=c.maxShopItems||8; g('s-max-feed').value=c.maxFeedItems||5;
   g('s-order').value=c.panelOrder||'shop,feed,leaderboard';
   g('s-custom-bg').value=c.customBg||'#1a1a2e'; g('s-custom-accent').value=c.customAccent||'#9147ff'; g('s-custom-text').value=c.customText||'#efeff1';
@@ -410,6 +531,8 @@ function applySettings() {
     tickerPosition:g('s-ticker-pos').value, tickerSpeed:g('s-ticker-speed').value,
     showShop:g('s-show-shop').checked, showFeed:g('s-show-feed').checked,
     showLeaderboard:g('s-show-lb').checked, showMetaEffects:g('s-show-meta').checked,
+    showChat:g('s-show-chat').checked, showAlerts:g('s-show-alerts').checked,
+    chatCorner:g('s-chat-corner').value,
     maxShopItems:parseInt(g('s-max-shop').value), maxFeedItems:parseInt(g('s-max-feed').value),
     panelOrder:g('s-order').value,
     customBg:g('s-custom-bg').value, customAccent:g('s-custom-accent').value, customText:g('s-custom-text').value,
@@ -424,7 +547,107 @@ function saveLocal(c) { try { localStorage.setItem('cvs-overlay',JSON.stringify(
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function pct(r,t) { return t>0?Math.max(0,Math.min(100,Math.round(r/t*100))):0; }
 
+// ─── Embedded Chat (GMCM: OverlayIncludeChat) ──────────────────────────────
+
+const TWITCH_SVG = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
+</svg>`;
+const TIKTOK_SVG = `<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1.01-.07z"/>
+</svg>`;
+
+const chatBox = document.getElementById('chat-overlay');
+
+function addChatMessage(data) {
+  const msg = document.createElement('div');
+  msg.className = `chat-msg ${data.platform}`;
+  if (data.id)       msg.dataset.id   = data.id;
+  if (data.username) msg.dataset.user = data.username.toLowerCase();
+
+  const iconEl = document.createElement('span');
+  iconEl.className = 'icon';
+  iconEl.innerHTML = data.platform === 'twitch' ? TWITCH_SVG : TIKTOK_SVG;
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'username';
+  nameEl.textContent = data.username;
+
+  const sepEl = document.createElement('span');
+  sepEl.className = 'sep';
+  sepEl.textContent = ':';
+
+  const textEl = document.createElement('span');
+  textEl.className = 'text';
+  if (data.renderedText) textEl.innerHTML = data.renderedText;
+  else textEl.textContent = data.text;
+
+  msg.append(iconEl, nameEl, sepEl, textEl);
+  chatBox.appendChild(msg);
+
+  const max = cfg.maxChatMessages || 6;
+  while (chatBox.children.length > max)
+    chatBox.removeChild(chatBox.firstChild);
+}
+
+function chatRemoveByUser(username) {
+  const lower = username.toLowerCase();
+  chatBox.querySelectorAll(`[data-user="${lower}"]`).forEach(el => el.remove());
+}
+function chatRemoveById(id) {
+  const el = chatBox.querySelector(`[data-id="${id}"]`);
+  if (el) el.remove();
+}
+function chatClearAll() { chatBox.innerHTML = ''; }
+
+function connectChat() {
+  const ws = new WebSocket(`ws://localhost:${WS_PORT}/chat`);
+  ws.onmessage = e => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data.type === 'chat') addChatMessage(data);
+      else if (data.type === 'remove_user') chatRemoveByUser(data.username);
+      else if (data.type === 'remove_msg')  chatRemoveById(data.id);
+      else if (data.type === 'clear_chat')  chatClearAll();
+    } catch {}
+  };
+  ws.onclose = () => setTimeout(connectChat, 3000);
+  ws.onerror = () => ws.close();
+}
+
+// ─── Embedded Alert Popup (GMCM: OverlayIncludeAlerts) ─────────────────────
+
+const ALERT_ICONS  = { buy: '🛒', bits: '💰', donation: '💸', raid: '🚨' };
+const ALERT_LABELS = { buy: 'bought', bits: 'triggered with bits', donation: 'triggered with a donation', raid: 'triggered via raid' };
+let alertQueue = [], alertShowing = false;
+
+function enqueueAlert(msg) {
+  alertQueue.push(msg);
+  if (!alertShowing) processAlertQueue();
+}
+
+function processAlertQueue() {
+  if (!alertQueue.length) { alertShowing = false; return; }
+  alertShowing = true;
+
+  const msg = alertQueue.shift();
+  document.getElementById('alert-icon').textContent = ALERT_ICONS[msg.eventType] || '✨';
+  document.getElementById('alert-title').innerHTML =
+    `<b>${esc(msg.username)}</b> ${ALERT_LABELS[msg.eventType] || 'triggered'} ${esc(msg.sabotageName || '')}`;
+  document.getElementById('alert-desc').textContent = msg.description || '';
+  const costEl = document.getElementById('alert-cost');
+  if (msg.cost > 0) { costEl.style.display = ''; costEl.textContent = `${msg.cost}pts`; }
+  else costEl.style.display = 'none';
+
+  const card = document.getElementById('alert-card');
+  requestAnimationFrame(() => card.classList.add('show'));
+  setTimeout(() => {
+    card.classList.remove('show');
+    setTimeout(processAlertQueue, 400);
+  }, 4500);
+}
+
 connect();
+connectChat();
 </script>
 </body>
 </html>

@@ -1,5 +1,29 @@
 # Patch Notes
 
+## v0.6.0
+
+**New**
+- Nuclear Chaos (`!buy nuclearchaos`, 50,000pts) — the ultimate sabotage. Demolishes every non-housing building (animals inside included), kills every crop, fells every tree, clears every rock and fence. Screen flash, explosion sounds, aftershocks, and a warning from the Wizard (or, very rarely, the mod's own dev breaking the fourth wall).
+- Jump Scare (`!buy jumpscare`) — a startling full-screen flash and sound at a random moment in the next ~40 seconds, with no warning at either end.
+- Animal Challenge mode — a togglable "100 Chicken Challenge"-style goal with a live overlay counter. `!buy addanimal` (blessing) and `!buy spookanimal` (sabotage) help or hurt progress.
+- `!pointdrop` — a timed giveaway command for mods/broadcaster: announces a claim keyword, then awards points to everyone who types it within the window.
+- A hotkey (default `F7`) to force-fire a random Chaos Gods sabotage on demand, for clip farming.
+- Chat feed and alert popups can now be folded into the main overlay (toggleable in GMCM), so one OBS browser source covers shop, chat, and alerts instead of three.
+- ⚠️ Alpha: Multiplayer Targeting — co-op players can each get their own GMCM slot with their own Twitch channel; commands typed there route to their farmhand instead of the host, with a per-player toggle to keep the bot silent in their chat if they'd rather.
+
+**Fixed**
+- Confused was inverting movement for one tick then losing to the game's own input, and even after that fix it was mashing (both directions active at once) instead of cleanly inverting — the natural direction wasn't being removed, only the opposite added.
+- Ban Talk only blocked the interact key from opening a fresh conversation; an already-open dialogue could still be advanced through by other means. Now force-closed every tick like Ban Shopping already does for shop menus.
+- Snow's season restriction (winter only) was silently never enforced — its `Validate()` had the wrong method signature and never actually overrode the interface default.
+- Rename Animal / Rename Pet could crash (or blank out a name) if fired through bits/channel points/TikTok/auto-trigger instead of `!buy`, since only `!buy` runs `Validate()` first.
+- `PasteTokenKey` and `DonationSmallThreshold` were both exposed in GMCM but silently ignored by the actual code — the paste-token hotkey was hardcoded to F9 regardless of the setting, and every DonorDrive donation rolled a random effect regardless of the configured minimum.
+- YouTube Super Chats were computing points backwards (dividing instead of multiplying), invisible at the default settings but wrong the moment "Points Per Bit" was changed from 1.
+- Several Blessing sabotages (`warpwhistlemax`, `bankruptcy`, `airdrop`, etc.) were being misclassified as cheap/harmless due to a cost-bracket fallback, which skipped auto-clipping them and used the wrong cooldown.
+- Font Size in GMCM had zero effect on the overlay's panel text (hardcoded pixel sizes instead of scaling with the setting).
+- `/clear` never actually cleared the chat browser source.
+- A stale `GamePath`/`GameModsPath` in the project file (an old drive letter and Windows username) could break local builds.
+- A GMCM API deprecation warning from a missing `formatValue` parameter on `AddNumberOption`.
+
 ## v0.5.0
 
 **New**

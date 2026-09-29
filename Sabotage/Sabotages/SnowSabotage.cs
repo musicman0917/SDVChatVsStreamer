@@ -11,7 +11,7 @@ public class SnowSabotage : ISabotage
     public int Cost            => 75;
     public int CooldownSeconds => 300;
 
-    public string? Validate() =>
+    public string? Validate(string args = "") =>
         Game1.currentSeason != "winter"
             ? $"snow only works in winter! (current season: {Game1.currentSeason})"
             : null;

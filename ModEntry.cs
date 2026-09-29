@@ -655,7 +655,7 @@ public class ModEntry : Mod
                 if (Game1.activeClickableMenu is ShopMenu)
                 { Helper.Input.Suppress(e.Button); return; }
         }
-        if (e.Button == SButton.F9 && TwitchAuth._pendingAuth)
+        if (e.Button.ToString().Equals(_config.PasteTokenKey, StringComparison.OrdinalIgnoreCase) && TwitchAuth._pendingAuth)
         {
             var token = GetClipboardText();
             if (!string.IsNullOrWhiteSpace(token))

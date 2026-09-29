@@ -488,6 +488,20 @@ public class ModEntry : Mod
             if (!Helper.Input.IsDown(btn)) continue;
 
             Helper.Input.Suppress(btn);
+
+            // The game already added the button's real (natural) direction to
+            // movementDirections before this postfix runs — Suppress alone is one
+            // tick too late to stop that, so without removing it here the farmer
+            // ends up with both the natural AND the inverted direction active at
+            // once, which nets out as jittery mashing instead of clean inversion.
+            var natural = btn switch
+            {
+                SButton.W    or SButton.Up    => 0, // up
+                SButton.S    or SButton.Down  => 2, // down
+                SButton.A    or SButton.Left  => 3, // left
+                SButton.D    or SButton.Right => 1, // right
+                _                             => -1
+            };
             var opposite = btn switch
             {
                 SButton.W    or SButton.Up    => 2, // down
@@ -496,6 +510,9 @@ public class ModEntry : Mod
                 SButton.D    or SButton.Right => 3, // left
                 _                             => -1
             };
+
+            if (natural >= 0)
+                Game1.player.movementDirections.Remove(natural);
             if (opposite >= 0 && !Game1.player.movementDirections.Contains(opposite))
                 Game1.player.movementDirections.Add(opposite);
         }

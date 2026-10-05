@@ -38,9 +38,8 @@ public static class MultiplayerTargeting
     public static IEnumerable<(string Channel, bool Enabled)> ConfiguredCoopChannels()
     {
         if (_config == null) yield break;
-        yield return (_config.MultiplayerPlayer2Channel, _config.MultiplayerPlayer2Enabled);
-        yield return (_config.MultiplayerPlayer3Channel, _config.MultiplayerPlayer3Enabled);
-        yield return (_config.MultiplayerPlayer4Channel, _config.MultiplayerPlayer4Enabled);
+        foreach (var slot in _config.CoopPlayers)
+            yield return (slot.Channel, slot.Live);
     }
 
     /// <summary>

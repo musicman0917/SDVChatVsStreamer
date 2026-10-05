@@ -193,22 +193,33 @@ public class ModConfig
     /// is actually running this mod, so they keep hitting the host regardless of this setting.</summary>
     public bool   MultiplayerTargetingEnabled { get; set; } = false;
 
-    /// <summary>Up to 3 additional co-op players (host + 3 = vanilla's 4-player cap). Each slot's
-    /// Channel is that player's own Twitch channel name; Enabled joins it and starts routing
-    /// commands typed there to their farmhand. AllowReplies controls whether the bot is allowed
-    /// to post anything back into their channel at all — turn it off if that player would rather
-    /// their chat stayed bot-silent; the bot still reads their channel either way, since reading
-    /// is what makes targeting work, it just won't ever type there when this is off.</summary>
-    public bool   MultiplayerPlayer2Enabled      { get; set; } = false;
-    public string MultiplayerPlayer2Channel      { get; set; } = "";
-    public bool   MultiplayerPlayer2AllowReplies { get; set; } = true;
-    public bool   MultiplayerPlayer3Enabled      { get; set; } = false;
-    public string MultiplayerPlayer3Channel      { get; set; } = "";
-    public bool   MultiplayerPlayer3AllowReplies { get; set; } = true;
-    public bool   MultiplayerPlayer4Enabled      { get; set; } = false;
-    public string MultiplayerPlayer4Channel      { get; set; } = "";
-    public bool   MultiplayerPlayer4AllowReplies { get; set; } = true;
+    /// <summary>Up to 7 additional co-op players (host + 7 = the game's 8-player multiplayer
+    /// cap). Each slot's Channel is that player's own Twitch channel name; Live joins it and
+    /// starts routing commands typed there (by them or their own viewers) to their farmhand,
+    /// and lets their chat start earning chaos points the same way the host's chat already
+    /// does. AllowReplies controls whether the bot is allowed to post anything back into their
+    /// channel at all — turn it off if that player would rather their chat stayed bot-silent;
+    /// the bot still reads their channel either way, since reading is what makes targeting and
+    /// points work, it just won't ever type there when this is off.</summary>
+    public List<CoopPlayerSlot> CoopPlayers { get; set; } = CoopPlayerSlot.CreateDefaultSlots();
 
     // ─── Database ────────────────────────────────────────────────────────────
     public string DatabaseFileName { get; set; } = "ViewerLedger.db";
+}
+
+/// <summary>One co-op player slot under Multiplayer Targeting. A plain POCO so GMCM can bind
+/// to each field by index and SMAPI's JSON config serializer can round-trip the list as-is.</summary>
+public class CoopPlayerSlot
+{
+    public bool   Live         { get; set; } = false;
+    public string Channel      { get; set; } = "";
+    public bool   AllowReplies { get; set; } = true;
+
+    /// <summary>7 empty slots — host + 7 = the game's 8-player multiplayer cap.</summary>
+    public static List<CoopPlayerSlot> CreateDefaultSlots()
+    {
+        var slots = new List<CoopPlayerSlot>();
+        for (int i = 0; i < 7; i++) slots.Add(new CoopPlayerSlot());
+        return slots;
+    }
 }

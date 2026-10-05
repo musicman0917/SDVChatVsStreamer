@@ -710,7 +710,7 @@ public static class GmcmSetup
 
         api.AddPage(manifest, "multiplayer", () => "Multiplayer Targeting");
 
-        api.AddParagraph(manifest, () => "Playing co-op with other streamers? Each co-op player is their own broadcaster with their own Twitch channel. Enable a slot below, type in their channel name, and this mod joins that channel too — any command typed there (by them or their own viewers) lands on THEIR farmhand instead of you, no mod install needed on their end. Their in-game character name must match their channel name EXACTLY (case-insensitive) or targeting falls back to you.");
+        api.AddParagraph(manifest, () => "Playing co-op with other streamers? Each co-op player is their own broadcaster with their own Twitch channel. Mark a slot below Live and type in their channel name, and this mod joins that channel too — their chat starts earning chaos points the same way yours already does, and any command typed there (by them or their own viewers) lands on THEIR farmhand instead of you, no mod install needed on their end. Their in-game character name must match their channel name EXACTLY (case-insensitive) or targeting falls back to you.");
         api.AddParagraph(manifest, () => "Only sabotages that change save-file state (money, health/stamina, buffs, inventory, nearby monster/explosion spawns) can be redirected this way. Effects that read your keyboard or draw straight to a screen — Confused, jump scares, bans, warps — can only ever affect whoever's game is actually running this mod, so those always land on you regardless of this setting.");
         api.AddBoolOption(manifest,
             getValue: () => config.MultiplayerTargetingEnabled,
@@ -718,56 +718,30 @@ public static class GmcmSetup
             name: () => "Enabled",
             tooltip: () => "Master switch — turns co-op channel joining and farmhand targeting on or off");
 
-        api.AddSectionTitle(manifest, () => "Player 2");
-        api.AddTextOption(manifest,
-            getValue: () => config.MultiplayerPlayer2Channel,
-            setValue: v => config.MultiplayerPlayer2Channel = v,
-            name: () => "Twitch Channel",
-            tooltip: () => "Their Twitch channel name (lowercase) — must match their in-game character name exactly");
-        api.AddBoolOption(manifest,
-            getValue: () => config.MultiplayerPlayer2Enabled,
-            setValue: v => config.MultiplayerPlayer2Enabled = v,
-            name: () => "Connect",
-            tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
-        api.AddBoolOption(manifest,
-            getValue: () => config.MultiplayerPlayer2AllowReplies,
-            setValue: v => config.MultiplayerPlayer2AllowReplies = v,
-            name: () => "Allow Bot Replies",
-            tooltip: () => "Turn off if this player would rather their chat stayed bot-silent. The bot still reads their channel either way — that's what makes targeting work — it just won't post anything back when this is off.");
+        // Up to 7 additional players (host + 7 = the game's 8-player multiplayer cap). A loop
+        // instead of 7 copy-pasted blocks — each closure captures its own slot index.
+        for (int i = 0; i < config.CoopPlayers.Count; i++)
+        {
+            int idx          = i;
+            int playerNumber = i + 2;
 
-        api.AddSectionTitle(manifest, () => "Player 3");
-        api.AddTextOption(manifest,
-            getValue: () => config.MultiplayerPlayer3Channel,
-            setValue: v => config.MultiplayerPlayer3Channel = v,
-            name: () => "Twitch Channel",
-            tooltip: () => "Their Twitch channel name (lowercase) — must match their in-game character name exactly");
-        api.AddBoolOption(manifest,
-            getValue: () => config.MultiplayerPlayer3Enabled,
-            setValue: v => config.MultiplayerPlayer3Enabled = v,
-            name: () => "Connect",
-            tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
-        api.AddBoolOption(manifest,
-            getValue: () => config.MultiplayerPlayer3AllowReplies,
-            setValue: v => config.MultiplayerPlayer3AllowReplies = v,
-            name: () => "Allow Bot Replies",
-            tooltip: () => "Turn off if this player would rather their chat stayed bot-silent. The bot still reads their channel either way — that's what makes targeting work — it just won't post anything back when this is off.");
-
-        api.AddSectionTitle(manifest, () => "Player 4");
-        api.AddTextOption(manifest,
-            getValue: () => config.MultiplayerPlayer4Channel,
-            setValue: v => config.MultiplayerPlayer4Channel = v,
-            name: () => "Twitch Channel",
-            tooltip: () => "Their Twitch channel name (lowercase) — must match their in-game character name exactly");
-        api.AddBoolOption(manifest,
-            getValue: () => config.MultiplayerPlayer4Enabled,
-            setValue: v => config.MultiplayerPlayer4Enabled = v,
-            name: () => "Connect",
-            tooltip: () => "Join this channel and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
-        api.AddBoolOption(manifest,
-            getValue: () => config.MultiplayerPlayer4AllowReplies,
-            setValue: v => config.MultiplayerPlayer4AllowReplies = v,
-            name: () => "Allow Bot Replies",
-            tooltip: () => "Turn off if this player would rather their chat stayed bot-silent. The bot still reads their channel either way — that's what makes targeting work — it just won't post anything back when this is off.");
+            api.AddSectionTitle(manifest, () => $"Player {playerNumber}");
+            api.AddTextOption(manifest,
+                getValue: () => config.CoopPlayers[idx].Channel,
+                setValue: v => config.CoopPlayers[idx].Channel = v,
+                name: () => "Twitch Channel",
+                tooltip: () => "Their Twitch channel name (lowercase) — must match their in-game character name exactly");
+            api.AddBoolOption(manifest,
+                getValue: () => config.CoopPlayers[idx].Live,
+                setValue: v => config.CoopPlayers[idx].Live = v,
+                name: () => "Live",
+                tooltip: () => "Join this channel, let their chat start earning chaos points, and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
+            api.AddBoolOption(manifest,
+                getValue: () => config.CoopPlayers[idx].AllowReplies,
+                setValue: v => config.CoopPlayers[idx].AllowReplies = v,
+                name: () => "Allow Bot Replies",
+                tooltip: () => "Turn off if this player would rather their chat stayed bot-silent. The bot still reads their channel either way — that's what makes targeting and points work — it just won't post anything back when this is off.");
+        }
 
         // ─── Ignored Users ────────────────────────────────────────────────────
 
@@ -889,14 +863,6 @@ public static class GmcmSetup
         config.ChallengeAnimalFilter          = defaults.ChallengeAnimalFilter;
         config.ChallengeGoalCount             = defaults.ChallengeGoalCount;
         config.MultiplayerTargetingEnabled    = defaults.MultiplayerTargetingEnabled;
-        config.MultiplayerPlayer2Enabled      = defaults.MultiplayerPlayer2Enabled;
-        config.MultiplayerPlayer2Channel      = defaults.MultiplayerPlayer2Channel;
-        config.MultiplayerPlayer2AllowReplies = defaults.MultiplayerPlayer2AllowReplies;
-        config.MultiplayerPlayer3Enabled      = defaults.MultiplayerPlayer3Enabled;
-        config.MultiplayerPlayer3Channel      = defaults.MultiplayerPlayer3Channel;
-        config.MultiplayerPlayer3AllowReplies = defaults.MultiplayerPlayer3AllowReplies;
-        config.MultiplayerPlayer4Enabled      = defaults.MultiplayerPlayer4Enabled;
-        config.MultiplayerPlayer4Channel      = defaults.MultiplayerPlayer4Channel;
-        config.MultiplayerPlayer4AllowReplies = defaults.MultiplayerPlayer4AllowReplies;
+        config.CoopPlayers                    = defaults.CoopPlayers;
     }
 }

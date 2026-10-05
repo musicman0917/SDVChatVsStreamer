@@ -175,12 +175,8 @@ public class TwitchManager
 
     // ─── Multiplayer Targeting — co-op player channels ─────────────────────────
 
-    private IEnumerable<(bool Enabled, string Channel, bool AllowReplies)> CoopSlots() => new[]
-    {
-        (_config.MultiplayerPlayer2Enabled, _config.MultiplayerPlayer2Channel, _config.MultiplayerPlayer2AllowReplies),
-        (_config.MultiplayerPlayer3Enabled, _config.MultiplayerPlayer3Channel, _config.MultiplayerPlayer3AllowReplies),
-        (_config.MultiplayerPlayer4Enabled, _config.MultiplayerPlayer4Channel, _config.MultiplayerPlayer4AllowReplies),
-    };
+    private IEnumerable<(bool Enabled, string Channel, bool AllowReplies)> CoopSlots() =>
+        _config.CoopPlayers.Select(p => (p.Live, p.Channel, p.AllowReplies));
 
     /// <summary>
     /// Whether the bot is allowed to post into the given channel. Your own channel is always

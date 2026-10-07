@@ -94,6 +94,7 @@ public class ModEntry : Mod
         helper.Events.GameLoop.DayStarted      += OnDayStarted;
         helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         helper.Events.Input.ButtonPressed      += OnButtonPressed;
+        helper.Events.Input.ButtonReleased     += OnButtonReleased;
         helper.Events.Input.ButtonsChanged     += OnButtonsChanged;
         helper.Events.Player.Warped            += OnWarped;
 
@@ -472,6 +473,13 @@ public class ModEntry : Mod
         }
     }
 
+    private void OnButtonReleased(object? sender, StardewModdingAPI.Events.ButtonReleasedEventArgs e)
+    {
+        _confusedHeldMoveButtons.Remove(e.Button);
+    }
+
+    private readonly HashSet<SButton> _confusedHeldMoveButtons = new();
+
     private static readonly SButton[] MoveButtons = {
         SButton.W, SButton.S, SButton.A, SButton.D,
         SButton.Up, SButton.Down, SButton.Left, SButton.Right
@@ -483,10 +491,15 @@ public class ModEntry : Mod
     {
         if (!ConfusedSabotage.IsActive) return;
 
-        foreach (var btn in MoveButtons)
+        // Deliberately NOT using Helper.Input.IsDown here — once a button gets suppressed
+        // below, IsDown can start reporting it as released on a later tick even while it's
+        // still physically held, which made this loop stop re-suppressing/re-inverting and
+        // let the real input bleed through. The result alternated between "moves naturally"
+        // and "frozen" tick to tick, which read as mashing instead of a clean inversion.
+        // _confusedHeldMoveButtons is maintained from real press/release transitions instead,
+        // so it isn't affected by our own suppression.
+        foreach (var btn in _confusedHeldMoveButtons.ToList())
         {
-            if (!Helper.Input.IsDown(btn)) continue;
-
             Helper.Input.Suppress(btn);
 
             // The game already added the button's real (natural) direction to
@@ -512,7 +525,7 @@ public class ModEntry : Mod
             };
 
             if (natural >= 0)
-                Game1.player.movementDirections.Remove(natural);
+                while (Game1.player.movementDirections.Remove(natural)) { } // strip every copy, not just one
             if (opposite >= 0 && !Game1.player.movementDirections.Contains(opposite))
                 Game1.player.movementDirections.Add(opposite);
         }
@@ -608,6 +621,14 @@ public class ModEntry : Mod
 
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
     {
+        // Tracked independently of Helper.Input.IsDown for ApplyConfusedControls() below —
+        // once we start suppressing a movement key, IsDown can start reflecting that
+        // suppression on the very next tick, making our own steady-state check think the
+        // key was released. ButtonPressed/ButtonReleased fire on real physical transitions
+        // regardless of suppression, so tracking held keys this way avoids that trap.
+        if (MoveButtons.Contains(e.Button))
+            _confusedHeldMoveButtons.Add(e.Button);
+
         // Ban state input suppression
         if (Context.IsWorldReady && SDVChatVsStreamer.Sabotage.Sabotages.BanState.BanInventory)
         {

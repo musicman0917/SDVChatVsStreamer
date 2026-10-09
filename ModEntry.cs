@@ -406,6 +406,7 @@ public class ModEntry : Mod
         TikTok.TikTokManager.ProcessPendingReturnToTitle();
 
         var activeViewers = _twitch.GetActiveViewers();
+        if (_tiktok != null) activeViewers = activeViewers.Union(_tiktok.GetActiveViewers()).ToList();
         _points.Update(activeViewers);
 
         // Push leaderboard every 60 seconds
@@ -430,6 +431,19 @@ public class ModEntry : Mod
                     SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.GetCount(),
                     SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.GoalCount,
                     SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.FilterLabel);
+
+            // Top TikTok supporter shoutout — a growth funnel toward Twitch, not a
+            // parallel chat economy, so this only ever shows recognition + a CTA.
+            if (_config.EnableTikTok && _config.TikTokShoutoutEnabled)
+            {
+                var topSupporter = _tiktok?.GetTopSupporter();
+                if (topSupporter != null)
+                    _overlay.PushTikTokShoutout(
+                        topSupporter.Value.Username,
+                        topSupporter.Value.Points,
+                        _config.TikTokShoutoutCtaText,
+                        _config.ChannelName);
+            }
         }
     }
 

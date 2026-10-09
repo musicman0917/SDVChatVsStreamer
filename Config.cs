@@ -114,6 +114,15 @@ public class ModConfig
     public int  TikTokSubBonus         { get; set; } = 100;
     public int  TikTokLikeBonus        { get; set; } = 1;
     public int  TikTokPointsPerDiamond { get; set; } = 1;
+
+    // ─── TikTok Shoutout (growth funnel toward Twitch) ─────────────────────────
+    /// <summary>Shows the current session's top TikTok point-earner in the overlay, paired
+    /// with a call-to-action pointing them at your Twitch channel. Uses a separate
+    /// session-only tally (the shared ledger has no per-platform breakdown), so this resets
+    /// each time the mod restarts rather than tracking an all-time total.</summary>
+    public bool   TikTokShoutoutEnabled { get; set; } = true;
+    public string TikTokShoutoutCtaText { get; set; } = "Catch the FULL chaos on Twitch!";
+
     public int OverlayPort { get; set; } = 7373;
 
     // Layout

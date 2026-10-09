@@ -26,6 +26,43 @@ public class TikTokManager
     private bool _gameActive = false;
     private static bool _pendingReturnToTitle = false;
 
+    // ─── Viewer tracking & session recognition ─────────────────────────────────
+    // The shared ViewerLedger has no notion of which platform a viewer came from,
+    // so "top TikTok supporter" can't be queried from it directly — tracked here
+    // instead, separately from (but alongside) the real shared points.
+    private readonly Dictionary<string, DateTime> _activeViewers = new();
+    private readonly TimeSpan _viewerTimeout = TimeSpan.FromMinutes(30);
+    private readonly Dictionary<string, int> _sessionPoints = new();
+
+    private void TrackViewer(string username) => _activeViewers[username.ToLower()] = DateTime.UtcNow;
+
+    public List<string> GetActiveViewers()
+    {
+        var cutoff = DateTime.UtcNow - _viewerTimeout;
+        return _activeViewers
+            .Where(kv => kv.Value >= cutoff)
+            .Select(kv => kv.Key)
+            .ToList();
+    }
+
+    /// <summary>Awards points to the real shared ledger (used for Stardew effects) and to
+    /// this session's TikTok-only tally (used only for the "top supporter" shoutout).</summary>
+    private void AwardPoints(string username, int amount)
+    {
+        _ledger.AddPoints(username, amount);
+        var key = username.ToLower();
+        _sessionPoints[key] = _sessionPoints.GetValueOrDefault(key) + amount;
+    }
+
+    /// <summary>The current session's top TikTok point-earner, or null if nobody has
+    /// earned any yet.</summary>
+    public (string Username, int Points)? GetTopSupporter()
+    {
+        if (_sessionPoints.Count == 0) return null;
+        var top = _sessionPoints.Aggregate((a, b) => b.Value > a.Value ? b : a);
+        return (top.Key, top.Value);
+    }
+
     public static void ProcessPendingReturnToTitle()
     {
         if (_pendingReturnToTitle && Game1.activeClickableMenu == null)
@@ -161,6 +198,7 @@ public class TikTokManager
     {
         var username = GetUsername(data);
         if (string.IsNullOrWhiteSpace(username)) return;
+        TrackViewer(username);
 
         // Chat cooldown
         var now = DateTime.UtcNow;
@@ -178,7 +216,7 @@ public class TikTokManager
             return;
         }
 
-        _ledger.AddPoints(username, _config.TikTokChatBonus);
+        AwardPoints(username, _config.TikTokChatBonus);
         _chatFeed?.Add(username, comment, UI.ChatPlatform.TikTok, renderedText: UI.ChatFeed.HtmlEscape(comment));
         _monitor.Log($"[TikTokManager] +{_config.TikTokChatBonus}pts (chat) → {username}", LogLevel.Debug);
     }
@@ -188,6 +226,7 @@ public class TikTokManager
         _monitor.Log($"[TikTokManager] Raw gift payload: {data.GetRawText()}", LogLevel.Debug);
         var username = GetUsername(data);
         if (string.IsNullOrWhiteSpace(username)) return;
+        TrackViewer(username);
 
         // Support both old flat structure and new nested giftDetails structure
         int giftType = 0;
@@ -230,7 +269,7 @@ public class TikTokManager
         // YouTube/DonorDrive: points keep flowing regardless, only in-game effects wait).
         int points = totalDiamonds * _config.TikTokPointsPerDiamond;
         if (points <= 0) points = _config.TikTokChatBonus;
-        _ledger.AddPoints(username, points);
+        AwardPoints(username, points);
         _monitor.Log($"[TikTokManager] +{points}pts (gift '{giftName}' {diamondCount}💎×{repeatCount}) → {username}", LogLevel.Debug);
 
         // Everything below this point enqueues an in-game effect (emotes, items,
@@ -409,7 +448,8 @@ public class TikTokManager
     {
         var username = GetUsername(data);
         if (string.IsNullOrWhiteSpace(username)) return;
-        _ledger.AddPoints(username, _config.TikTokFollowBonus);
+        TrackViewer(username);
+        AwardPoints(username, _config.TikTokFollowBonus);
         _monitor.Log($"[TikTokManager] +{_config.TikTokFollowBonus}pts (follow) → {username}", LogLevel.Debug);
     }
 
@@ -417,13 +457,14 @@ public class TikTokManager
     {
         var username = GetUsername(data);
         if (string.IsNullOrWhiteSpace(username)) return;
+        TrackViewer(username);
 
         // likeCount = number of likes in this batch event
         int likeCount = 1;
         if (data.TryGetProperty("likeCount", out var lc)) likeCount = lc.GetInt32();
 
         int points = likeCount * _config.TikTokLikeBonus;
-        _ledger.AddPoints(username, points);
+        AwardPoints(username, points);
         _monitor.Log($"[TikTokManager] +{points}pts (like×{likeCount}) → {username}", LogLevel.Debug);
     }
 
@@ -431,7 +472,8 @@ public class TikTokManager
     {
         var username = GetUsername(data);
         if (string.IsNullOrWhiteSpace(username)) return;
-        _ledger.AddPoints(username, _config.TikTokShareBonus);
+        TrackViewer(username);
+        AwardPoints(username, _config.TikTokShareBonus);
         _monitor.Log($"[TikTokManager] +{_config.TikTokShareBonus}pts (share) → {username}", LogLevel.Debug);
     }
 
@@ -439,7 +481,8 @@ public class TikTokManager
     {
         var username = GetUsername(data);
         if (string.IsNullOrWhiteSpace(username)) return;
-        _ledger.AddPoints(username, _config.TikTokSubBonus);
+        TrackViewer(username);
+        AwardPoints(username, _config.TikTokSubBonus);
         _monitor.Log($"[TikTokManager] +{_config.TikTokSubBonus}pts (subscribe) → {username}", LogLevel.Debug);
     }
 

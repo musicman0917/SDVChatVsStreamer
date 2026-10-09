@@ -434,6 +434,20 @@ public class OverlayServer
         Broadcast(payload);
     }
 
+    public void PushTikTokShoutout(string username, int points, string ctaText, string channelName)
+    {
+        var payload = JsonSerializer.Serialize(new
+        {
+            type = "tiktok_shoutout",
+            enabled = true,
+            username,
+            points,
+            ctaText,
+            channelName
+        });
+        Broadcast(payload);
+    }
+
     // ─── State Builders ───────────────────────────────────────────────────────
 
     private string BuildFullState()
@@ -525,6 +539,7 @@ public class OverlayServer
         showAlerts        = _config.OverlayIncludeAlerts,
         chatCorner        = _config.OverlayChatCorner,
         maxChatMessages   = _config.ChatOverlayMaxMessages,
+        showTikTokShoutout = _config.EnableTikTok && _config.TikTokShoutoutEnabled,
     };
 
     // ─── Broadcast ────────────────────────────────────────────────────────────

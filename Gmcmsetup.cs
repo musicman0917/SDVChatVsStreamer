@@ -427,6 +427,19 @@ public static class GmcmSetup
             tooltip: () => "Gifts are valued in TikTok diamonds — how many chaos points each diamond is worth",
             min: 0, max: 100);
 
+        api.AddSectionTitle(manifest, () => "Twitch Shoutout");
+        api.AddParagraph(manifest, () => "TikTok has no real chat economy here by design — it's meant as a funnel toward Twitch, not a parallel one. This shows your current top TikTok supporter in the overlay alongside a call-to-action pointing them at your Twitch channel.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.TikTokShoutoutEnabled,
+            setValue: v => config.TikTokShoutoutEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Show the top TikTok supporter + CTA in the overlay");
+        api.AddTextOption(manifest,
+            getValue: () => config.TikTokShoutoutCtaText,
+            setValue: v => config.TikTokShoutoutCtaText = v,
+            name: () => "Call-To-Action Text",
+            tooltip: () => "Shown next to the top supporter's name — your Twitch channel name is appended automatically");
+
         // ─── YouTube ──────────────────────────────────────────────────────────
 
         api.AddPage(manifest, "youtube", () => "YouTube (via Streamer.bot) [BETA]");
@@ -813,6 +826,8 @@ public static class GmcmSetup
         config.TikTokSubBonus            = defaults.TikTokSubBonus;
         config.TikTokLikeBonus           = defaults.TikTokLikeBonus;
         config.TikTokPointsPerDiamond    = defaults.TikTokPointsPerDiamond;
+        config.TikTokShoutoutEnabled     = defaults.TikTokShoutoutEnabled;
+        config.TikTokShoutoutCtaText     = defaults.TikTokShoutoutCtaText;
         config.EnableStarterRedemption        = defaults.EnableStarterRedemption;
         config.StarterRedemptionTitleSmall    = defaults.StarterRedemptionTitleSmall;
         config.StarterRedemptionPointsSmall   = defaults.StarterRedemptionPointsSmall;

@@ -340,6 +340,7 @@ public class ModEntry : Mod
         _twitch.SetGameActive(true);
         _youtube?.SetGameActive(true);
         _donorDrive?.SetGameActive(true);
+        _tiktok?.SetGameActive(true);
         Monitor.Log("[ChatVsStreamer] Save loaded — sabotages enabled.", LogLevel.Info);
     }
 
@@ -348,6 +349,7 @@ public class ModEntry : Mod
         _twitch.SetGameActive(false);
         _youtube?.SetGameActive(false);
         _donorDrive?.SetGameActive(false);
+        _tiktok?.SetGameActive(false);
         Monitor.Log("[ChatVsStreamer] Returned to title — sabotages disabled.", LogLevel.Info);
     }
 

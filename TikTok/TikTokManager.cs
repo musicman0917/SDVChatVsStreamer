@@ -23,6 +23,7 @@ public class TikTokManager
 
     private readonly Dictionary<string, DateTime> _chatCooldowns = new();
     private UI.ChatFeed? _chatFeed;
+    private bool _gameActive = false;
     private static bool _pendingReturnToTitle = false;
 
     public static void ProcessPendingReturnToTitle()
@@ -46,6 +47,8 @@ public class TikTokManager
     }
 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
+
+    public void SetGameActive(bool active) => _gameActive = active;
 
     public void Connect()
     {
@@ -117,7 +120,7 @@ public class TikTokManager
 
     private void HandleMessage(string json)
     {
-        var doc = JsonDocument.Parse(json);
+        using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
         if (!root.TryGetProperty("event", out var eventProp)) return;
@@ -223,11 +226,19 @@ public class TikTokManager
 
         int totalDiamonds = diamondCount * repeatCount;
 
-        // Points award
+        // Points award — always, even outside an active game session (same as Twitch/
+        // YouTube/DonorDrive: points keep flowing regardless, only in-game effects wait).
         int points = totalDiamonds * _config.TikTokPointsPerDiamond;
         if (points <= 0) points = _config.TikTokChatBonus;
         _ledger.AddPoints(username, points);
         _monitor.Log($"[TikTokManager] +{points}pts (gift '{giftName}' {diamondCount}💎×{repeatCount}) → {username}", LogLevel.Debug);
+
+        // Everything below this point enqueues an in-game effect (emotes, items,
+        // explosions, random sabotages/blessings). Without this gate, gifts received
+        // while sitting at the title screen would pile up in ModEntry.PendingActions
+        // (which only drains once Context.IsWorldReady) and all burst-fire the moment
+        // a save is finally loaded.
+        if (!_gameActive) return;
 
         // ─── Named Gift Overrides ─────────────────────────────────────────────
         var giftLower = giftName.ToLower();

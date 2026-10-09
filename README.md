@@ -54,6 +54,7 @@ The installer will:
 | TikTok Universe | Mr. Qi appears and forces the day to end ⚡ |
 
 - **Diamond tier system** for all other gifts (Nuisance → Disruptive → Painful → Devastating → Blessing)
+- **No `!buy`/`!balance` chat commands on TikTok, by design.** TikTok doesn't allow bots to post in Live chat at all, and the intent here is to fold TikTok viewers into the Twitch experience rather than build a parallel one. Instead: TikTok viewers now earn the same passive "just by watching" points Twitch viewers do, and the current top TikTok point-earner shows up in the OBS overlay with a configurable call-to-action pointing at your Twitch channel (GMCM → TikTok page → Twitch Shoutout).
 
 ### 📺 YouTube Integration (via Streamer.bot) — Beta
 

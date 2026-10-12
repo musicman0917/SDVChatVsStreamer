@@ -23,6 +23,10 @@
 - `/clear` never actually cleared the chat browser source.
 - A stale `GamePath`/`GameModsPath` in the project file (an old drive letter and Windows username) could break local builds.
 - A GMCM API deprecation warning from a missing `formatValue` parameter on `AddNumberOption`.
+- The installer's version banner was hardcoded to v0.5.0 even after the mod moved on to v0.6.0, telling everyone installing the current release the wrong version.
+- `package.ps1` used a PowerShell 7+-only operator (`??`), which threw a parse error under the Windows PowerShell 5.1 that ships by default on Windows.
+- The installer's very first screen ("Additional Platforms") showed the wrong step total ("Step 1 of 9") because it was drawn before the TikTok/YouTube answers that actually determine the total (9–11) were known.
+- `Update.ps1` couldn't auto-detect a non-default Steam library or a `Local\Programs` install the way the installer already could, so updating always fell back to the manual folder browser for those setups.
 
 ## v0.5.0
 

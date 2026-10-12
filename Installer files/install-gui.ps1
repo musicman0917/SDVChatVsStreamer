@@ -39,12 +39,27 @@ $script:Form.FormBorderStyle = "FixedDialog"
 $script:Form.MaximizeBox     = $false
 $script:Form.MinimizeBox     = $false
 
-$script:HeaderLabel = New-Object System.Windows.Forms.Label
-$script:HeaderLabel.Dock    = "Top"
-$script:HeaderLabel.Height  = 56
-$script:HeaderLabel.Font    = New-Object System.Drawing.Font("Segoe UI", 13, [System.Drawing.FontStyle]::Bold)
-$script:HeaderLabel.Padding = New-Object System.Windows.Forms.Padding(20, 16, 10, 0)
-$script:Form.Controls.Add($script:HeaderLabel)
+$script:HeaderPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+$script:HeaderPanel.Dock          = "Top"
+$script:HeaderPanel.FlowDirection = "TopDown"
+$script:HeaderPanel.WrapContents  = $false
+$script:HeaderPanel.AutoSize      = $true
+$script:HeaderPanel.AutoSizeMode  = "GrowAndShrink"
+$script:HeaderPanel.Padding       = New-Object System.Windows.Forms.Padding(20, 14, 10, 10)
+
+$script:HeaderTitleLabel = New-Object System.Windows.Forms.Label
+$script:HeaderTitleLabel.AutoSize = $true
+$script:HeaderTitleLabel.Font     = New-Object System.Drawing.Font("Segoe UI", 13, [System.Drawing.FontStyle]::Bold)
+$script:HeaderPanel.Controls.Add($script:HeaderTitleLabel)
+
+$script:HeaderStepLabel = New-Object System.Windows.Forms.Label
+$script:HeaderStepLabel.AutoSize  = $true
+$script:HeaderStepLabel.Font      = New-Object System.Drawing.Font("Segoe UI", 9)
+$script:HeaderStepLabel.ForeColor = [System.Drawing.Color]::DimGray
+$script:HeaderStepLabel.Margin    = New-Object System.Windows.Forms.Padding(0, 2, 0, 0)
+$script:HeaderPanel.Controls.Add($script:HeaderStepLabel)
+
+$script:Form.Controls.Add($script:HeaderPanel)
 
 $script:ContentPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $script:ContentPanel.Dock          = "Fill"
@@ -97,11 +112,13 @@ function New-WrapLabel {
 
 function Set-Header {
     param([string]$Title, [bool]$ShowStep = $true)
+    $script:HeaderTitleLabel.Text = $Title
     if ($ShowStep) {
         $script:StepCounter++
-        $script:HeaderLabel.Text = "$Title`n(Step $script:StepCounter of $script:StepTotal)"
+        $script:HeaderStepLabel.Text = "Step $script:StepCounter of $script:StepTotal"
+        $script:HeaderStepLabel.Visible = $true
     } else {
-        $script:HeaderLabel.Text = $Title
+        $script:HeaderStepLabel.Visible = $false
     }
     $script:ContentPanel.Controls.Clear()
     $script:NextButton.Text = "Next >"
@@ -112,7 +129,9 @@ function Set-SubHeader {
     # Same numbered step as the current screen, just a different sub-screen --
     # does not touch $script:StepCounter.
     param([string]$Title)
-    $script:HeaderLabel.Text = "$Title`n(Step $script:StepCounter of $script:StepTotal)"
+    $script:HeaderTitleLabel.Text = $Title
+    $script:HeaderStepLabel.Text = "Step $script:StepCounter of $script:StepTotal"
+    $script:HeaderStepLabel.Visible = $true
     $script:ContentPanel.Controls.Clear()
     $script:NextButton.Text = "Next >"
     $script:NextButton.Enabled = $true
@@ -258,7 +277,10 @@ AUTHORS SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY.
     $script:ContentPanel.Controls.Add($acceptCheck)
 
     $script:NextButton.Enabled = $false
-    $acceptCheck.Add_CheckedChanged({ $script:NextButton.Enabled = $acceptCheck.Checked })
+    $acceptCheck.Add_CheckedChanged({
+        $script:NextButton.Enabled = $acceptCheck.Checked
+        $script:NextButton.Refresh()
+    }.GetNewClosure())
 
     $script:OnNext = { Show-FindGame }
 }
@@ -315,11 +337,12 @@ function Show-FindGame {
                 $statusLabel.Text = "Found Stardew Valley at:`n$($script:State.GamePath)"
                 $statusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
                 $script:NextButton.Enabled = $true
+                $script:NextButton.Refresh()
             } else {
                 Show-ErrorBox "Stardew Valley.exe was not found in that folder."
             }
         }
-    })
+    }.GetNewClosure())
     $script:ContentPanel.Controls.Add($browseButton)
 
     $script:OnNext = { Show-SmapiCheck }
@@ -394,7 +417,7 @@ function Show-SmapiCheck {
             Show-ErrorBox "Failed to download SMAPI: $_`n`nPlease install manually from https://smapi.io"
             $installButton.Enabled = $true
         }
-    })
+    }.GetNewClosure())
 
     $continueButton.Add_Click({
         Remove-Item (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "SMAPI-installer") -Recurse -Force -ErrorAction SilentlyContinue
@@ -406,7 +429,8 @@ function Show-SmapiCheck {
             $statusLabel.ForeColor = [System.Drawing.Color]::DarkOrange
         }
         $script:NextButton.Enabled = $true
-    })
+        $script:NextButton.Refresh()
+    }.GetNewClosure())
 
     $script:OnNext = { Show-ModsFolder }
 }
@@ -461,13 +485,13 @@ function Show-ModsFolder {
             $script:customFolder = $browser.SelectedPath.Trim()
             $customPathLabel.Text = $script:customFolder
         }
-    })
+    }.GetNewClosure())
 
     $customPanel.Controls.Add($browseButton)
     $customPanel.Controls.Add($customPathLabel)
     $script:ContentPanel.Controls.Add($customPanel)
 
-    $radioCustom.Add_CheckedChanged({ $browseButton.Enabled = $radioCustom.Checked })
+    $radioCustom.Add_CheckedChanged({ $browseButton.Enabled = $radioCustom.Checked }.GetNewClosure())
 
     $script:OnNext = {
         if ($radioStardrop.Checked) {
@@ -757,7 +781,7 @@ function Show-TikTokSetup {
             $statusLabel.ForeColor = [System.Drawing.Color]::Red
             $installButton.Enabled = $true
         }
-    })
+    }.GetNewClosure())
 
     $script:OnNext = { Show-AfterTikTokBranch }
 }

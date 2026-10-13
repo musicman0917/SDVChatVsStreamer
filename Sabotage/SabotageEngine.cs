@@ -100,7 +100,16 @@ public class SabotageEngine
                 Balance = balance
             };
 
-        _ledger.DeductPoints(username, effectiveCost);
+        // DeductPoints re-checks the balance atomically (two near-simultaneous purchases could
+        // both pass the check above before either deducts) -- if it loses that race, bail out
+        // instead of firing the sabotage for free.
+        if (!_ledger.DeductPoints(username, effectiveCost))
+            return new BuyResult
+            {
+                Status  = BuyStatus.InsufficientFunds,
+                Cost    = effectiveCost,
+                Balance = _ledger.GetPoints(username)
+            };
 
         // Validate before executing — refund if rejected
         var validationError = def.Sabotage.Validate(args);

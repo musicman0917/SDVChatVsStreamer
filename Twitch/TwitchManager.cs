@@ -512,11 +512,11 @@ public class TwitchManager
         }
 
         // Raider bonus — if active, award extra points on first chat
-        if (_sabotage.RaidEvents.IsRaiderBonusActive)
+        int raiderBonus = _sabotage.RaidEvents.TryClaimRaiderBonus(username);
+        if (raiderBonus > 0)
         {
-            int bonus = _sabotage.RaidEvents.RaiderBonusPoints;
-            _ledger.AddPoints(username, bonus);
-            _monitor.Log($"[TwitchManager] Raider bonus +{bonus}pts → {username}", LogLevel.Debug);
+            _ledger.AddPoints(username, raiderBonus);
+            _monitor.Log($"[TwitchManager] Raider bonus +{raiderBonus}pts → {username}", LogLevel.Debug);
         }
 
         if (message.Equals("!balance", StringComparison.OrdinalIgnoreCase))

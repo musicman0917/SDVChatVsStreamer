@@ -233,17 +233,28 @@ public class OverlayServer
             var buffer = new byte[512];
             while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
             {
-                var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), ct).ConfigureAwait(false);
+                // A single ReceiveAsync call only returns one WebSocket frame -- accumulate
+                // across frames (as the TikTok test client above already does) so a message
+                // bigger than this buffer isn't silently truncated and dropped.
+                var msgSb = new StringBuilder();
+                WebSocketReceiveResult result;
+                do
+                {
+                    result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), ct).ConfigureAwait(false);
+                    if (result.MessageType == WebSocketMessageType.Close) break;
+                    if (result.MessageType == WebSocketMessageType.Text)
+                        msgSb.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+                }
+                while (!result.EndOfMessage);
+
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, ct).ConfigureAwait(false);
                     break;
                 }
-                if (result.MessageType == WebSocketMessageType.Text)
-                {
-                    var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    await HandleClientMessageAsync(ws, json, ct).ConfigureAwait(false);
-                }
+
+                if (msgSb.Length > 0)
+                    await HandleClientMessageAsync(ws, msgSb.ToString(), ct).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) { }

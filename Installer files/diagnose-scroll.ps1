@@ -38,8 +38,8 @@ function New-WrapLabel {
     return $lbl
 }
 
-for ($i = 1; $i -le 10; $i++) {
-    $script:ContentPanel.Controls.Add((New-WrapLabel -Text "Line $i of 10 -- this content panel is only 300px tall, so most of these ten lines should need scrolling to see."))
+for ($i = 1; $i -le 30; $i++) {
+    $script:ContentPanel.Controls.Add((New-WrapLabel -Text "Line $i of 30 -- this content panel is only 300px tall, this definitely needs scrolling to see all of it."))
 }
 
 # The fix being tested: explicitly tell the panel how tall its content actually is,

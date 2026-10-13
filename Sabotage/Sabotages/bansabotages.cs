@@ -22,6 +22,7 @@ public static class BanState
     private static DateTime _talkExpires;
     private static DateTime _runningExpires;
     private static DateTime _shoppingExpires;
+    private static int _lockedToolIndex;
 
     public static void Activate(string ban, int seconds)
     {
@@ -29,7 +30,11 @@ public static class BanState
         switch (ban)
         {
             case "inventory": BanInventory = true; _inventoryExpires = expires; break;
-            case "hotbar":    BanHotbar    = true; _hotbarExpires    = expires; break;
+            case "hotbar":
+                BanHotbar        = true;
+                _hotbarExpires   = expires;
+                _lockedToolIndex = Game1.player.CurrentToolIndex;
+                break;
             case "talk":      BanTalk      = true; _talkExpires      = expires; break;
             case "running":   BanRunning   = true; _runningExpires   = expires; break;
             case "shopping":  BanShopping  = true; _shoppingExpires  = expires; break;
@@ -70,6 +75,13 @@ public static class BanState
         // Force walk if running is banned
         if (BanRunning)
             Game1.player.running = false;
+
+        // Force the equipped slot to stay put if hotbar switching is banned. The number-key/
+        // OemMinus/OemPlus suppression in ModEntry only blocks keyboard switching -- it can't
+        // catch mouse-wheel scrolling or controller bumpers, so this closes those gaps too by
+        // fixing the actual result regardless of which input method tried to change it.
+        if (BanHotbar && Game1.player.CurrentToolIndex != _lockedToolIndex)
+            Game1.player.CurrentToolIndex = _lockedToolIndex;
     }
 
     private static void Notify(string msg) =>

@@ -247,9 +247,12 @@ public class TeleportSabotage : ISabotage
         }
 
         ModEntry.Logger?.Log("[TeleportSabotage] All fallback warps failed — refunding.", LogLevel.Warn);
-        ModEntry.Ledger?.AddPoints(triggeredBy, Cost);
+        // Refund what was actually paid, not the static base Cost -- see WarpSabotage for
+        // why (halved-costs raid meta event could make this an over-refund otherwise).
+        int refund = ModEntry.RaidEvents?.ApplyCostModifier(Cost) ?? Cost;
+        ModEntry.Ledger?.AddPoints(triggeredBy, refund);
         Game1.addHUDMessage(new HUDMessage(
-            $"✨ {triggeredBy} tried to Teleport you, but nowhere safe was found! Refunded {Cost}pts.",
+            $"✨ {triggeredBy} tried to Teleport you, but nowhere safe was found! Refunded {refund}pts.",
             HUDMessage.error_type));
     }
 }

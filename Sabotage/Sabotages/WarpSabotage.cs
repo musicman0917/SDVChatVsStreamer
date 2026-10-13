@@ -45,9 +45,13 @@ public class WarpSabotage : ISabotage
         }
 
         ModEntry.Logger?.Log("[WarpSabotage] All destinations failed SafeWarp — refunding.", LogLevel.Warn);
-        ModEntry.Ledger?.AddPoints(triggeredBy, Cost);
+        // Refund what was actually paid, not the static base Cost -- if "sabotage costs
+        // halved" was active at purchase time, the player paid less than Cost and this
+        // would otherwise refund more than they spent.
+        int refund = ModEntry.RaidEvents?.ApplyCostModifier(Cost) ?? Cost;
+        ModEntry.Ledger?.AddPoints(triggeredBy, refund);
         Game1.addHUDMessage(new HUDMessage(
-            $"🌀 {triggeredBy} tried to warp you, but nowhere safe was found! Refunded {Cost}pts.",
+            $"🌀 {triggeredBy} tried to warp you, but nowhere safe was found! Refunded {refund}pts.",
             HUDMessage.error_type));
     }
 }

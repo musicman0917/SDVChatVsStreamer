@@ -16,6 +16,7 @@ public class ModEntry : Mod
 {
     public static IMonitor? Logger { get; private set; }
     public static ViewerLedger? Ledger { get; private set; }
+    public static RaidEventSystem? RaidEvents { get; private set; }
     public static Queue<Action> PendingActions { get; } = new();
     public static Action? PendingDismissalAction { get; set; }
     public static SDVChatVsStreamer.YouTube.YouTubeManager? YouTubeManager { get; private set; }
@@ -55,6 +56,7 @@ public class ModEntry : Mod
 
         // Sabotage
         _sabotage = new SabotageEngine(_ledger, Monitor, _config);
+        RaidEvents = _sabotage.RaidEvents;
         _clipService = new ClipService(_config, Monitor, Helper.DirectoryPath);
         _sabotage.SetClipService(_clipService);
         _clipService.SetOverlay(_overlay);

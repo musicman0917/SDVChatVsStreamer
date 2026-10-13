@@ -25,8 +25,6 @@ The installer will:
 - Check for Tikfinity for TikTok integration
 - Show you the OBS browser source URLs
 
-Prefer a windowed installer over the console prompts? Run `install-gui.ps1` instead — same steps, same logic, just buttons and dialogs. `install.ps1` is still the primary, most-tested option; the GUI version is a newer alternative.
-
 ---
 
 ## ✨ Features

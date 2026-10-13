@@ -10,7 +10,6 @@
 - A hotkey (default `F7`) to force-fire a random Chaos Gods sabotage on demand, for clip farming.
 - Chat feed and alert popups can now be folded into the main overlay (toggleable in GMCM), so one OBS browser source covers shop, chat, and alerts instead of three.
 - ⚠️ Alpha: Multiplayer Targeting — co-op players can each get their own GMCM slot with their own Twitch channel; commands typed there route to their farmhand instead of the host, with a per-player toggle to keep the bot silent in their chat if they'd rather.
-- `install-gui.ps1` — a windowed (WinForms) alternative to the console installer, covering the same steps (platform choice, license, game/SMAPI detection, mods folder, Twitch app setup, optional TikTok/YouTube). `install.ps1` remains the primary, most-tested installer.
 
 **Fixed**
 - Confused was inverting movement for one tick then losing to the game's own input, and even after that fix it was mashing (both directions active at once) instead of cleanly inverting — the natural direction wasn't being removed, only the opposite added.

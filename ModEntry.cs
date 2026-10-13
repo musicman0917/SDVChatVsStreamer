@@ -191,7 +191,6 @@ public class ModEntry : Mod
         _sabotage.Register(new MashedSabotage());
         _sabotage.Register(new FreezeTimeSabotage());
         _sabotage.Register(new FloorIsLavaSabotage());
-        //_sabotage.Register(new SlipNSlideSabotage()); // removed — too unstable
         _sabotage.Register(new WarpWhistleSabotage());
         _sabotage.Register(new WarpWhistlePlusSabotage());
         _sabotage.Register(new WarpWhistleMaxSabotage());
@@ -377,7 +376,6 @@ public class ModEntry : Mod
         SDVChatVsStreamer.Sabotage.Sabotages.MashedSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.FreezeTimeSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.FloorIsLavaSabotage.Tick();
-        //SDVChatVsStreamer.Sabotage.Sabotages.SlipNSlideSabotage.Tick(); // removed
         SDVChatVsStreamer.Sabotage.Sabotages.WarpWhistleState.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.BanState.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.NarcolepsySabotage.Tick();

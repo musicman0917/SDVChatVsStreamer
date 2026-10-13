@@ -161,8 +161,8 @@ public static class GmcmSetup
         api.AddNumberOption(manifest,
             getValue: () => config.RaidViewerBonus,
             setValue: v => config.RaidViewerBonus = v,
-            name: () => "Raider Welcome Bonus",
-            tooltip: () => "Points awarded to each viewer who joins via raid",
+            name: () => "Raid Leader Flat Bonus",
+            tooltip: () => "Extra flat bonus for the raid leader, on top of the per-viewer bonus above. Twitch doesn't expose individual raiding viewers' usernames, so this can't be paid out to them directly.",
             min: 0, max: 200);
 
         api.AddSectionTitle(manifest, () => "Sub Multipliers");

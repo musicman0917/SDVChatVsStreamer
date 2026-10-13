@@ -48,6 +48,9 @@ public class ModConfig
     public int SubBonus { get; set; } = 100;
     public int GiftSubBonusEach { get; set; } = 50;
     public int RaidLeaderPointsPerViewer { get; set; } = 2;
+    /// <summary>Flat bonus added to the raid leader's points on top of RaidLeaderPointsPerViewer.
+    /// Twitch's raid notification never exposes individual raiding viewers' usernames, so this
+    /// can't be paid out to them directly -- it goes to the leader instead.</summary>
     public int RaidViewerBonus { get; set; } = 15;
     public int BitsPerPoint { get; set; } = 1;
 

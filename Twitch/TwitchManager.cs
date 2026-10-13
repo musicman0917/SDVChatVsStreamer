@@ -738,7 +738,7 @@ public class TwitchManager
 
         _monitor.Log($"[TwitchManager] Raid from {raider} — {viewerCount} viewers, gameActive={_gameActive}, enableRaidEvents={_config.EnableRaidEvents}", LogLevel.Info);
 
-        _points.OnRaid(raider, viewerCount, new List<string>());
+        _points.OnRaid(raider, viewerCount);
 
         if (_config.EnableRaidEvents && _gameActive)
         {

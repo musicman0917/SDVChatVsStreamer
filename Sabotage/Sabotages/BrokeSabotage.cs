@@ -26,7 +26,10 @@ public class BrokeSabotage : ISabotage
             return;
         }
 
-        int stolen    = _rng.Next(100, maxSteal + 1);
+        // Next's lower bound must never exceed maxSteal + 1 -- with a target holding
+        // between 1g and 99g, a hardcoded 100 lower bound would make min > max and
+        // Random.Next throw ArgumentOutOfRangeException.
+        int stolen    = _rng.Next(Math.Min(100, maxSteal), maxSteal + 1);
         target.Money -= stolen;
 
         MultiplayerTargeting.Notify(target,

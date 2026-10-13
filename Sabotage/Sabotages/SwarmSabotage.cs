@@ -19,16 +19,14 @@ public class SwarmSabotage : ISabotage
         var target   = MultiplayerTargeting.Resolve(triggeredBy);
         var location = target.currentLocation;
         int season   = location.GetSeasonIndex();
+        var origin   = new Vector2(target.TilePoint.X, target.TilePoint.Y);
 
-        for (int i = 0; i < 5; i++)
-        {
-            var offset = new Vector2(
-                target.TilePoint.X + _rng.Next(-3, 4),
-                target.TilePoint.Y + _rng.Next(-3, 4)
-            ) * 64f;
-
-            location.characters.Add(new GreenSlime(offset, season));
-        }
+        // Raw random offsets (as this used to do) have no passability check, so slimes
+        // could land inside walls, water, or other solid terrain -- use the same
+        // tile-search helper every other monster-spawn sabotage relies on.
+        var tiles = MonsterSpawnHelper.FindSpawnTiles(location, origin, 5);
+        foreach (var pos in tiles)
+            location.characters.Add(new GreenSlime(pos, season));
 
         MultiplayerTargeting.Notify(target,
             $"🟢🟢🟢 {triggeredBy} sent a slime SWARM after you!",

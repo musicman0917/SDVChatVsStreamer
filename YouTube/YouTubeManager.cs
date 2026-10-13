@@ -98,13 +98,27 @@ public class YouTubeManager
     private async Task ReceiveLoop(ClientWebSocket ws, CancellationToken ct)
     {
         var buffer = new byte[8192];
+        var sb     = new StringBuilder();
+
         while (!ct.IsCancellationRequested && ws.State == WebSocketState.Open)
         {
-            var result = await ws.ReceiveAsync(buffer, ct);
-            if (result.MessageType == WebSocketMessageType.Close) break;
+            sb.Clear();
+            WebSocketReceiveResult result;
+            bool closed = false;
+            do
+            {
+                result = await ws.ReceiveAsync(buffer, ct);
+                if (result.MessageType == WebSocketMessageType.Close) { closed = true; break; }
+                sb.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+            }
+            // A single ReceiveAsync call only returns one WebSocket frame -- a message
+            // split across multiple frames (or bigger than this buffer) would otherwise
+            // be silently truncated and fail to parse as JSON.
+            while (!result.EndOfMessage);
 
-            var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
-            try { HandleMessage(json); }
+            if (closed) break;
+
+            try { HandleMessage(sb.ToString()); }
             catch (Exception ex)
             {
                 _monitor.Log($"[YouTubeManager] Parse error: {ex.Message}", LogLevel.Debug);

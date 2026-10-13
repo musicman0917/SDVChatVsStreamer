@@ -100,9 +100,20 @@ $script:Form.Controls.Add($script:FooterPanel)
 # AutoScroll doesn't reliably pick up the content panel's real height after children are
 # added in code -- confirmed by a standalone repro (30 stacked labels in a short window
 # showed no scrollbar at all until this ran). Call after populating each screen.
+#
+# Only set AutoScrollMinSize when content actually exceeds the visible area: setting it
+# unconditionally caps the panel's effective drawing area to that value even when it's
+# SMALLER than ClientSize, clipping content that would otherwise have fit naturally
+# (confirmed directly on the Welcome screen: AutoScrollMinSize came back 275 against a
+# ClientSize of 433, and the last line still clipped at ~275 instead of using the full
+# 433 available). Size.Empty tells WinForms to size the scrollable area naturally.
 function Update-ContentScroll {
     $preferred = $script:ContentPanel.GetPreferredSize((New-Object System.Drawing.Size($script:ContentPanel.ClientSize.Width, 0)))
-    $script:ContentPanel.AutoScrollMinSize = New-Object System.Drawing.Size(0, $preferred.Height)
+    if ($preferred.Height -gt $script:ContentPanel.ClientSize.Height) {
+        $script:ContentPanel.AutoScrollMinSize = New-Object System.Drawing.Size(0, $preferred.Height)
+    } else {
+        $script:ContentPanel.AutoScrollMinSize = [System.Drawing.Size]::Empty
+    }
 }
 
 $script:WrapLabelWidth = 560

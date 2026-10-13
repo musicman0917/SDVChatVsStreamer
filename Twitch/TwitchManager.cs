@@ -809,17 +809,21 @@ public class TwitchManager
 
     private async Task PubSubLoop(string token, CancellationToken ct)
     {
-        // Auto-fetch broadcaster user ID if not set
-        if (string.IsNullOrWhiteSpace(_config.BroadcasterUserId) ||
-            _config.BroadcasterUserId == "your_broadcaster_user_id")
-        {
-            await FetchBroadcasterUserId(token, ct).ConfigureAwait(false);
-        }
-
         while (!ct.IsCancellationRequested)
         {
             try
             {
+                // Retried on every reconnect cycle, not just once up front -- a transient
+                // failure on the first attempt would otherwise leave this subscribed to a
+                // placeholder/invalid topic for the rest of the session with no way to
+                // recover short of restarting the mod. Already-successful fetches are
+                // skipped here since BroadcasterUserId is no longer the placeholder.
+                if (string.IsNullOrWhiteSpace(_config.BroadcasterUserId) ||
+                    _config.BroadcasterUserId == "your_broadcaster_user_id")
+                {
+                    await FetchBroadcasterUserId(token, ct).ConfigureAwait(false);
+                }
+
                 _pubSocket = new ClientWebSocket();
                 await _pubSocket.ConnectAsync(new Uri("wss://pubsub-edge.twitch.tv"), ct).ConfigureAwait(false);
                 _monitor.Log("[TwitchManager] PubSub connected.", LogLevel.Info);

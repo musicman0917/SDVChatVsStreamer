@@ -8,6 +8,7 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Menus;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 
 namespace SDVChatVsStreamer;
@@ -17,7 +18,10 @@ public class ModEntry : Mod
     public static IMonitor? Logger { get; private set; }
     public static ViewerLedger? Ledger { get; private set; }
     public static RaidEventSystem? RaidEvents { get; private set; }
-    public static Queue<Action> PendingActions { get; } = new();
+    // Enqueued from several independent background threads at once (Twitch IRC, TikTok,
+    // YouTube polling, the overlay's HTTP server) and dequeued from the main thread --
+    // a plain Queue<T> is not safe for that without an external lock.
+    public static ConcurrentQueue<Action> PendingActions { get; } = new();
     public static Action? PendingDismissalAction { get; set; }
     public static SDVChatVsStreamer.YouTube.YouTubeManager? YouTubeManager { get; private set; }
     private bool _dismissalWaitTick = false;
@@ -383,8 +387,8 @@ public class ModEntry : Mod
         SDVChatVsStreamer.Sabotage.Sabotages.HeavyPocketsSabotage.Tick();
 
         // Drain general pending actions (e.g. TikTok emotes)
-        while (PendingActions.Count > 0)
-            PendingActions.Dequeue().Invoke();
+        while (PendingActions.TryDequeue(out var pendingAction))
+            pendingAction.Invoke();
 
         // Dismissal detection — wait one tick after setting so menu has time to open
         if (PendingDismissalAction != null)

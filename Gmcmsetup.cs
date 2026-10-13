@@ -828,6 +828,8 @@ public static class GmcmSetup
         config.TikTokPointsPerDiamond    = defaults.TikTokPointsPerDiamond;
         config.TikTokShoutoutEnabled     = defaults.TikTokShoutoutEnabled;
         config.TikTokShoutoutCtaText     = defaults.TikTokShoutoutCtaText;
+        config.YouTubeEnabled            = defaults.YouTubeEnabled;
+        config.StreamerbotPort           = defaults.StreamerbotPort;
         config.EnableStarterRedemption        = defaults.EnableStarterRedemption;
         config.StarterRedemptionTitleSmall    = defaults.StarterRedemptionTitleSmall;
         config.StarterRedemptionPointsSmall   = defaults.StarterRedemptionPointsSmall;

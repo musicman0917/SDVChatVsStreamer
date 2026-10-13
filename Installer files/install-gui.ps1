@@ -100,12 +100,16 @@ function New-WrapLabel {
         [System.Drawing.Color]$Color = [System.Drawing.SystemColors]::ControlText
     )
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = $Text
-    $lbl.AutoSize = $true
-    $lbl.MaximumSize = New-Object System.Drawing.Size(560, 0)
     $style = if ($Bold) { [System.Drawing.FontStyle]::Bold } else { [System.Drawing.FontStyle]::Regular }
     $lbl.Font = New-Object System.Drawing.Font("Segoe UI", $FontSize, $style)
+    $lbl.Text = $Text
     $lbl.ForeColor = $Color
+    # AutoSize + MaximumSize(w,0) is the usual wrap trick, but a height of 0 can be read as
+    # an actual zero-height constraint instead of "unbounded" and collapse the label to
+    # nothing. Compute and assign the wrapped size directly instead of trusting ongoing
+    # AutoSize layout to get it right.
+    $lbl.AutoSize = $false
+    $lbl.Size = $lbl.GetPreferredSize((New-Object System.Drawing.Size(560, 0)))
     $lbl.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
     return $lbl
 }

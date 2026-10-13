@@ -280,7 +280,7 @@ AUTHORS SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY.
     $acceptCheck.Add_CheckedChanged({
         $script:NextButton.Enabled = $acceptCheck.Checked
         $script:NextButton.Refresh()
-    }.GetNewClosure())
+    })
 
     $script:OnNext = { Show-FindGame }
 }
@@ -342,7 +342,7 @@ function Show-FindGame {
                 Show-ErrorBox "Stardew Valley.exe was not found in that folder."
             }
         }
-    }.GetNewClosure())
+    })
     $script:ContentPanel.Controls.Add($browseButton)
 
     $script:OnNext = { Show-SmapiCheck }
@@ -417,7 +417,7 @@ function Show-SmapiCheck {
             Show-ErrorBox "Failed to download SMAPI: $_`n`nPlease install manually from https://smapi.io"
             $installButton.Enabled = $true
         }
-    }.GetNewClosure())
+    })
 
     $continueButton.Add_Click({
         Remove-Item (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "SMAPI-installer") -Recurse -Force -ErrorAction SilentlyContinue
@@ -430,7 +430,7 @@ function Show-SmapiCheck {
         }
         $script:NextButton.Enabled = $true
         $script:NextButton.Refresh()
-    }.GetNewClosure())
+    })
 
     $script:OnNext = { Show-ModsFolder }
 }
@@ -485,13 +485,13 @@ function Show-ModsFolder {
             $script:customFolder = $browser.SelectedPath.Trim()
             $customPathLabel.Text = $script:customFolder
         }
-    }.GetNewClosure())
+    })
 
     $customPanel.Controls.Add($browseButton)
     $customPanel.Controls.Add($customPathLabel)
     $script:ContentPanel.Controls.Add($customPanel)
 
-    $radioCustom.Add_CheckedChanged({ $browseButton.Enabled = $radioCustom.Checked }.GetNewClosure())
+    $radioCustom.Add_CheckedChanged({ $browseButton.Enabled = $radioCustom.Checked })
 
     $script:OnNext = {
         if ($radioStardrop.Checked) {
@@ -781,7 +781,7 @@ function Show-TikTokSetup {
             $statusLabel.ForeColor = [System.Drawing.Color]::Red
             $installButton.Enabled = $true
         }
-    }.GetNewClosure())
+    })
 
     $script:OnNext = { Show-AfterTikTokBranch }
 }

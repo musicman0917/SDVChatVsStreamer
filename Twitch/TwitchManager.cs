@@ -907,14 +907,26 @@ public class TwitchManager
     private async Task PubSubReceiveLoop(CancellationToken ct)
     {
         var buffer = new byte[16384];
+        var sb     = new StringBuilder();
 
         while (_pubSocket?.State == WebSocketState.Open && !ct.IsCancellationRequested)
         {
-            var result = await _pubSocket.ReceiveAsync(new ArraySegment<byte>(buffer), ct).ConfigureAwait(false);
-            if (result.MessageType == WebSocketMessageType.Close) break;
+            sb.Clear();
+            WebSocketReceiveResult result;
+            bool closed = false;
+            do
+            {
+                result = await _pubSocket.ReceiveAsync(new ArraySegment<byte>(buffer), ct).ConfigureAwait(false);
+                if (result.MessageType == WebSocketMessageType.Close) { closed = true; break; }
+                sb.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+            }
+            // A single ReceiveAsync call only returns one frame -- a PubSub message split
+            // across multiple frames would otherwise be silently truncated and fail to parse.
+            while (!result.EndOfMessage);
 
-            var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
-            HandlePubSubMessage(json);
+            if (closed) break;
+
+            HandlePubSubMessage(sb.ToString());
         }
     }
 

@@ -273,8 +273,21 @@ public class SlipNSlideSabotage : ISabotage
         // Apply momentum as position offset
         if (Math.Abs(VelocityX) > 0.1f || Math.Abs(VelocityY) > 0.1f)
         {
-            Game1.player.position.X += VelocityX * 2f;
-            Game1.player.position.Y += VelocityY * 2f;
+            var loc  = Game1.player.currentLocation;
+            float curX = Game1.player.position.X;
+            float curY = Game1.player.position.Y;
+            float newX = curX + VelocityX * 2f;
+            float newY = curY + VelocityY * 2f;
+
+            // Writing position directly bypasses the game's normal movement collision
+            // checks -- without this, accumulated slide momentum could carry the player
+            // straight through walls or off the edge of the map. Check each axis
+            // separately so sliding along a wall still works instead of a dead stop.
+            bool xOk = loc == null || loc.isTilePassable(new xTile.Dimensions.Location((int)(newX / 64f), (int)(curY / 64f)), Game1.viewport);
+            bool yOk = loc == null || loc.isTilePassable(new xTile.Dimensions.Location((int)(curX / 64f), (int)(newY / 64f)), Game1.viewport);
+
+            if (xOk) Game1.player.position.X = newX; else VelocityX = 0f;
+            if (yOk) Game1.player.position.Y = newY; else VelocityY = 0f;
         }
 
         // Apply friction — momentum decays slowly
@@ -367,6 +380,15 @@ public static class WarpWhistleState
 
     private static readonly Random _rng = new();
 
+    // Every destination in Buildings is itself indoors, so landing on one re-satisfies
+    // OnWarped's "!loc.IsOutdoors" check and would immediately re-roll on the very next
+    // warp event -- at the high-probability tiers that's a near-certain runaway chain
+    // bouncing the player between buildings every frame with no chance to regain
+    // control. This grace period stops a whistle-triggered warp from re-triggering
+    // itself while still re-rolling normally on the player's next real building entry.
+    private static readonly TimeSpan RetriggerGracePeriod = TimeSpan.FromSeconds(2);
+    private static DateTime _lastWhistleWarp = DateTime.MinValue;
+
     private static readonly (string Location, int X, int Y)[] Buildings = {
         ("SeedShop",        4,  20),
         ("Saloon",          11, 20),
@@ -426,6 +448,12 @@ public static class WarpWhistleState
             return;
         }
 
+        if (DateTime.UtcNow - _lastWhistleWarp < RetriggerGracePeriod)
+        {
+            ModEntry.Logger?.Log("[WarpWhistleState] Skipped — inside the post-warp grace period.", LogLevel.Debug);
+            return;
+        }
+
         // Roll based on current chance
         double roll = _rng.NextDouble();
         ModEntry.Logger?.Log($"[WarpWhistleState] Roll: {roll:P1} vs chance {Chance:P1}", LogLevel.Debug);
@@ -443,6 +471,7 @@ public static class WarpWhistleState
             if (SDVChatVsStreamer.Sabotage.WarpHelper.SafeWarpToRandomSpot(dest.Location, dest.X, dest.Y, _rng))
             {
                 ModEntry.Logger?.Log($"[WarpWhistleState] Successfully warped to {dest.Location}.", LogLevel.Info);
+                _lastWhistleWarp = DateTime.UtcNow;
                 Game1.addHUDMessage(new HUDMessage(
                     $"🎺 The Warp Whistle activated! You ended up in {dest.Location}!",
                     HUDMessage.error_type));

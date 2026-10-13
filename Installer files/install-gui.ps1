@@ -92,6 +92,19 @@ $script:Form.Controls.Add($script:FooterPanel)
 
 # -- Helpers --------------------------------------------------------
 
+$script:WrapLabelWidth = 560
+
+# Computes the height needed to word-wrap $Text at $script:WrapLabelWidth using TextRenderer,
+# a static GDI measurement that doesn't depend on a control having a parent/handle yet --
+# unlike Control.GetPreferredSize(), which proved unreliable here.
+function Measure-WrapLabelHeight {
+    param([string]$Text, [System.Drawing.Font]$Font)
+    if ([string]::IsNullOrEmpty($Text)) { return 16 }
+    $bounds = New-Object System.Drawing.Size($script:WrapLabelWidth, 0)
+    $measured = [System.Windows.Forms.TextRenderer]::MeasureText($Text, $Font, $bounds, [System.Windows.Forms.TextFormatFlags]::WordBreak)
+    return $measured.Height
+}
+
 function New-WrapLabel {
     param(
         [string]$Text,
@@ -104,14 +117,19 @@ function New-WrapLabel {
     $lbl.Font = New-Object System.Drawing.Font("Segoe UI", $FontSize, $style)
     $lbl.Text = $Text
     $lbl.ForeColor = $Color
-    # AutoSize + MaximumSize(w,0) is the usual wrap trick, but a height of 0 can be read as
-    # an actual zero-height constraint instead of "unbounded" and collapse the label to
-    # nothing. Compute and assign the wrapped size directly instead of trusting ongoing
-    # AutoSize layout to get it right.
     $lbl.AutoSize = $false
-    $lbl.Size = $lbl.GetPreferredSize((New-Object System.Drawing.Size(560, 0)))
+    $lbl.Size = New-Object System.Drawing.Size($script:WrapLabelWidth, (Measure-WrapLabelHeight -Text $Text -Font $lbl.Font))
     $lbl.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
     return $lbl
+}
+
+# Updates a New-WrapLabel's text AND its height -- AutoSize is off on these labels, so a
+# plain `.Text =` assignment after creation would keep the OLD (possibly shorter) size and
+# clip or hide text that now needs more lines.
+function Set-WrapLabelText {
+    param([System.Windows.Forms.Label]$Label, [string]$Text)
+    $Label.Text = $Text
+    $Label.Height = Measure-WrapLabelHeight -Text $Text -Font $Label.Font
 }
 
 function Set-Header {
@@ -319,7 +337,7 @@ function Show-FindGame {
     }
 
     if ($gamePath) {
-        $script:statusLabel.Text = "Found Stardew Valley at:`n$gamePath"
+        Set-WrapLabelText -Label $script:statusLabel -Text "Found Stardew Valley at:`n$gamePath"
         $script:statusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
         $script:State.GamePath = $gamePath.Trim()
         $script:NextButton.Enabled = $true
@@ -327,7 +345,7 @@ function Show-FindGame {
         return
     }
 
-    $script:statusLabel.Text = "Stardew Valley wasn't found in the default locations."
+    Set-WrapLabelText -Label $script:statusLabel -Text "Stardew Valley wasn't found in the default locations."
     $script:statusLabel.ForeColor = [System.Drawing.Color]::DarkOrange
     $script:ContentPanel.Controls.Add((New-WrapLabel -Text "Click Browse and select your Stardew Valley install folder." -FontSize 9))
 
@@ -341,7 +359,7 @@ function Show-FindGame {
         if ($browser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
             if (Test-Path (Join-Path $browser.SelectedPath "Stardew Valley.exe")) {
                 $script:State.GamePath = $browser.SelectedPath.Trim()
-                $script:statusLabel.Text = "Found Stardew Valley at:`n$($script:State.GamePath)"
+                Set-WrapLabelText -Label $script:statusLabel -Text "Found Stardew Valley at:`n$($script:State.GamePath)"
                 $script:statusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
                 $script:NextButton.Enabled = $true
                 $script:NextButton.Refresh()
@@ -395,7 +413,7 @@ function Show-SmapiCheck {
     $script:smapiInstallButton.Add_Click({
         $script:smapiInstallButton.Enabled = $false
         $script:smapiProgressBar.Visible = $true
-        $script:smapiStatusLabel.Text = "Fetching latest SMAPI release..."
+        Set-WrapLabelText -Label $script:smapiStatusLabel -Text "Fetching latest SMAPI release..."
         try {
             $release = Invoke-RestMethod -Uri "https://api.github.com/repos/Pathoschild/SMAPI/releases/latest" -UseBasicParsing
             $asset   = $release.assets | Where-Object { $_.name -like "SMAPI-*-installer.zip" } | Select-Object -First 1
@@ -404,10 +422,10 @@ function Show-SmapiCheck {
             $zipPath     = Join-Path $env:TEMP "SMAPI-installer.zip"
             $extractPath = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "SMAPI-installer"
 
-            $script:smapiStatusLabel.Text = "Downloading $($asset.name)..."
+            Set-WrapLabelText -Label $script:smapiStatusLabel -Text "Downloading $($asset.name)..."
             Invoke-DownloadWithProgress -Url $asset.browser_download_url -DestPath $zipPath -ProgressBar $script:smapiProgressBar
 
-            $script:smapiStatusLabel.Text = "Extracting..."
+            Set-WrapLabelText -Label $script:smapiStatusLabel -Text "Extracting..."
             if (Test-Path $extractPath) { Remove-Item $extractPath -Recurse -Force }
             Expand-Archive -Path $zipPath -DestinationPath $extractPath
             Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
@@ -415,7 +433,7 @@ function Show-SmapiCheck {
             $installer = Get-ChildItem -Path $extractPath -Filter "install on Windows.bat" -Recurse | Select-Object -First 1
             if (-not $installer) { throw "SMAPI installer not found after extraction." }
 
-            $script:smapiStatusLabel.Text = "The SMAPI installer will open in a new window. Follow its prompts, then come back here and click 'I've finished the SMAPI installer'."
+            Set-WrapLabelText -Label $script:smapiStatusLabel -Text "The SMAPI installer will open in a new window. Follow its prompts, then come back here and click 'I've finished the SMAPI installer'."
             Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($installer.FullName)`"" -WorkingDirectory $installer.DirectoryName
 
             $script:smapiContinueButton.Visible = $true
@@ -429,10 +447,10 @@ function Show-SmapiCheck {
     $script:smapiContinueButton.Add_Click({
         Remove-Item (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "SMAPI-installer") -Recurse -Force -ErrorAction SilentlyContinue
         if (Test-Path $script:smapiExe) {
-            $script:smapiStatusLabel.Text = "SMAPI installed successfully!"
+            Set-WrapLabelText -Label $script:smapiStatusLabel -Text "SMAPI installed successfully!"
             $script:smapiStatusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
         } else {
-            $script:smapiStatusLabel.Text = "Could not verify SMAPI installation. Please check before launching the game."
+            Set-WrapLabelText -Label $script:smapiStatusLabel -Text "Could not verify SMAPI installation. Please check before launching the game."
             $script:smapiStatusLabel.ForeColor = [System.Drawing.Color]::DarkOrange
         }
         $script:NextButton.Enabled = $true
@@ -547,21 +565,21 @@ function Show-InstallFiles {
         $asset   = $release.assets | Where-Object { $_.name -like "ChatVsStreamer*.zip" } | Select-Object -First 1
         if (-not $asset) { throw "No mod zip found in latest release. Please download manually from github.com/musicman0917/SDVChatVsStreamer/releases" }
 
-        $statusLabel.Text = "Latest version: $version`nDownloading $($asset.name)..."
+        Set-WrapLabelText -Label $statusLabel -Text "Latest version: $version`nDownloading $($asset.name)..."
 
         $zipPath     = Join-Path $env:TEMP "ChatVsStreamer.zip"
         $extractPath = Join-Path $env:TEMP "ChatVsStreamer-install"
 
         Invoke-DownloadWithProgress -Url $asset.browser_download_url -DestPath $zipPath -ProgressBar $progressBar
 
-        $statusLabel.Text = "Extracting..."
+        Set-WrapLabelText -Label $statusLabel -Text "Extracting..."
         if (Test-Path $extractPath) { Remove-Item $extractPath -Recurse -Force }
         Expand-Archive -Path $zipPath -DestinationPath $extractPath
 
         $modSource = Get-ChildItem -Path $extractPath -Filter "ChatVsStreamer" -Directory -Recurse | Select-Object -First 1
         if (-not $modSource) { $modSource = Get-Item $extractPath }
 
-        $statusLabel.Text = "Installing to Mods folder..."
+        Set-WrapLabelText -Label $statusLabel -Text "Installing to Mods folder..."
         New-Item -ItemType Directory -Path $destFolder -Force | Out-Null
 
         $items = Get-ChildItem -Path $modSource.FullName
@@ -583,13 +601,13 @@ function Show-InstallFiles {
         Remove-Item $zipPath     -Force -ErrorAction SilentlyContinue
         Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
 
-        $statusLabel.Text = "Chat vs Streamer $version installed!"
+        Set-WrapLabelText -Label $statusLabel -Text "Chat vs Streamer $version installed!"
         $statusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
         $script:State.ModFolder = $destFolder
         $script:NextButton.Enabled = $true
     }
     catch {
-        $statusLabel.Text = "Download failed: $_"
+        Set-WrapLabelText -Label $statusLabel -Text "Download failed: $_"
         $statusLabel.ForeColor = [System.Drawing.Color]::Red
         $retryButton = New-Object System.Windows.Forms.Button
         $retryButton.Text = "Retry"
@@ -764,10 +782,10 @@ function Show-TikTokSetup {
         $script:tikTokProgressBar.Visible = $true
         try {
             $installerPath = Join-Path $env:TEMP "TikFinity_installer.exe"
-            $script:tikTokStatusLabel.Text = "Downloading Tikfinity installer..."
+            Set-WrapLabelText -Label $script:tikTokStatusLabel -Text "Downloading Tikfinity installer..."
             Invoke-DownloadWithProgress -Url "https://tikfinity.zerody.one/download/win" -DestPath $installerPath -ProgressBar $script:tikTokProgressBar
 
-            $script:tikTokStatusLabel.Text = "Launching Tikfinity installer... (if SmartScreen appears, click 'More info' then 'Run anyway')"
+            Set-WrapLabelText -Label $script:tikTokStatusLabel -Text "Launching Tikfinity installer... (if SmartScreen appears, click 'More info' then 'Run anyway')"
             $proc = Start-Process -FilePath $installerPath -PassThru
             Wait-ProcessResponsive -Process $proc
             Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
@@ -776,15 +794,15 @@ function Show-TikTokSetup {
             foreach ($path in $script:tikfinityPaths) { if (Test-Path $path) { $installedNow = $true; break } }
 
             if ($installedNow) {
-                $script:tikTokStatusLabel.Text = "Tikfinity installed successfully!"
+                Set-WrapLabelText -Label $script:tikTokStatusLabel -Text "Tikfinity installed successfully!"
                 $script:tikTokStatusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
             } else {
-                $script:tikTokStatusLabel.Text = "Tikfinity installer ran but could not verify installation."
+                Set-WrapLabelText -Label $script:tikTokStatusLabel -Text "Tikfinity installer ran but could not verify installation."
                 $script:tikTokStatusLabel.ForeColor = [System.Drawing.Color]::DarkOrange
             }
         }
         catch {
-            $script:tikTokStatusLabel.Text = "Could not download Tikfinity: $_`nPlease install manually from https://tikfinity.zerody.one/app/"
+            Set-WrapLabelText -Label $script:tikTokStatusLabel -Text "Could not download Tikfinity: $_`nPlease install manually from https://tikfinity.zerody.one/app/"
             $script:tikTokStatusLabel.ForeColor = [System.Drawing.Color]::Red
             $script:tikTokInstallButton.Enabled = $true
         }

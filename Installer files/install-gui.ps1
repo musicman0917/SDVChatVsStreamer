@@ -59,15 +59,12 @@ $script:HeaderStepLabel.ForeColor = [System.Drawing.Color]::DimGray
 $script:HeaderStepLabel.Margin    = New-Object System.Windows.Forms.Padding(0, 2, 0, 0)
 $script:HeaderPanel.Controls.Add($script:HeaderStepLabel)
 
-$script:Form.Controls.Add($script:HeaderPanel)
-
 $script:ContentPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $script:ContentPanel.Dock          = "Fill"
 $script:ContentPanel.FlowDirection = "TopDown"
 $script:ContentPanel.WrapContents  = $false
 $script:ContentPanel.AutoScroll    = $true
 $script:ContentPanel.Padding       = New-Object System.Windows.Forms.Padding(20)
-$script:Form.Controls.Add($script:ContentPanel)
 
 $script:FooterPanel = New-Object System.Windows.Forms.FlowLayoutPanel
 $script:FooterPanel.Dock          = "Bottom"
@@ -88,6 +85,11 @@ $script:CancelButton.Margin = New-Object System.Windows.Forms.Padding(0, 0, 10, 
 $script:CancelButton.Add_Click({ $script:Form.Close() })
 $script:FooterPanel.Controls.Add($script:CancelButton)
 
+# Dock=Fill only excludes the space claimed by Dock=Top/Bottom siblings that are
+# added to Form.Controls AFTER it -- so ContentPanel (Fill) must be added BEFORE
+# HeaderPanel/FooterPanel, or it ends up sized as the full form, overlapping both.
+$script:Form.Controls.Add($script:ContentPanel)
+$script:Form.Controls.Add($script:HeaderPanel)
 $script:Form.Controls.Add($script:FooterPanel)
 
 # -- Helpers --------------------------------------------------------

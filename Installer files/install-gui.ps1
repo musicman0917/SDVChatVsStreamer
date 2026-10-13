@@ -872,6 +872,18 @@ function Show-Complete {
 try {
     Show-Welcome
     Update-ContentScroll
+
+    # TEMPORARY diagnostic -- remove once the Welcome-screen clipping is confirmed fixed.
+    $report = @"
+HeaderPanel.Bounds:  X=$($script:HeaderPanel.Bounds.X) Y=$($script:HeaderPanel.Bounds.Y) W=$($script:HeaderPanel.Bounds.Width) H=$($script:HeaderPanel.Bounds.Height)
+FooterPanel.Bounds:  X=$($script:FooterPanel.Bounds.X) Y=$($script:FooterPanel.Bounds.Y) W=$($script:FooterPanel.Bounds.Width) H=$($script:FooterPanel.Bounds.Height)
+ContentPanel.Bounds: X=$($script:ContentPanel.Bounds.X) Y=$($script:ContentPanel.Bounds.Y) W=$($script:ContentPanel.Bounds.Width) H=$($script:ContentPanel.Bounds.Height)
+ContentPanel.ClientSize: $($script:ContentPanel.ClientSize.Width) x $($script:ContentPanel.ClientSize.Height)
+ContentPanel.AutoScrollMinSize: $($script:ContentPanel.AutoScrollMinSize.Width) x $($script:ContentPanel.AutoScrollMinSize.Height)
+ContentPanel.Controls.Count: $($script:ContentPanel.Controls.Count)
+"@
+    [System.Windows.Forms.MessageBox]::Show($report, "TEMP diagnostic") | Out-Null
+
     [void]$script:Form.ShowDialog()
 }
 catch {

@@ -195,6 +195,8 @@ public class PoltergeistSabotage : ISabotage
     public void Execute(string triggeredBy)
     {
         var house = Game1.getLocationFromName("FarmHouse");
+        int mapWidth  = house.Map.Layers[0].LayerWidth;
+        int mapHeight = house.Map.Layers[0].LayerHeight;
         var furniture = house.furniture.ToList();
         var occupied  = new HashSet<Vector2>(furniture.Select(f => f.TileLocation));
         int moved     = 0;
@@ -209,8 +211,11 @@ public class PoltergeistSabotage : ISabotage
             {
                 var newPos = f.TileLocation + dir;
 
-                // Check bounds and no overlap
+                // Check bounds and no overlap -- an upper-bound check is needed too, not
+                // just "not negative", or furniture near the map's right/bottom edge can
+                // get pushed outside the house entirely.
                 if (newPos.X < 0 || newPos.Y < 0) continue;
+                if (newPos.X >= mapWidth || newPos.Y >= mapHeight) continue;
                 if (occupied.Contains(newPos)) continue;
 
                 occupied.Remove(f.TileLocation);

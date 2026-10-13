@@ -75,7 +75,10 @@ $script:FooterPanel.Padding       = New-Object System.Windows.Forms.Padding(12)
 $script:NextButton = New-Object System.Windows.Forms.Button
 $script:NextButton.Text = "Next >"
 $script:NextButton.Size = New-Object System.Drawing.Size(110, 32)
-$script:NextButton.Add_Click({ & $script:OnNext })
+$script:NextButton.Add_Click({
+    & $script:OnNext
+    Update-ContentScroll
+})
 $script:FooterPanel.Controls.Add($script:NextButton)
 
 $script:CancelButton = New-Object System.Windows.Forms.Button
@@ -93,6 +96,14 @@ $script:Form.Controls.Add($script:HeaderPanel)
 $script:Form.Controls.Add($script:FooterPanel)
 
 # -- Helpers --------------------------------------------------------
+
+# AutoScroll doesn't reliably pick up the content panel's real height after children are
+# added in code -- confirmed by a standalone repro (30 stacked labels in a short window
+# showed no scrollbar at all until this ran). Call after populating each screen.
+function Update-ContentScroll {
+    $preferred = $script:ContentPanel.GetPreferredSize((New-Object System.Drawing.Size($script:ContentPanel.ClientSize.Width, 0)))
+    $script:ContentPanel.AutoScrollMinSize = New-Object System.Drawing.Size(0, $preferred.Height)
+}
 
 $script:WrapLabelWidth = 560
 
@@ -860,6 +871,7 @@ function Show-Complete {
 
 try {
     Show-Welcome
+    Update-ContentScroll
     [void]$script:Form.ShowDialog()
 }
 catch {

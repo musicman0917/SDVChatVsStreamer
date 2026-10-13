@@ -232,9 +232,12 @@ function Show-OptionalPlatforms {
     $youTubeCheck.Checked = $script:State.UseYouTube
     $script:ContentPanel.Controls.Add($youTubeCheck)
 
+    $script:tikTokCheck  = $tikTokCheck
+    $script:youTubeCheck = $youTubeCheck
+
     $script:OnNext = {
-        $script:State.UseTikTok  = $tikTokCheck.Checked
-        $script:State.UseYouTube = $youTubeCheck.Checked
+        $script:State.UseTikTok  = $script:tikTokCheck.Checked
+        $script:State.UseYouTube = $script:youTubeCheck.Checked
         # Base flow: Platforms, License, Find Game, SMAPI, Mods Folder, Install Files,
         # GMCM, Twitch Setup, Complete = 9, plus one more for each optional platform.
         $script:StepTotal = 9 + [int]$script:State.UseTikTok + [int]$script:State.UseYouTube
@@ -278,7 +281,7 @@ AUTHORS SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY.
 
     $script:NextButton.Enabled = $false
     $acceptCheck.Add_CheckedChanged({
-        $script:NextButton.Enabled = $acceptCheck.Checked
+        $script:NextButton.Enabled = $this.Checked
         $script:NextButton.Refresh()
     })
 
@@ -291,8 +294,8 @@ function Show-FindGame {
     Set-Header -Title "Checking Prerequisites"
     $script:NextButton.Enabled = $false
 
-    $statusLabel = New-WrapLabel -Text "Looking for Stardew Valley..." -FontSize 10
-    $script:ContentPanel.Controls.Add($statusLabel)
+    $script:statusLabel = New-WrapLabel -Text "Looking for Stardew Valley..." -FontSize 10
+    $script:ContentPanel.Controls.Add($script:statusLabel)
 
     $searchPaths = @(
         "C:\Program Files (x86)\Steam\steamapps\common\Stardew Valley",
@@ -312,16 +315,16 @@ function Show-FindGame {
     }
 
     if ($gamePath) {
-        $statusLabel.Text = "Found Stardew Valley at:`n$gamePath"
-        $statusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
+        $script:statusLabel.Text = "Found Stardew Valley at:`n$gamePath"
+        $script:statusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
         $script:State.GamePath = $gamePath.Trim()
         $script:NextButton.Enabled = $true
         $script:OnNext = { Show-SmapiCheck }
         return
     }
 
-    $statusLabel.Text = "Stardew Valley wasn't found in the default locations."
-    $statusLabel.ForeColor = [System.Drawing.Color]::DarkOrange
+    $script:statusLabel.Text = "Stardew Valley wasn't found in the default locations."
+    $script:statusLabel.ForeColor = [System.Drawing.Color]::DarkOrange
     $script:ContentPanel.Controls.Add((New-WrapLabel -Text "Click Browse and select your Stardew Valley install folder." -FontSize 9))
 
     $browseButton = New-Object System.Windows.Forms.Button
@@ -334,8 +337,8 @@ function Show-FindGame {
         if ($browser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
             if (Test-Path (Join-Path $browser.SelectedPath "Stardew Valley.exe")) {
                 $script:State.GamePath = $browser.SelectedPath.Trim()
-                $statusLabel.Text = "Found Stardew Valley at:`n$($script:State.GamePath)"
-                $statusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
+                $script:statusLabel.Text = "Found Stardew Valley at:`n$($script:State.GamePath)"
+                $script:statusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
                 $script:NextButton.Enabled = $true
                 $script:NextButton.Refresh()
             } else {
@@ -353,9 +356,9 @@ function Show-FindGame {
 function Show-SmapiCheck {
     Set-Header -Title "SMAPI Check"
 
-    $smapiExe = Join-Path $script:State.GamePath "StardewModdingAPI.exe"
+    $script:smapiExe = Join-Path $script:State.GamePath "StardewModdingAPI.exe"
 
-    if (Test-Path $smapiExe) {
+    if (Test-Path $script:smapiExe) {
         $script:ContentPanel.Controls.Add((New-WrapLabel -Text "SMAPI is already installed." -FontSize 10 -Color ([System.Drawing.Color]::DarkGreen)))
         $script:OnNext = { Show-ModsFolder }
         return
@@ -364,31 +367,31 @@ function Show-SmapiCheck {
     $script:ContentPanel.Controls.Add((New-WrapLabel -Text "SMAPI is not installed." -FontSize 10 -Color ([System.Drawing.Color]::DarkOrange)))
     $script:ContentPanel.Controls.Add((New-WrapLabel -Text "SMAPI is required to run this mod. It is safe, widely used, and does not affect your saves." -FontSize 9))
 
-    $installButton = New-Object System.Windows.Forms.Button
-    $installButton.Text = "Download && Install SMAPI"
-    $installButton.Size = New-Object System.Drawing.Size(220, 32)
-    $script:ContentPanel.Controls.Add($installButton)
+    $script:smapiInstallButton = New-Object System.Windows.Forms.Button
+    $script:smapiInstallButton.Text = "Download && Install SMAPI"
+    $script:smapiInstallButton.Size = New-Object System.Drawing.Size(220, 32)
+    $script:ContentPanel.Controls.Add($script:smapiInstallButton)
 
-    $progressBar = New-Object System.Windows.Forms.ProgressBar
-    $progressBar.Size = New-Object System.Drawing.Size(560, 24)
-    $progressBar.Visible = $false
-    $script:ContentPanel.Controls.Add($progressBar)
+    $script:smapiProgressBar = New-Object System.Windows.Forms.ProgressBar
+    $script:smapiProgressBar.Size = New-Object System.Drawing.Size(560, 24)
+    $script:smapiProgressBar.Visible = $false
+    $script:ContentPanel.Controls.Add($script:smapiProgressBar)
 
-    $statusLabel = New-WrapLabel -Text "" -FontSize 9
-    $script:ContentPanel.Controls.Add($statusLabel)
+    $script:smapiStatusLabel = New-WrapLabel -Text "" -FontSize 9
+    $script:ContentPanel.Controls.Add($script:smapiStatusLabel)
 
-    $continueButton = New-Object System.Windows.Forms.Button
-    $continueButton.Text = "I've finished the SMAPI installer"
-    $continueButton.Size = New-Object System.Drawing.Size(240, 32)
-    $continueButton.Visible = $false
-    $script:ContentPanel.Controls.Add($continueButton)
+    $script:smapiContinueButton = New-Object System.Windows.Forms.Button
+    $script:smapiContinueButton.Text = "I've finished the SMAPI installer"
+    $script:smapiContinueButton.Size = New-Object System.Drawing.Size(240, 32)
+    $script:smapiContinueButton.Visible = $false
+    $script:ContentPanel.Controls.Add($script:smapiContinueButton)
 
     $script:NextButton.Enabled = $false
 
-    $installButton.Add_Click({
-        $installButton.Enabled = $false
-        $progressBar.Visible = $true
-        $statusLabel.Text = "Fetching latest SMAPI release..."
+    $script:smapiInstallButton.Add_Click({
+        $script:smapiInstallButton.Enabled = $false
+        $script:smapiProgressBar.Visible = $true
+        $script:smapiStatusLabel.Text = "Fetching latest SMAPI release..."
         try {
             $release = Invoke-RestMethod -Uri "https://api.github.com/repos/Pathoschild/SMAPI/releases/latest" -UseBasicParsing
             $asset   = $release.assets | Where-Object { $_.name -like "SMAPI-*-installer.zip" } | Select-Object -First 1
@@ -397,10 +400,10 @@ function Show-SmapiCheck {
             $zipPath     = Join-Path $env:TEMP "SMAPI-installer.zip"
             $extractPath = Join-Path ([Environment]::GetFolderPath("MyDocuments")) "SMAPI-installer"
 
-            $statusLabel.Text = "Downloading $($asset.name)..."
-            Invoke-DownloadWithProgress -Url $asset.browser_download_url -DestPath $zipPath -ProgressBar $progressBar
+            $script:smapiStatusLabel.Text = "Downloading $($asset.name)..."
+            Invoke-DownloadWithProgress -Url $asset.browser_download_url -DestPath $zipPath -ProgressBar $script:smapiProgressBar
 
-            $statusLabel.Text = "Extracting..."
+            $script:smapiStatusLabel.Text = "Extracting..."
             if (Test-Path $extractPath) { Remove-Item $extractPath -Recurse -Force }
             Expand-Archive -Path $zipPath -DestinationPath $extractPath
             Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
@@ -408,25 +411,25 @@ function Show-SmapiCheck {
             $installer = Get-ChildItem -Path $extractPath -Filter "install on Windows.bat" -Recurse | Select-Object -First 1
             if (-not $installer) { throw "SMAPI installer not found after extraction." }
 
-            $statusLabel.Text = "The SMAPI installer will open in a new window. Follow its prompts, then come back here and click 'I've finished the SMAPI installer'."
+            $script:smapiStatusLabel.Text = "The SMAPI installer will open in a new window. Follow its prompts, then come back here and click 'I've finished the SMAPI installer'."
             Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$($installer.FullName)`"" -WorkingDirectory $installer.DirectoryName
 
-            $continueButton.Visible = $true
+            $script:smapiContinueButton.Visible = $true
         }
         catch {
             Show-ErrorBox "Failed to download SMAPI: $_`n`nPlease install manually from https://smapi.io"
-            $installButton.Enabled = $true
+            $script:smapiInstallButton.Enabled = $true
         }
     })
 
-    $continueButton.Add_Click({
+    $script:smapiContinueButton.Add_Click({
         Remove-Item (Join-Path ([Environment]::GetFolderPath("MyDocuments")) "SMAPI-installer") -Recurse -Force -ErrorAction SilentlyContinue
-        if (Test-Path $smapiExe) {
-            $statusLabel.Text = "SMAPI installed successfully!"
-            $statusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
+        if (Test-Path $script:smapiExe) {
+            $script:smapiStatusLabel.Text = "SMAPI installed successfully!"
+            $script:smapiStatusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
         } else {
-            $statusLabel.Text = "Could not verify SMAPI installation. Please check before launching the game."
-            $statusLabel.ForeColor = [System.Drawing.Color]::DarkOrange
+            $script:smapiStatusLabel.Text = "Could not verify SMAPI installation. Please check before launching the game."
+            $script:smapiStatusLabel.ForeColor = [System.Drawing.Color]::DarkOrange
         }
         $script:NextButton.Enabled = $true
         $script:NextButton.Refresh()
@@ -440,20 +443,20 @@ function Show-SmapiCheck {
 function Show-ModsFolder {
     Set-Header -Title "Mod Manager"
 
-    $stardropPath  = "$env:APPDATA\Stardrop\Data\Selected Mods"
-    $stardropExe   = "$env:LOCALAPPDATA\Programs\Stardrop\Stardrop.exe"
-    $stardropFound = (Test-Path $stardropExe) -or (Test-Path $stardropPath)
+    $script:stardropPath = "$env:APPDATA\Stardrop\Data\Selected Mods"
+    $stardropExe         = "$env:LOCALAPPDATA\Programs\Stardrop\Stardrop.exe"
+    $stardropFound       = (Test-Path $stardropExe) -or (Test-Path $script:stardropPath)
 
     $script:ContentPanel.Controls.Add((New-WrapLabel -Text "Do you use Stardrop Mod Manager?" -FontSize 10))
     if ($stardropFound) {
         $script:ContentPanel.Controls.Add((New-WrapLabel -Text "Stardrop detected on this machine." -FontSize 9 -Color ([System.Drawing.Color]::DarkGreen)))
     }
 
-    $radioStardrop = New-Object System.Windows.Forms.RadioButton
-    $radioStardrop.Text = "Yes, I use Stardrop"
-    $radioStardrop.AutoSize = $true
-    $radioStardrop.Checked = $stardropFound
-    $script:ContentPanel.Controls.Add($radioStardrop)
+    $script:radioStardrop = New-Object System.Windows.Forms.RadioButton
+    $script:radioStardrop.Text = "Yes, I use Stardrop"
+    $script:radioStardrop.AutoSize = $true
+    $script:radioStardrop.Checked = $stardropFound
+    $script:ContentPanel.Controls.Add($script:radioStardrop)
 
     $radioDefault = New-Object System.Windows.Forms.RadioButton
     $radioDefault.Text = "No, I use the default Mods folder"
@@ -461,44 +464,44 @@ function Show-ModsFolder {
     $radioDefault.Checked = -not $stardropFound
     $script:ContentPanel.Controls.Add($radioDefault)
 
-    $radioCustom = New-Object System.Windows.Forms.RadioButton
-    $radioCustom.Text = "I use a custom folder"
-    $radioCustom.AutoSize = $true
-    $script:ContentPanel.Controls.Add($radioCustom)
+    $script:radioCustom = New-Object System.Windows.Forms.RadioButton
+    $script:radioCustom.Text = "I use a custom folder"
+    $script:radioCustom.AutoSize = $true
+    $script:ContentPanel.Controls.Add($script:radioCustom)
 
     $customPanel = New-Object System.Windows.Forms.FlowLayoutPanel
     $customPanel.AutoSize = $true
     $customPanel.Margin = New-Object System.Windows.Forms.Padding(20, 4, 0, 0)
 
-    $customPathLabel = New-WrapLabel -Text "(no folder selected)" -FontSize 9
-    $browseButton = New-Object System.Windows.Forms.Button
-    $browseButton.Text = "Browse..."
-    $browseButton.Size = New-Object System.Drawing.Size(120, 30)
-    $browseButton.Enabled = $false
+    $script:customPathLabel = New-WrapLabel -Text "(no folder selected)" -FontSize 9
+    $script:modsFolderBrowseButton = New-Object System.Windows.Forms.Button
+    $script:modsFolderBrowseButton.Text = "Browse..."
+    $script:modsFolderBrowseButton.Size = New-Object System.Drawing.Size(120, 30)
+    $script:modsFolderBrowseButton.Enabled = $false
     $script:customFolder = $null
 
-    $browseButton.Add_Click({
+    $script:modsFolderBrowseButton.Add_Click({
         $browser = New-Object System.Windows.Forms.FolderBrowserDialog
         $browser.Description = "Select your Stardew Valley Mods folder"
         $browser.ShowNewFolderButton = $true
         if ($browser.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
             $script:customFolder = $browser.SelectedPath.Trim()
-            $customPathLabel.Text = $script:customFolder
+            $script:customPathLabel.Text = $script:customFolder
         }
     })
 
-    $customPanel.Controls.Add($browseButton)
-    $customPanel.Controls.Add($customPathLabel)
+    $customPanel.Controls.Add($script:modsFolderBrowseButton)
+    $customPanel.Controls.Add($script:customPathLabel)
     $script:ContentPanel.Controls.Add($customPanel)
 
-    $radioCustom.Add_CheckedChanged({ $browseButton.Enabled = $radioCustom.Checked })
+    $script:radioCustom.Add_CheckedChanged({ $script:modsFolderBrowseButton.Enabled = $this.Checked })
 
     $script:OnNext = {
-        if ($radioStardrop.Checked) {
-            if (-not (Test-Path $stardropPath)) { New-Item -ItemType Directory -Path $stardropPath -Force | Out-Null }
-            $script:State.ModsFolder = $stardropPath.Trim()
+        if ($script:radioStardrop.Checked) {
+            if (-not (Test-Path $script:stardropPath)) { New-Item -ItemType Directory -Path $script:stardropPath -Force | Out-Null }
+            $script:State.ModsFolder = $script:stardropPath.Trim()
         }
-        elseif ($radioCustom.Checked) {
+        elseif ($script:radioCustom.Checked) {
             if (-not $script:customFolder) { Show-ErrorBox "Please select a custom folder first."; return }
             $script:State.ModsFolder = $script:customFolder
         }
@@ -632,30 +635,28 @@ function Show-AfterTwitchBranch {
 function Show-TwitchSetup {
     Set-Header -Title "Twitch Setup"
 
-    $authDir    = Join-Path $script:State.ModFolder "TwitchAuth"
-    $configFile = Join-Path $authDir "secrets.json"
+    $authDir            = Join-Path $script:State.ModFolder "TwitchAuth"
+    $script:configFile  = Join-Path $authDir "secrets.json"
     New-Item -ItemType Directory -Path $authDir -Force | Out-Null
 
-    if (Test-Path $configFile) {
+    if (Test-Path $script:configFile) {
         $script:ContentPanel.Controls.Add((New-WrapLabel -Text "Twitch credentials are already configured." -FontSize 10 -Color ([System.Drawing.Color]::DarkGreen)))
-        $reconfigureCheck = New-Object System.Windows.Forms.CheckBox
-        $reconfigureCheck.Text = "Reconfigure Twitch credentials"
-        $reconfigureCheck.AutoSize = $true
-        $script:ContentPanel.Controls.Add($reconfigureCheck)
+        $script:reconfigureCheck = New-Object System.Windows.Forms.CheckBox
+        $script:reconfigureCheck.Text = "Reconfigure Twitch credentials"
+        $script:reconfigureCheck.AutoSize = $true
+        $script:ContentPanel.Controls.Add($script:reconfigureCheck)
 
         $script:OnNext = {
-            if ($reconfigureCheck.Checked) { Show-TwitchCredentials -AuthDir $authDir -ConfigFile $configFile }
+            if ($script:reconfigureCheck.Checked) { Show-TwitchCredentials }
             else { Show-AfterTwitchBranch }
         }
         return
     }
 
-    Show-TwitchCredentials -AuthDir $authDir -ConfigFile $configFile
+    Show-TwitchCredentials
 }
 
 function Show-TwitchCredentials {
-    param([string]$AuthDir, [string]$ConfigFile)
-
     Set-SubHeader -Title "Twitch Setup - Create App"
 
     $script:ContentPanel.Controls.Add((New-WrapLabel -Text "STEP 1 - Create a Twitch Application" -FontSize 11 -Bold))
@@ -670,30 +671,30 @@ function Show-TwitchCredentials {
     $script:ContentPanel.Controls.Add($openButton)
 
     $script:ContentPanel.Controls.Add((New-WrapLabel -Text "Client ID:" -FontSize 9 -Bold))
-    $clientIdBox = New-Object System.Windows.Forms.TextBox
-    $clientIdBox.Size = New-Object System.Drawing.Size(400, 24)
-    $clientIdBox.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
-    $script:ContentPanel.Controls.Add($clientIdBox)
+    $script:clientIdBox = New-Object System.Windows.Forms.TextBox
+    $script:clientIdBox.Size = New-Object System.Drawing.Size(400, 24)
+    $script:clientIdBox.Margin = New-Object System.Windows.Forms.Padding(0, 0, 0, 10)
+    $script:ContentPanel.Controls.Add($script:clientIdBox)
 
     $script:ContentPanel.Controls.Add((New-WrapLabel -Text "Client Secret:" -FontSize 9 -Bold))
-    $clientSecretBox = New-Object System.Windows.Forms.TextBox
-    $clientSecretBox.Size = New-Object System.Drawing.Size(400, 24)
-    $clientSecretBox.UseSystemPasswordChar = $true
-    $script:ContentPanel.Controls.Add($clientSecretBox)
+    $script:clientSecretBox = New-Object System.Windows.Forms.TextBox
+    $script:clientSecretBox.Size = New-Object System.Drawing.Size(400, 24)
+    $script:clientSecretBox.UseSystemPasswordChar = $true
+    $script:ContentPanel.Controls.Add($script:clientSecretBox)
 
     $script:NextButton.Text = "Save && Continue"
 
     $script:OnNext = {
-        if (-not $clientIdBox.Text.Trim() -or -not $clientSecretBox.Text.Trim()) {
+        if (-not $script:clientIdBox.Text.Trim() -or -not $script:clientSecretBox.Text.Trim()) {
             Show-ErrorBox "Please enter both the Client ID and Client Secret."
             return
         }
         $secrets = @{
-            client_id     = $clientIdBox.Text.Trim()
-            ClientId      = $clientIdBox.Text.Trim()
-            client_secret = $clientSecretBox.Text.Trim()
+            client_id     = $script:clientIdBox.Text.Trim()
+            ClientId      = $script:clientIdBox.Text.Trim()
+            client_secret = $script:clientSecretBox.Text.Trim()
         } | ConvertTo-Json -Depth 2
-        Set-Content -Path $ConfigFile -Value $secrets -Encoding UTF8
+        Set-Content -Path $script:configFile -Value $secrets -Encoding UTF8
 
         Show-TwitchAuthorizationInfo
     }
@@ -739,47 +740,49 @@ function Show-TikTokSetup {
 
     $script:ContentPanel.Controls.Add((New-WrapLabel -Text "Tikfinity is not installed." -FontSize 10 -Color ([System.Drawing.Color]::DarkOrange)))
 
-    $installButton = New-Object System.Windows.Forms.Button
-    $installButton.Text = "Download && Install Tikfinity"
-    $installButton.Size = New-Object System.Drawing.Size(220, 32)
-    $script:ContentPanel.Controls.Add($installButton)
+    $script:tikTokInstallButton = New-Object System.Windows.Forms.Button
+    $script:tikTokInstallButton.Text = "Download && Install Tikfinity"
+    $script:tikTokInstallButton.Size = New-Object System.Drawing.Size(220, 32)
+    $script:ContentPanel.Controls.Add($script:tikTokInstallButton)
 
-    $progressBar = New-Object System.Windows.Forms.ProgressBar
-    $progressBar.Size = New-Object System.Drawing.Size(560, 24)
-    $progressBar.Visible = $false
-    $script:ContentPanel.Controls.Add($progressBar)
+    $script:tikTokProgressBar = New-Object System.Windows.Forms.ProgressBar
+    $script:tikTokProgressBar.Size = New-Object System.Drawing.Size(560, 24)
+    $script:tikTokProgressBar.Visible = $false
+    $script:ContentPanel.Controls.Add($script:tikTokProgressBar)
 
-    $statusLabel = New-WrapLabel -Text "" -FontSize 9
-    $script:ContentPanel.Controls.Add($statusLabel)
+    $script:tikTokStatusLabel = New-WrapLabel -Text "" -FontSize 9
+    $script:ContentPanel.Controls.Add($script:tikTokStatusLabel)
 
-    $installButton.Add_Click({
-        $installButton.Enabled = $false
-        $progressBar.Visible = $true
+    $script:tikfinityPaths = $tikfinityPaths
+
+    $script:tikTokInstallButton.Add_Click({
+        $script:tikTokInstallButton.Enabled = $false
+        $script:tikTokProgressBar.Visible = $true
         try {
             $installerPath = Join-Path $env:TEMP "TikFinity_installer.exe"
-            $statusLabel.Text = "Downloading Tikfinity installer..."
-            Invoke-DownloadWithProgress -Url "https://tikfinity.zerody.one/download/win" -DestPath $installerPath -ProgressBar $progressBar
+            $script:tikTokStatusLabel.Text = "Downloading Tikfinity installer..."
+            Invoke-DownloadWithProgress -Url "https://tikfinity.zerody.one/download/win" -DestPath $installerPath -ProgressBar $script:tikTokProgressBar
 
-            $statusLabel.Text = "Launching Tikfinity installer... (if SmartScreen appears, click 'More info' then 'Run anyway')"
+            $script:tikTokStatusLabel.Text = "Launching Tikfinity installer... (if SmartScreen appears, click 'More info' then 'Run anyway')"
             $proc = Start-Process -FilePath $installerPath -PassThru
             Wait-ProcessResponsive -Process $proc
             Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
 
             $installedNow = $false
-            foreach ($path in $tikfinityPaths) { if (Test-Path $path) { $installedNow = $true; break } }
+            foreach ($path in $script:tikfinityPaths) { if (Test-Path $path) { $installedNow = $true; break } }
 
             if ($installedNow) {
-                $statusLabel.Text = "Tikfinity installed successfully!"
-                $statusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
+                $script:tikTokStatusLabel.Text = "Tikfinity installed successfully!"
+                $script:tikTokStatusLabel.ForeColor = [System.Drawing.Color]::DarkGreen
             } else {
-                $statusLabel.Text = "Tikfinity installer ran but could not verify installation."
-                $statusLabel.ForeColor = [System.Drawing.Color]::DarkOrange
+                $script:tikTokStatusLabel.Text = "Tikfinity installer ran but could not verify installation."
+                $script:tikTokStatusLabel.ForeColor = [System.Drawing.Color]::DarkOrange
             }
         }
         catch {
-            $statusLabel.Text = "Could not download Tikfinity: $_`nPlease install manually from https://tikfinity.zerody.one/app/"
-            $statusLabel.ForeColor = [System.Drawing.Color]::Red
-            $installButton.Enabled = $true
+            $script:tikTokStatusLabel.Text = "Could not download Tikfinity: $_`nPlease install manually from https://tikfinity.zerody.one/app/"
+            $script:tikTokStatusLabel.ForeColor = [System.Drawing.Color]::Red
+            $script:tikTokInstallButton.Enabled = $true
         }
     })
 

@@ -6,7 +6,7 @@ namespace SDVChatVsStreamer.Sabotage.Sabotages;
 
 // ─── NARCOLEPSY — random sleep emote every 30 seconds ────────────────────────
 
-public class NarcolepsySabotage : ISabotage
+public class NarcolepsySabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Narcolepsy";
     public string BuyCommand   => "narcolepsy";
@@ -19,6 +19,19 @@ public class NarcolepsySabotage : ISabotage
     private static DateTime _nextSleep = DateTime.UtcNow;
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"😴 {triggeredBy} gave you narcolepsy! Try not to fall asleep...",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         IsActive  = true;
         ExpiresAt = DateTime.UtcNow.AddMinutes(3);
@@ -65,7 +78,7 @@ public class NarcolepsySabotage : ISabotage
 
 // ─── STICKY — prevents item switching and dropping for 60 seconds ─────────────
 
-public class StickySabotage : ISabotage
+public class StickySabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Sticky";
     public string BuyCommand   => "sticky";
@@ -77,6 +90,19 @@ public class StickySabotage : ISabotage
     public static DateTime ExpiresAt { get; private set; }
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🍯 {triggeredBy} made your hands sticky! No switching items for 60 seconds!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         IsActive  = true;
         ExpiresAt = DateTime.UtcNow.AddSeconds(60);
@@ -103,7 +129,7 @@ public class StickySabotage : ISabotage
 
 // ─── INFLATION — random price multiplier on in-game shops ────────────────────
 
-public class InflationSabotage : ISabotage
+public class InflationSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Inflation";
     public string BuyCommand   => "inflation";
@@ -117,6 +143,22 @@ public class InflationSabotage : ISabotage
     public static bool IsActive    { get; private set; }
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            // The multiplier itself is rolled on whichever client actually applies it
+            // (ExecuteLocal, over on the farmhand's own instance), so the host can't know
+            // the percentage to show here -- just confirm who it hit.
+            MultiplayerTargeting.Notify(target,
+                $"📈 {triggeredBy} caused inflation! Their shop prices just went up for the rest of the day!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         // Random multiplier between 1.5x and 4x
         Multiplier = 1.5f + (float)(_rng.NextDouble() * 2.5f);

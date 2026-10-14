@@ -226,7 +226,7 @@ public class GeodeCrackSabotage : ISabotage
 
 // ─── HICCUPS — random jump animation every 3-8 seconds for 2 minutes ─────────
 
-public class HiccupsSabotage : ISabotage
+public class HiccupsSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Hiccups";
     public string BuyCommand   => "hiccups";
@@ -240,6 +240,19 @@ public class HiccupsSabotage : ISabotage
     private static readonly Random _rng = new();
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🤭 {triggeredBy} gave you the hiccups! *hic*",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         IsActive     = true;
         ExpiresAt    = DateTime.UtcNow.AddMinutes(2);
@@ -267,7 +280,7 @@ public class HiccupsSabotage : ISabotage
 
 // ─── PARANOIA — random scary sound effects, no actual danger ─────────────────
 
-public class ParanoiaSabotage : ISabotage
+public class ParanoiaSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Paranoia";
     public string BuyCommand   => "paranoia";
@@ -285,6 +298,14 @@ public class ParanoiaSabotage : ISabotage
     private static DateTime _cueStopAt = DateTime.MinValue;
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        // No notify on a successful relay either — same "no warning" design as the local path.
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy)) return;
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         IsActive   = true;
         ExpiresAt  = DateTime.UtcNow.AddSeconds(90);
@@ -326,7 +347,7 @@ public class ParanoiaSabotage : ISabotage
 
 // ─── HEAVY POCKETS — movement speed scales down with inventory fullness ──────
 
-public class HeavyPocketsSabotage : ISabotage
+public class HeavyPocketsSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Heavy Pockets";
     public string BuyCommand   => "heavypockets";
@@ -346,6 +367,19 @@ public class HeavyPocketsSabotage : ISabotage
     private static float _lastPenalty = float.NaN;
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🎒 {triggeredBy} made your pockets heavy! A full inventory will slow you down for 2 minutes.",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         IsActive     = true;
         ExpiresAt    = DateTime.UtcNow.AddMinutes(2);

@@ -191,7 +191,7 @@ public class SoakSabotage : ISabotage
 
 // ─── TELEPORT — warps to a random NPC location ───────────────────────────────
 
-public class TeleportSabotage : ISabotage
+public class TeleportSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Teleport";
     public string BuyCommand   => "teleport";
@@ -208,6 +208,17 @@ public class TeleportSabotage : ISabotage
     private static readonly Random _rng = new();
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target, $"✨ {triggeredBy} used Teleport on you!", HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         var npcName = NPCs[_rng.Next(NPCs.Length)];
         var npc = Game1.getCharacterFromName(npcName);
@@ -250,7 +261,15 @@ public class TeleportSabotage : ISabotage
         // Refund what was actually paid, not the static base Cost -- see WarpSabotage for
         // why (halved-costs raid meta event could make this an over-refund otherwise).
         int refund = ModEntry.RaidEvents?.ApplyCostModifier(Cost) ?? Cost;
-        ModEntry.Ledger?.AddPoints(triggeredBy, refund);
+
+        // See WarpSabotage.ExecuteLocal -- the shared ledger only exists on the host, so a
+        // relayed farmhand routes the refund back there instead of crediting their own
+        // separate, un-synced ViewerLedger.
+        if (Game1.IsMasterGame)
+            ModEntry.Ledger?.AddPoints(triggeredBy, refund);
+        else
+            PeerRelay.RequestRefund(triggeredBy, refund, BuyCommand);
+
         Game1.addHUDMessage(new HUDMessage(
             $"✨ {triggeredBy} tried to Teleport you, but nowhere safe was found! Refunded {refund}pts.",
             HUDMessage.error_type));

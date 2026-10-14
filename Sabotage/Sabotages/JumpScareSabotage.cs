@@ -78,7 +78,7 @@ public static class JumpScareState
 
 // ─── JUMP SCARE — silent purchase, hidden delay, full-screen flash ───────────
 
-public class JumpScareSabotage : ISabotage
+public class JumpScareSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Jump Scare";
     public string BuyCommand   => "jumpscare";
@@ -87,6 +87,15 @@ public class JumpScareSabotage : ISabotage
     public int CooldownSeconds => 300;
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        // No MultiplayerTargeting.Notify on a successful relay, same as the local path --
+        // the whole point is nobody gets a warning, including which farmhand it hit.
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy)) return;
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         JumpScareState.Schedule();
         // Intentionally no HUD message here, and none when it fires either —

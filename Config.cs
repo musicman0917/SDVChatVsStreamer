@@ -198,11 +198,13 @@ public class ModConfig
     /// addition to your own). Any command typed in a co-op player's channel — by them or their
     /// own viewers — lands on THAT player's connected farmhand instead of the host, as long as
     /// their in-game character name matches their channel name EXACTLY (case-insensitive). No
-    /// mod install is required on the co-op player's end; only their channel name. Only applies
-    /// to sabotages that mutate host-authoritative state (money, health/stamina, buffs,
-    /// inventory, nearby monster/explosion spawns). Effects that read local input or draw to a
-    /// screen directly (Confused, jump scares, bans, warps) can only ever affect whoever's game
-    /// is actually running this mod, so they keep hitting the host regardless of this setting.</summary>
+    /// mod install is required on the co-op player's end for sabotages that mutate
+    /// host-authoritative state (money, health/stamina, buffs, inventory, nearby monster/
+    /// explosion spawns) — just their channel name. Effects that read local input or draw to a
+    /// screen directly (Confused, jump scares, bans, warps, and similar) are different: those
+    /// can only ever run on whoever's game is actually executing the mod's code, so they land on
+    /// the host UNLESS that farmhand also has this mod installed, in which case the effect is
+    /// relayed over SMAPI's own multiplayer messaging to run locally on their game instead.</summary>
     public bool   MultiplayerTargetingEnabled { get; set; } = false;
 
     /// <summary>Up to 7 additional co-op players (host + 7 = the game's 8-player multiplayer

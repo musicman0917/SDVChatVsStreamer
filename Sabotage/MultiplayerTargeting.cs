@@ -5,12 +5,19 @@ namespace SDVChatVsStreamer.Sabotage;
 /// <summary>
 /// Resolves which Farmer a sabotage should actually act on. Every sabotage in the library
 /// was originally written against Game1.player (the local player of whichever machine runs
-/// the mod). In multiplayer, only clients with the mod installed run its code at all — so
-/// this can only ever redirect effects that mutate host-authoritative, network-synced state
-/// (Farmer stats/buffs/money/items, or GameLocation contents like monsters and explosions).
+/// the mod). This directly redirects effects that mutate host-authoritative, network-synced
+/// state (Farmer stats/buffs/money/items, or GameLocation contents like monsters and
+/// explosions) to a resolved farmhand with no extra work, since the host can mutate any
+/// connected player's synced state regardless of who's running what.
+///
 /// Effects that read local input or draw directly to a screen (Confused, jump scares, bans,
-/// warps) have no way to reach a farmhand who doesn't run the mod, and intentionally keep
-/// using Game1.player untouched.
+/// warps, and similar) are different: that code can only ever affect whoever's game is
+/// actually executing it. A resolved farmhand without the mod installed has no way to run it
+/// at all, so those effects still fall back to Game1.player (the host) for them. A farmhand
+/// who DOES have the mod gets the effect via PeerRelay instead, which asks their own copy of
+/// this mod to run it locally over SMAPI's built-in multiplayer messaging -- see
+/// Sabotage/PeerRelay.cs. Resolve() itself doesn't know or care which case applies; callers
+/// that support relay check PeerRelay.TryRelay(target, ...) themselves after resolving.
 ///
 /// Targeting is routed by CHANNEL, not by chatter username: each co-op player is their own
 /// streamer with their own Twitch channel, and TwitchManager joins those channels alongside

@@ -68,6 +68,7 @@ public class ModEntry : Mod
         SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.Init(_config);
         SDVChatVsStreamer.Sabotage.Sabotages.JumpScareState.Init(helper, Monitor);
         SDVChatVsStreamer.Sabotage.MultiplayerTargeting.Init(_config);
+        SDVChatVsStreamer.Sabotage.PeerRelay.Init(helper, ModManifest, Monitor);
         RegisterSabotages();
 
         // Wire raid event system into points engine for double points
@@ -103,8 +104,50 @@ public class ModEntry : Mod
         helper.Events.Input.ButtonReleased     += OnButtonReleased;
         helper.Events.Input.ButtonsChanged     += OnButtonsChanged;
         helper.Events.Player.Warped            += OnWarped;
+        helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
 
         Monitor.Log("[ChatVsStreamer] Mod loaded.", LogLevel.Info);
+    }
+
+    // ─── Peer Relay (cross-instance co-op messaging) ─────────────────────────
+
+    private void OnModMessageReceived(object? sender, StardewModdingAPI.Events.ModMessageReceivedEventArgs e)
+    {
+        if (!Context.IsWorldReady) return;
+        if (e.FromModID != ModManifest.UniqueID) return;
+
+        try
+        {
+            if (e.Type == SDVChatVsStreamer.Sabotage.PeerRelay.EffectMessageType)
+            {
+                var payload = e.ReadAs<SDVChatVsStreamer.Sabotage.PeerRelay.RelayPayload>();
+                var sabotage = _sabotage.GetDefinition(payload.EffectId)?.Sabotage;
+                if (sabotage is SDVChatVsStreamer.Sabotage.ILocallyRelayable relayable)
+                {
+                    Monitor.Log($"[ChatVsStreamer] Running relayed effect '{payload.EffectId}' (bought by {payload.TriggeredBy}).", LogLevel.Debug);
+                    relayable.ExecuteLocal(payload.TriggeredBy);
+                }
+                else
+                {
+                    Monitor.Log($"[ChatVsStreamer] Received relay for unknown/non-relayable effect '{payload.EffectId}'.", LogLevel.Warn);
+                }
+            }
+            else if (e.Type == SDVChatVsStreamer.Sabotage.PeerRelay.RefundMessageType)
+            {
+                // Only the host actually owns the shared ledger -- a farmhand relaying this
+                // to itself (e.g. local co-op) would just be a harmless no-op double-credit
+                // risk, so only act on it if this instance really is the host.
+                if (!Game1.IsMasterGame) return;
+
+                var payload = e.ReadAs<SDVChatVsStreamer.Sabotage.PeerRelay.RefundPayload>();
+                Ledger?.AddPoints(payload.Username, payload.Amount);
+                Monitor.Log($"[ChatVsStreamer] Refunded {payload.Amount}pts to {payload.Username} ({payload.Reason}) on behalf of a farmhand.", LogLevel.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"[ChatVsStreamer] Failed to handle peer relay message '{e.Type}': {ex.Message}", LogLevel.Warn);
+        }
     }
 
     // ─── Sabotage Registration ────────────────────────────────────────────────

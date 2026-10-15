@@ -144,6 +144,10 @@ public class OverlayServer
                 "/alert"       => _alertHtmlPath,
                 "/alert-mobile" => _alertMobileHtmlPath,
                 "/tiktoklive"  => _tiktokLiveHtmlPath,
+                // README has documented this as the static TikTok gift-tier guide since it
+                // was added, but the route was never actually wired up here -- it silently
+                // fell through to the default (main shop sidebar) instead.
+                "/tiktok"      => Path.Combine(Path.GetDirectoryName(_overlayHtmlPath) ?? "", "Tiktok.html"),
                 "/debug"       => Path.Combine(Path.GetDirectoryName(_overlayHtmlPath) ?? "", "debug.html"),
                 _              => _overlayHtmlPath
             };

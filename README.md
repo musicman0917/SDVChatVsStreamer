@@ -111,7 +111,7 @@ If chat goes quiet, the mod can fire a random sabotage on its own from a configu
 
 ⚠️ **Alpha feature — untested in a real multiplayer session.** Playing co-op with other streamers? In GMCM's "Multiplayer Targeting" page, mark a player slot **Live** and type in their Twitch channel name — the mod joins their channel too, their chat starts earning chaos points the same way yours already does, and any command typed there (by them or their own viewers) lands on **their** farmhand instead of you, as long as their in-game character name matches their channel name **exactly**. Up to 7 co-op players (host + 7 = the game's 8-player multiplayer cap). No mod install needed on their end — just their channel name. Replies (`!balance`, `!buy` confirmations, etc.) post back into whichever channel triggered them, not always your own. Each player slot also has its own **Allow Bot Replies** toggle — turn it off if that player would rather the bot stayed silent in their chat; it still reads their channel either way, since that's what makes targeting and points work.
 
-Only effects that change save-file state (money, health/stamina, buffs, inventory, nearby monster/explosion spawns) can be redirected this way. Effects that read your keyboard or draw straight to a screen — Confused, jump scares, bans, warps — can only ever affect whoever's game is actually running this mod, so those always land on the host regardless of this setting. See the in-game GMCM tooltip on the "Multiplayer Targeting" page for the full explanation.
+Effects that change save-file state (money, health/stamina, buffs, inventory, nearby monster/explosion spawns) redirect with no extra setup. Effects that read your keyboard or draw straight to a screen — Confused, jump scares, bans, warps, and similar — are different: those can only ever run on whoever's game is actually executing the mod's code, so they land on the host **unless** that co-op player also installs this mod themselves, in which case the effect is relayed over SMAPI's own multiplayer messaging to run locally on their game instead. See the in-game GMCM tooltip on the "Multiplayer Targeting" page for the full explanation.
 
 ### 💬 Chat Overlay
 - **In-game HUD** — live Twitch + TikTok chat in a configurable corner with TTL expiry
@@ -125,6 +125,7 @@ Only effects that change save-file state (money, health/stamina, buffs, inventor
 | Shop sidebar | `http://localhost:7373/` |
 | Mobile shop | `http://localhost:7373/mobile` |
 | TikTok gift guide | `http://localhost:7373/tiktok` |
+| TikTok live feed (vertical) | `http://localhost:7373/tiktoklive` |
 
 ---
 

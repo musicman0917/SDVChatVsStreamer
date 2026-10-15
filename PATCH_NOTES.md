@@ -10,6 +10,9 @@
 - A hotkey (default `F7`) to force-fire a random Chaos Gods sabotage on demand, for clip farming.
 - Chat feed and alert popups can now be folded into the main overlay (toggleable in GMCM), so one OBS browser source covers shop, chat, and alerts instead of three.
 - ⚠️ Alpha: Multiplayer Targeting — co-op players can each get their own GMCM slot with their own Twitch channel; commands typed there route to their farmhand instead of the host, with a per-player toggle to keep the bot silent in their chat if they'd rather.
+- Multiplayer Targeting now reaches input/screen effects too (Confused, bans, jump scares, warps, and similar) for any co-op player who also installs this mod themselves — those get relayed over SMAPI's own multiplayer messaging to run locally on their game. No install on their end still works exactly as before for everything else.
+- New vertical OBS overlay at `/tiktoklive` — a live feed of TikTok gift-triggered redemptions (tier-colored, auto-scrolling) built for a 1080×1920 portrait canvas, with a persistent footer pointing viewers to Twitch if they want to trigger chaos themselves instead of just watching it happen.
+- The `/tiktok` TikTok gift-tier guide page (documented in the README since it was added) is now actually served — the route existed only in the docs before this.
 
 **Fixed**
 - Confused was inverting movement for one tick then losing to the game's own input, and even after that fix it was mashing (both directions active at once) instead of cleanly inverting — the natural direction wasn't being removed, only the opposite added.

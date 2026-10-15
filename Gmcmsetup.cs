@@ -7,7 +7,10 @@ public static class GmcmSetup
 {
     /// <param name="onMultiplayerConfigChanged">Invoked after every GMCM save so co-op channel
     /// joins/parts can be reconciled live instead of requiring a restart to take effect.</param>
-    public static void Register(IModHelper helper, IManifest manifest, ModConfig config, Action? onMultiplayerConfigChanged = null)
+    /// <param name="onOverlayConfigChanged">Invoked after every GMCM save so connected overlay
+    /// browser sources pick up config changes (e.g. enabling TikTok) immediately instead of
+    /// needing a manual refresh in OBS.</param>
+    public static void Register(IModHelper helper, IManifest manifest, ModConfig config, Action? onMultiplayerConfigChanged = null, Action? onOverlayConfigChanged = null)
     {
         var api = helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
         if (api == null)
@@ -23,6 +26,7 @@ public static class GmcmSetup
             {
                 helper.WriteConfig(config);
                 onMultiplayerConfigChanged?.Invoke();
+                onOverlayConfigChanged?.Invoke();
             }
         );
 

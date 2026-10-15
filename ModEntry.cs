@@ -343,7 +343,7 @@ public class ModEntry : Mod
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
     {
         // Register GMCM config menu
-        GmcmSetup.Register(Helper, ModManifest, _config, () => _twitch.SyncCoopChannels());
+        GmcmSetup.Register(Helper, ModManifest, _config, () => _twitch.SyncCoopChannels(), () => _overlay.PushConfig());
 
         var overlayPath = Path.Combine(Helper.DirectoryPath, "Overlay", "overlay.html");
         var mobilePath  = Path.Combine(Helper.DirectoryPath, "Overlay", "mobile.html");

@@ -561,6 +561,7 @@ public class OverlayServer
         showTikTokShoutout = _config.EnableTikTok && _config.TikTokShoutoutEnabled,
         channelName        = _config.ChannelName,
         tikTokCtaText      = _config.TikTokShoutoutCtaText,
+        tikTokEnabled      = _config.EnableTikTok,
     };
 
     // ─── Broadcast ────────────────────────────────────────────────────────────

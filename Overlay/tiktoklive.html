@@ -158,6 +158,42 @@
     margin-top: 2px;
   }
 
+  /* ── Guide (shown when TikTok integration is off) ── */
+
+  .guide {
+    flex: 1;
+    overflow: hidden;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .guide-section {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 4px 0;
+  }
+
+  .row.fun       { border-left-color: var(--cyan); }
+  .row.chaos     { border-left-color: #ff9500; }
+  .row.legendary { border-left-color: #ffd700; box-shadow: 0 0 22px rgba(255,215,0,0.12); }
+
+  .row.fun       .row-name { color: var(--cyan); }
+  .row.chaos     .row-name { color: #ff9500; }
+  .row.legendary .row-name { color: #ffd700; }
+
+  .row-desc {
+    font-size: 19px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .row-desc strong { color: #c0c0d0; }
+
   /* ── Footer CTA ── */
 
   .footer {
@@ -202,11 +238,105 @@
     </svg>
     <div>
       <div class="header-title">GIFT CHAOS</div>
-      <div class="header-sub">Live TikTok redemptions</div>
+      <div class="header-sub" id="header-sub">How TikTok gifts trigger chaos</div>
     </div>
   </div>
 
-  <div class="feed" id="feed">
+  <div class="guide" id="guide">
+    <div class="guide-section">✦ Special Gifts</div>
+
+    <div class="row fun">
+      <div class="row-icon">💗</div>
+      <div class="row-info">
+        <div class="row-name">Heart Me</div>
+        <div class="row-desc">Farmer does a <strong>heart emote</strong></div>
+      </div>
+    </div>
+
+    <div class="row fun">
+      <div class="row-icon">🌹</div>
+      <div class="row-info">
+        <div class="row-name">Rose</div>
+        <div class="row-desc">Farmer does a <strong>happy emote</strong></div>
+      </div>
+    </div>
+
+    <div class="row fun">
+      <div class="row-icon">🍦</div>
+      <div class="row-info">
+        <div class="row-name">Ice Cream</div>
+        <div class="row-desc">Adds <strong>Ice Cream</strong> to inventory</div>
+      </div>
+    </div>
+
+    <div class="row chaos">
+      <div class="row-icon">🎆</div>
+      <div class="row-info">
+        <div class="row-name">Fireworks</div>
+        <div class="row-desc"><strong>Mega Bomb</strong> at the farmer's feet</div>
+      </div>
+    </div>
+
+    <div class="row chaos">
+      <div class="row-icon">📦</div>
+      <div class="row-info">
+        <div class="row-name">Mystery Box</div>
+        <div class="row-desc">Mystery item + <strong>devastating sabotage</strong></div>
+      </div>
+    </div>
+
+    <div class="row legendary">
+      <div class="row-icon">🌌</div>
+      <div class="row-info">
+        <div class="row-name">TikTok Universe</div>
+        <div class="row-desc">Mr. Qi — <strong>forces the day to end</strong></div>
+      </div>
+    </div>
+
+    <div class="guide-section">✦ Every Other Gift — By Diamond Value</div>
+
+    <div class="row nuisance">
+      <div class="row-icon">😤</div>
+      <div class="row-info">
+        <div class="row-name">1–9 💎 — Nuisance</div>
+        <div class="row-desc">Rain, trash, dizzy, energy drain</div>
+      </div>
+    </div>
+
+    <div class="row disruptive">
+      <div class="row-icon">😈</div>
+      <div class="row-info">
+        <div class="row-name">10–49 💎 — Disruptive</div>
+        <div class="row-desc">Slimes, crows, bats, stolen gold</div>
+      </div>
+    </div>
+
+    <div class="row painful">
+      <div class="row-icon">💥</div>
+      <div class="row-info">
+        <div class="row-name">50–199 💎 — Painful</div>
+        <div class="row-desc">Bombs, swarms, warps, weeds</div>
+      </div>
+    </div>
+
+    <div class="row devastating">
+      <div class="row-icon">💀</div>
+      <div class="row-info">
+        <div class="row-name">200–499 💎 — Devastating</div>
+        <div class="row-desc">Forced sleep, crop death, green rain</div>
+      </div>
+    </div>
+
+    <div class="row blessing">
+      <div class="row-icon">🌟</div>
+      <div class="row-info">
+        <div class="row-name">500+ 💎 — Blessing</div>
+        <div class="row-desc">Restored energy, gold, watered crops</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feed" id="feed" style="display:none">
     <div class="empty" id="empty">
       <span class="big">🎁</span>
       Waiting for the first gift to trigger chaos...
@@ -225,6 +355,25 @@
 
   const feedEl   = document.getElementById('feed');
   const emptyEl  = document.getElementById('empty');
+  const guideEl  = document.getElementById('guide');
+  const subEl    = document.getElementById('header-sub');
+
+  // Starts in guide mode (TikTok integration is off by default) and swaps to the live
+  // feed once config says it's enabled -- and back again if it's ever turned off.
+  let tikTokEnabled = false;
+
+  function setMode(enabled) {
+    if (enabled === tikTokEnabled) return;
+    tikTokEnabled = enabled;
+    guideEl.style.display = enabled ? 'none' : '';
+    feedEl.style.display  = enabled ? ''     : 'none';
+    subEl.textContent = enabled ? 'Live TikTok redemptions' : 'How TikTok gifts trigger chaos';
+  }
+
+  function applyConfig(cfg) {
+    if (!cfg) return;
+    setMode(!!cfg.tikTokEnabled);
+  }
 
   const TIER_ICONS = {
     nuisance:    '😤',
@@ -296,7 +445,8 @@
     ws.onmessage = e => {
       try {
         const msg = JSON.parse(e.data);
-        if (msg.type === 'feed' && msg.eventType === 'tiktok') addRedemption(msg);
+        if (msg.type === 'init' || msg.type === 'config') applyConfig(msg.config);
+        else if (msg.type === 'feed' && msg.eventType === 'tiktok') addRedemption(msg);
       } catch {}
     };
 

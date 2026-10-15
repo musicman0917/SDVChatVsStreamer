@@ -350,7 +350,8 @@ public class ModEntry : Mod
         var chatPath    = Path.Combine(Helper.DirectoryPath, "Overlay", "chat.html");
         var alertPath   = Path.Combine(Helper.DirectoryPath, "Overlay", "alert.html");
         var alertMobilePath = Path.Combine(Helper.DirectoryPath, "Overlay", "alertmobile.html");
-        _overlay.Start(overlayPath, mobilePath, chatPath, alertPath, alertMobilePath, _chatFeed);
+        var tiktokLivePath  = Path.Combine(Helper.DirectoryPath, "Overlay", "tiktoklive.html");
+        _overlay.Start(overlayPath, mobilePath, chatPath, alertPath, alertMobilePath, tiktokLivePath, _chatFeed);
 
         // Push new chat messages to the browser source
         _chatFeed.OnNewMessage   += msg  => _overlay.PushChatMessage(msg);

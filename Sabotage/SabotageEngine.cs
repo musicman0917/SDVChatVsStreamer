@@ -130,7 +130,7 @@ public class SabotageEngine
         // Auto-clip if configured for this tier
         _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
 
-        _overlay?.PushFeedEvent(username, def.Name, def.Description, effectiveCost, "buy");
+        _overlay?.PushFeedEvent(username, def.Name, def.Description, effectiveCost, "buy", def.Sabotage.Tier.ToString().ToLower());
         _overlay?.PushShopUpdate();
 
         _monitor.Log($"[SabotageEngine] {username} bought '{def.Name}' for {effectiveCost}pts", LogLevel.Info);
@@ -200,7 +200,7 @@ public class SabotageEngine
         {
             def.Fire(username);
             names.Add(def.Name);
-            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, eventType);
+            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, eventType, def.Sabotage.Tier.ToString().ToLower());
             _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         }
         _overlay?.PushShopUpdate();
@@ -254,7 +254,7 @@ public class SabotageEngine
         _lastSabotageTime = DateTime.UtcNow;
         def.Fire("The Chaos Gods");
 
-        _overlay?.PushFeedEvent("The Chaos Gods", def.Name, def.Description, 0, "buy");
+        _overlay?.PushFeedEvent("The Chaos Gods", def.Name, def.Description, 0, "buy", def.Sabotage.Tier.ToString().ToLower());
         _overlay?.PushShopUpdate();
         _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, "The Chaos Gods", _config);
 
@@ -271,7 +271,7 @@ public class SabotageEngine
         if (def == null) return false;
 
         def.Fire(username);
-        _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "buy");
+        _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "buy", def.Sabotage.Tier.ToString().ToLower());
         _overlay?.PushShopUpdate();
         _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         _monitor.Log($"[SabotageEngine] Debug buy: {username} triggered {buyCommand}", LogLevel.Info);
@@ -287,7 +287,7 @@ public class SabotageEngine
 
         def.Fire(username);
 
-        _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "channelpoints");
+        _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "channelpoints", def.Sabotage.Tier.ToString().ToLower());
         _overlay?.PushShopUpdate();
         _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
 
@@ -325,7 +325,7 @@ public class SabotageEngine
         {
             _monitor.Log($"[SabotageEngine] TikTok gift triggered: {def.Name} for {username}", LogLevel.Info);
             def.Fire(username);
-            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "tiktok");
+            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "tiktok", def.Sabotage.Tier.ToString().ToLower());
             _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         }
     }
@@ -340,7 +340,7 @@ public class SabotageEngine
         {
             _monitor.Log($"[SabotageEngine] TikTok blessing triggered: {def.Name} for {username}", LogLevel.Info);
             def.Fire(username);
-            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "tiktok");
+            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "tiktok", def.Sabotage.Tier.ToString().ToLower());
             _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         }
     }

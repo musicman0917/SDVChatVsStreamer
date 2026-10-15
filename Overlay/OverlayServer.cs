@@ -23,6 +23,7 @@ public class OverlayServer
     private string _chatHtmlPath    = "";
     private string _alertHtmlPath   = "";
     private string _alertMobileHtmlPath = "";
+    private string _tiktokLiveHtmlPath  = "";
     private ChatFeed? _chatFeed;
     private TikTok.TikTokManager? _tikTokManager;
 
@@ -66,13 +67,14 @@ public class OverlayServer
 
     public void SetTikTokManager(TikTok.TikTokManager manager) => _tikTokManager = manager;
 
-    public void Start(string overlayHtmlPath, string mobileHtmlPath, string chatHtmlPath, string alertHtmlPath, string alertMobileHtmlPath, UI.ChatFeed chatFeed)
+    public void Start(string overlayHtmlPath, string mobileHtmlPath, string chatHtmlPath, string alertHtmlPath, string alertMobileHtmlPath, string tiktokLiveHtmlPath, UI.ChatFeed chatFeed)
     {
         _overlayHtmlPath     = overlayHtmlPath;
         _mobileHtmlPath      = mobileHtmlPath;
         _chatHtmlPath        = chatHtmlPath;
         _alertHtmlPath       = alertHtmlPath;
         _alertMobileHtmlPath = alertMobileHtmlPath;
+        _tiktokLiveHtmlPath  = tiktokLiveHtmlPath;
         _chatFeed            = chatFeed;
         _cts             = new CancellationTokenSource();
         _listener        = new HttpListener();
@@ -141,6 +143,7 @@ public class OverlayServer
                 "/tiktok-test" => _chatHtmlPath,
                 "/alert"       => _alertHtmlPath,
                 "/alert-mobile" => _alertMobileHtmlPath,
+                "/tiktoklive"  => _tiktokLiveHtmlPath,
                 "/debug"       => Path.Combine(Path.GetDirectoryName(_overlayHtmlPath) ?? "", "debug.html"),
                 _              => _overlayHtmlPath
             };
@@ -402,7 +405,7 @@ public class OverlayServer
         });
     }
 
-    public void PushFeedEvent(string username, string sabotageName, string description, int cost, string eventType = "buy")
+    public void PushFeedEvent(string username, string sabotageName, string description, int cost, string eventType = "buy", string tier = "")
     {
         var payload = JsonSerializer.Serialize(new
         {
@@ -412,6 +415,7 @@ public class OverlayServer
             description,
             cost,
             eventType,
+            tier,
             timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         });
         Broadcast(payload);
@@ -551,6 +555,8 @@ public class OverlayServer
         chatCorner        = _config.OverlayChatCorner,
         maxChatMessages   = _config.ChatOverlayMaxMessages,
         showTikTokShoutout = _config.EnableTikTok && _config.TikTokShoutoutEnabled,
+        channelName        = _config.ChannelName,
+        tikTokCtaText      = _config.TikTokShoutoutCtaText,
     };
 
     // ─── Broadcast ────────────────────────────────────────────────────────────

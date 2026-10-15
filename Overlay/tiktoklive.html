@@ -181,20 +181,11 @@
   }
 
   .footer-cta {
-    font-size: 20px;
+    font-size: 24px;
     color: var(--text);
-    opacity: 0.9;
-  }
-
-  .footer-handle {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 38px;
-    letter-spacing: 1px;
-    color: #fff;
+    opacity: 0.95;
     margin-top: 2px;
   }
-
-  .footer-handle span { color: var(--purple-light); }
 </style>
 </head>
 <body>
@@ -224,8 +215,7 @@
 
   <div class="footer">
     <div class="footer-headline">💜 WANT TO REDEEM IT YOURSELF?</div>
-    <div class="footer-cta" id="cta-text">Catch the FULL chaos on Twitch!</div>
-    <div class="footer-handle">head to the purple app → <span id="cta-handle">twitch.tv/</span></div>
+    <div class="footer-cta">Come join the chaos on the purple app!</div>
   </div>
 
 <script>
@@ -235,8 +225,6 @@
 
   const feedEl   = document.getElementById('feed');
   const emptyEl  = document.getElementById('empty');
-  const ctaText  = document.getElementById('cta-text');
-  const ctaHandle = document.getElementById('cta-handle');
 
   const TIER_ICONS = {
     nuisance:    '😤',
@@ -293,12 +281,6 @@
     })[c]);
   }
 
-  function applyConfig(cfg) {
-    if (!cfg) return;
-    if (cfg.tikTokCtaText) ctaText.textContent = cfg.tikTokCtaText;
-    if (cfg.channelName)   ctaHandle.textContent = `twitch.tv/${cfg.channelName}`;
-  }
-
   // Refresh "time ago" labels every few seconds without needing new events
   setInterval(() => {
     items.forEach(row => {
@@ -314,9 +296,7 @@
     ws.onmessage = e => {
       try {
         const msg = JSON.parse(e.data);
-        if (msg.type === 'init')   applyConfig(msg.config);
-        else if (msg.type === 'config') applyConfig(msg.config);
-        else if (msg.type === 'feed' && msg.eventType === 'tiktok') addRedemption(msg);
+        if (msg.type === 'feed' && msg.eventType === 'tiktok') addRedemption(msg);
       } catch {}
     };
 

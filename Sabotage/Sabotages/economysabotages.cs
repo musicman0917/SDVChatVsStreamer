@@ -208,8 +208,16 @@ public class DebtCollectorSabotage : ISabotage
             var item = target.Items[i];
             if (item == null) continue;
 
-            // Skip tools — this catches Axe, Pickaxe, Hoe, WateringCan, FishingRod, Scythe, etc.
-            if (item is StardewValley.Tool) continue;
+            // Skip tools (Axe, Pickaxe, Hoe, WateringCan, FishingRod, etc.) -- but not weapons.
+            // MeleeWeapon and Slingshot both derive from Tool in SDV's class hierarchy, so a
+            // plain "is Tool" check here would protect weapons too, not just real tools.
+            if (item is StardewValley.Tool && item is not StardewValley.Tools.MeleeWeapon && item is not StardewValley.Tools.Slingshot)
+                continue;
+
+            // The Scythe/Golden Scythe are implemented as MeleeWeapon under the hood despite
+            // being a core farming tool rather than a combat weapon, so they're protected by
+            // name specifically instead of relying on the class check above for this one case.
+            if (item.Name is "Scythe" or "Golden Scythe") continue;
 
             // Skip quest items
             if (item is StardewValley.Object obj && obj.questItem.Value) continue;

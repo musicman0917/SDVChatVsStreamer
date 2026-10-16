@@ -34,11 +34,23 @@ public class ModConfig
     public int ChatBonusPoints { get; set; } = 5;
     public int ChatBonusCooldownSeconds { get; set; } = 60;
 
+    // ─── Point Drop ──────────────────────────────────────────────────────────
+    /// <summary>Mod/broadcaster-only chat command (!pointdrop) that posts an announcement,
+    /// collects everyone who types the claim keyword within the window, then awards them all
+    /// at once. Works per-channel — the host's own, or a co-op player's channel if triggered
+    /// there.</summary>
+    public int    PointDropAmount        { get; set; } = 500;
+    public int    PointDropWindowSeconds { get; set; } = 30;
+    public string PointDropClaimKeyword  { get; set; } = "!1";
+
     // ─── Event Bonuses ───────────────────────────────────────────────────────
     public int FollowBonus { get; set; } = 25;
     public int SubBonus { get; set; } = 100;
     public int GiftSubBonusEach { get; set; } = 50;
     public int RaidLeaderPointsPerViewer { get; set; } = 2;
+    /// <summary>Flat bonus added to the raid leader's points on top of RaidLeaderPointsPerViewer.
+    /// Twitch's raid notification never exposes individual raiding viewers' usernames, so this
+    /// can't be paid out to them directly -- it goes to the leader instead.</summary>
     public int RaidViewerBonus { get; set; } = 15;
     public int BitsPerPoint { get; set; } = 1;
 
@@ -105,6 +117,15 @@ public class ModConfig
     public int  TikTokSubBonus         { get; set; } = 100;
     public int  TikTokLikeBonus        { get; set; } = 1;
     public int  TikTokPointsPerDiamond { get; set; } = 1;
+
+    // ─── TikTok Shoutout (growth funnel toward Twitch) ─────────────────────────
+    /// <summary>Shows the current session's top TikTok point-earner in the overlay, paired
+    /// with a call-to-action pointing them at your Twitch channel. Uses a separate
+    /// session-only tally (the shared ledger has no per-platform breakdown), so this resets
+    /// each time the mod restarts rather than tracking an all-time total.</summary>
+    public bool   TikTokShoutoutEnabled { get; set; } = true;
+    public string TikTokShoutoutCtaText { get; set; } = "Catch the FULL chaos on Twitch!";
+
     public int OverlayPort { get; set; } = 7373;
 
     // Layout
@@ -132,6 +153,13 @@ public class ModConfig
     public string OverlayCustomAccent { get; set; } = "#9147ff";
     public string OverlayCustomText { get; set; } = "#efeff1";
 
+    // Embedded chat/alerts — off by default so upgrading users who already run
+    // separate /chat and /alert OBS sources don't suddenly get them twice.
+    // Turn these on to fold chat and alert popups into this one overlay instead.
+    public bool   OverlayIncludeChat   { get; set; } = false;
+    public bool   OverlayIncludeAlerts { get; set; } = false;
+    public string OverlayChatCorner    { get; set; } = "BottomRight"; // TopLeft | TopRight | BottomLeft | BottomRight
+
     // ─── YouTube / Streamer.bot ──────────────────────────────────────────────
     public bool YouTubeEnabled       { get; set; } = false;
     public int  StreamerbotPort      { get; set; } = 8080;
@@ -141,6 +169,8 @@ public class ModConfig
     public int  AutoTriggerMinutes          { get; set; } = 5;
     public string AutoTriggerPool           { get; set; } =
         "serpent,slime,bat,bomb,rain,storm,confused,blindfold,metronome,trickroom,trashday,taxman,freezetime,infestation";
+    /// <summary>Key that immediately fires a random sabotage from the Auto Trigger Pool, ignoring the enabled toggle and quiet-period cooldown — for manually kicking off chaos on demand (e.g. clip farming).</summary>
+    public string ForceChaosKey             { get; set; } = "F7";
 
     // ─── Auto Clipping ───────────────────────────────────────────────────────
     public bool AutoClipEnabled                  { get; set; } = true;
@@ -157,6 +187,53 @@ public class ModConfig
     public bool ClipRaids                        { get; set; } = true;
     public int  ClipRaidsCooldownSeconds         { get; set; } = 150;
 
+    // ─── Animal Challenge (e.g. "100 Chicken Challenge") ─────────────────────
+    public bool   ChallengeModeEnabled  { get; set; } = false;
+    /// <summary>Substring matched against an animal's in-game type (e.g. "Chicken" matches White/Brown/Void/Golden Chicken). "Any" counts every farm animal.</summary>
+    public string ChallengeAnimalFilter { get; set; } = "Chicken";
+    public int    ChallengeGoalCount    { get; set; } = 100;
+
+    // ─── Multiplayer Targeting ────────────────────────────────────────────────
+    /// <summary>When on, the mod also joins each co-op player's own Twitch channel below (in
+    /// addition to your own). Any command typed in a co-op player's channel — by them or their
+    /// own viewers — lands on THAT player's connected farmhand instead of the host, as long as
+    /// their in-game character name matches their channel name EXACTLY (case-insensitive). No
+    /// mod install is required on the co-op player's end for sabotages that mutate
+    /// host-authoritative state (money, health/stamina, buffs, inventory, nearby monster/
+    /// explosion spawns) — just their channel name. Effects that read local input or draw to a
+    /// screen directly (Confused, jump scares, bans, warps, and similar) are different: those
+    /// can only ever run on whoever's game is actually executing the mod's code, so they land on
+    /// the host UNLESS that farmhand also has this mod installed, in which case the effect is
+    /// relayed over SMAPI's own multiplayer messaging to run locally on their game instead.</summary>
+    public bool   MultiplayerTargetingEnabled { get; set; } = false;
+
+    /// <summary>Up to 7 additional co-op players (host + 7 = the game's 8-player multiplayer
+    /// cap). Each slot's Channel is that player's own Twitch channel name; Live joins it and
+    /// starts routing commands typed there (by them or their own viewers) to their farmhand,
+    /// and lets their chat start earning chaos points the same way the host's chat already
+    /// does. AllowReplies controls whether the bot is allowed to post anything back into their
+    /// channel at all — turn it off if that player would rather their chat stayed bot-silent;
+    /// the bot still reads their channel either way, since reading is what makes targeting and
+    /// points work, it just won't ever type there when this is off.</summary>
+    public List<CoopPlayerSlot> CoopPlayers { get; set; } = CoopPlayerSlot.CreateDefaultSlots();
+
     // ─── Database ────────────────────────────────────────────────────────────
     public string DatabaseFileName { get; set; } = "ViewerLedger.db";
+}
+
+/// <summary>One co-op player slot under Multiplayer Targeting. A plain POCO so GMCM can bind
+/// to each field by index and SMAPI's JSON config serializer can round-trip the list as-is.</summary>
+public class CoopPlayerSlot
+{
+    public bool   Live         { get; set; } = false;
+    public string Channel      { get; set; } = "";
+    public bool   AllowReplies { get; set; } = true;
+
+    /// <summary>7 empty slots — host + 7 = the game's 8-player multiplayer cap.</summary>
+    public static List<CoopPlayerSlot> CreateDefaultSlots()
+    {
+        var slots = new List<CoopPlayerSlot>();
+        for (int i = 0; i < 7; i++) slots.Add(new CoopPlayerSlot());
+        return slots;
+    }
 }

@@ -4,7 +4,7 @@ using StardewValley;
 
 namespace SDVChatVsStreamer.Sabotage.Sabotages;
 
-public class FloorIsLavaSabotage : ISabotage
+public class FloorIsLavaSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Floor is Lava";
     public string BuyCommand   => "floorislava";
@@ -30,6 +30,19 @@ public class FloorIsLavaSabotage : ISabotage
     }
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🔥 {triggeredBy} activated Floor is Lava on you! Only placed paths/floors are safe — everything else burns!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         _triggeredBy = triggeredBy;
 

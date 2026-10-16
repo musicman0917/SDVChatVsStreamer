@@ -104,7 +104,10 @@ public class DonorDriveManager
 
         _sendChatMessage?.Invoke($"💸 {username} just donated ${amount:F2}! Thank you! (+{points}pts)");
 
-        if (_gameActive)
+        // Points and the thank-you always land, same as bits — but the random sabotage/blessing
+        // roll only fires once the donation clears the Small threshold, matching how bit cheers
+        // below their own Small threshold add points without triggering an effect.
+        if (_gameActive && amount >= _config.DonationSmallThreshold)
             _sabotage.TriggerDonationEvent(username, tier, amount);
     }
 

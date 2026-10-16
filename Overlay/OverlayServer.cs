@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using SDVChatVsStreamer.Sabotage;
+using SDVChatVsStreamer.Sabotage.Sabotages;
 using SDVChatVsStreamer.UI;
 using StardewModdingAPI;
 
@@ -22,6 +23,7 @@ public class OverlayServer
     private string _chatHtmlPath    = "";
     private string _alertHtmlPath   = "";
     private string _alertMobileHtmlPath = "";
+    private string _tiktokLiveHtmlPath  = "";
     private ChatFeed? _chatFeed;
     private TikTok.TikTokManager? _tikTokManager;
 
@@ -65,13 +67,14 @@ public class OverlayServer
 
     public void SetTikTokManager(TikTok.TikTokManager manager) => _tikTokManager = manager;
 
-    public void Start(string overlayHtmlPath, string mobileHtmlPath, string chatHtmlPath, string alertHtmlPath, string alertMobileHtmlPath, UI.ChatFeed chatFeed)
+    public void Start(string overlayHtmlPath, string mobileHtmlPath, string chatHtmlPath, string alertHtmlPath, string alertMobileHtmlPath, string tiktokLiveHtmlPath, UI.ChatFeed chatFeed)
     {
         _overlayHtmlPath     = overlayHtmlPath;
         _mobileHtmlPath      = mobileHtmlPath;
         _chatHtmlPath        = chatHtmlPath;
         _alertHtmlPath       = alertHtmlPath;
         _alertMobileHtmlPath = alertMobileHtmlPath;
+        _tiktokLiveHtmlPath  = tiktokLiveHtmlPath;
         _chatFeed            = chatFeed;
         _cts             = new CancellationTokenSource();
         _listener        = new HttpListener();
@@ -140,6 +143,11 @@ public class OverlayServer
                 "/tiktok-test" => _chatHtmlPath,
                 "/alert"       => _alertHtmlPath,
                 "/alert-mobile" => _alertMobileHtmlPath,
+                "/tiktoklive"  => _tiktokLiveHtmlPath,
+                // README has documented this as the static TikTok gift-tier guide since it
+                // was added, but the route was never actually wired up here -- it silently
+                // fell through to the default (main shop sidebar) instead.
+                "/tiktok"      => Path.Combine(Path.GetDirectoryName(_overlayHtmlPath) ?? "", "Tiktok.html"),
                 "/debug"       => Path.Combine(Path.GetDirectoryName(_overlayHtmlPath) ?? "", "debug.html"),
                 _              => _overlayHtmlPath
             };
@@ -232,17 +240,28 @@ public class OverlayServer
             var buffer = new byte[512];
             while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
             {
-                var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), ct).ConfigureAwait(false);
+                // A single ReceiveAsync call only returns one WebSocket frame -- accumulate
+                // across frames (as the TikTok test client above already does) so a message
+                // bigger than this buffer isn't silently truncated and dropped.
+                var msgSb = new StringBuilder();
+                WebSocketReceiveResult result;
+                do
+                {
+                    result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), ct).ConfigureAwait(false);
+                    if (result.MessageType == WebSocketMessageType.Close) break;
+                    if (result.MessageType == WebSocketMessageType.Text)
+                        msgSb.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+                }
+                while (!result.EndOfMessage);
+
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, ct).ConfigureAwait(false);
                     break;
                 }
-                if (result.MessageType == WebSocketMessageType.Text)
-                {
-                    var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    await HandleClientMessageAsync(ws, json, ct).ConfigureAwait(false);
-                }
+
+                if (msgSb.Length > 0)
+                    await HandleClientMessageAsync(ws, msgSb.ToString(), ct).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) { }
@@ -390,7 +409,7 @@ public class OverlayServer
         });
     }
 
-    public void PushFeedEvent(string username, string sabotageName, string description, int cost, string eventType = "buy")
+    public void PushFeedEvent(string username, string sabotageName, string description, int cost, string eventType = "buy", string tier = "")
     {
         var payload = JsonSerializer.Serialize(new
         {
@@ -400,6 +419,7 @@ public class OverlayServer
             description,
             cost,
             eventType,
+            tier,
             timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         });
         Broadcast(payload);
@@ -416,6 +436,33 @@ public class OverlayServer
         {
             type    = "leaderboard",
             entries = top.Select(e => new { e.Username, e.Points }).ToList()
+        });
+        Broadcast(payload);
+    }
+
+    public void PushChallenge(int count, int goal, string label)
+    {
+        var payload = JsonSerializer.Serialize(new
+        {
+            type = "challenge",
+            enabled = true,
+            count,
+            goal,
+            label
+        });
+        Broadcast(payload);
+    }
+
+    public void PushTikTokShoutout(string username, int points, string ctaText, string channelName)
+    {
+        var payload = JsonSerializer.Serialize(new
+        {
+            type = "tiktok_shoutout",
+            enabled = true,
+            username,
+            points,
+            ctaText,
+            channelName
         });
         Broadcast(payload);
     }
@@ -437,11 +484,20 @@ public class OverlayServer
 
         return JsonSerializer.Serialize(new
         {
-            type   = "init",
-            shop   = shopItems,
-            config = BuildConfigPayload()
+            type      = "init",
+            shop      = shopItems,
+            config    = BuildConfigPayload(),
+            challenge = BuildChallengePayload()
         });
     }
+
+    private object BuildChallengePayload() => new
+    {
+        enabled = AnimalChallengeState.IsEnabled,
+        count   = AnimalChallengeState.IsEnabled ? AnimalChallengeState.GetCount() : 0,
+        goal    = AnimalChallengeState.GoalCount,
+        label   = AnimalChallengeState.FilterLabel
+    };
 
     private string BuildShopState()
     {
@@ -498,6 +554,14 @@ public class OverlayServer
         customBg          = _config.OverlayCustomBg,
         customAccent      = _config.OverlayCustomAccent,
         customText        = _config.OverlayCustomText,
+        showChat          = _config.OverlayIncludeChat,
+        showAlerts        = _config.OverlayIncludeAlerts,
+        chatCorner        = _config.OverlayChatCorner,
+        maxChatMessages   = _config.ChatOverlayMaxMessages,
+        showTikTokShoutout = _config.EnableTikTok && _config.TikTokShoutoutEnabled,
+        channelName        = _config.ChannelName,
+        tikTokCtaText      = _config.TikTokShoutoutCtaText,
+        tikTokEnabled      = _config.EnableTikTok,
     };
 
     // ─── Broadcast ────────────────────────────────────────────────────────────

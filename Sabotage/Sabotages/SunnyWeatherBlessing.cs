@@ -10,6 +10,7 @@ public class SunnyWeatherBlessing : ISabotage
     public string Description  => "makes it sunny tomorrow";
     public int Cost            => 75;
     public int CooldownSeconds => 300;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {

@@ -14,21 +14,26 @@ public class BrokeSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+
         // Steal between 100-500g, but not more than they have
-        int maxSteal = Math.Min(Game1.player.Money, 500);
+        int maxSteal = Math.Min(target.Money, 500);
         if (maxSteal <= 0)
         {
-            Game1.addHUDMessage(new HUDMessage(
+            MultiplayerTargeting.Notify(target,
                 $"💸 {triggeredBy} tried to take your gold but you're already broke!",
-                HUDMessage.newQuest_type));
+                HUDMessage.newQuest_type);
             return;
         }
 
-        int stolen       = _rng.Next(100, maxSteal + 1);
-        Game1.player.Money -= stolen;
+        // Next's lower bound must never exceed maxSteal + 1 -- with a target holding
+        // between 1g and 99g, a hardcoded 100 lower bound would make min > max and
+        // Random.Next throw ArgumentOutOfRangeException.
+        int stolen    = _rng.Next(Math.Min(100, maxSteal), maxSteal + 1);
+        target.Money -= stolen;
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"💸 {triggeredBy} stole {stolen}g from you!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

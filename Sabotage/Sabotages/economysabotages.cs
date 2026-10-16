@@ -6,7 +6,7 @@ namespace SDVChatVsStreamer.Sabotage.Sabotages;
 
 // ─── NARCOLEPSY — random sleep emote every 30 seconds ────────────────────────
 
-public class NarcolepsySabotage : ISabotage
+public class NarcolepsySabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Narcolepsy";
     public string BuyCommand   => "narcolepsy";
@@ -19,6 +19,19 @@ public class NarcolepsySabotage : ISabotage
     private static DateTime _nextSleep = DateTime.UtcNow;
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"😴 {triggeredBy} gave you narcolepsy! Try not to fall asleep...",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         IsActive  = true;
         ExpiresAt = DateTime.UtcNow.AddMinutes(3);
@@ -65,7 +78,7 @@ public class NarcolepsySabotage : ISabotage
 
 // ─── STICKY — prevents item switching and dropping for 60 seconds ─────────────
 
-public class StickySabotage : ISabotage
+public class StickySabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Sticky";
     public string BuyCommand   => "sticky";
@@ -77,6 +90,19 @@ public class StickySabotage : ISabotage
     public static DateTime ExpiresAt { get; private set; }
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🍯 {triggeredBy} made your hands sticky! No switching items for 60 seconds!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         IsActive  = true;
         ExpiresAt = DateTime.UtcNow.AddSeconds(60);
@@ -103,7 +129,7 @@ public class StickySabotage : ISabotage
 
 // ─── INFLATION — random price multiplier on in-game shops ────────────────────
 
-public class InflationSabotage : ISabotage
+public class InflationSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Inflation";
     public string BuyCommand   => "inflation";
@@ -117,6 +143,22 @@ public class InflationSabotage : ISabotage
     public static bool IsActive    { get; private set; }
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            // The multiplier itself is rolled on whichever client actually applies it
+            // (ExecuteLocal, over on the farmhand's own instance), so the host can't know
+            // the percentage to show here -- just confirm who it hit.
+            MultiplayerTargeting.Notify(target,
+                $"📈 {triggeredBy} caused inflation! Their shop prices just went up for the rest of the day!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         // Random multiplier between 1.5x and 4x
         Multiplier = 1.5f + (float)(_rng.NextDouble() * 2.5f);
@@ -159,14 +201,23 @@ public class DebtCollectorSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
         var eligible = new List<(StardewValley.Item item, int idx)>();
-        for (int i = 0; i < Game1.player.Items.Count; i++)
+        for (int i = 0; i < target.Items.Count; i++)
         {
-            var item = Game1.player.Items[i];
+            var item = target.Items[i];
             if (item == null) continue;
 
-            // Skip tools — this catches Axe, Pickaxe, Hoe, WateringCan, FishingRod, Scythe, etc.
-            if (item is StardewValley.Tool) continue;
+            // Skip tools (Axe, Pickaxe, Hoe, WateringCan, FishingRod, etc.) -- but not weapons.
+            // MeleeWeapon and Slingshot both derive from Tool in SDV's class hierarchy, so a
+            // plain "is Tool" check here would protect weapons too, not just real tools.
+            if (item is StardewValley.Tool && item is not StardewValley.Tools.MeleeWeapon && item is not StardewValley.Tools.Slingshot)
+                continue;
+
+            // The Scythe/Golden Scythe are implemented as MeleeWeapon under the hood despite
+            // being a core farming tool rather than a combat weapon, so they're protected by
+            // name specifically instead of relying on the class check above for this one case.
+            if (item.Name is "Scythe" or "Golden Scythe") continue;
 
             // Skip quest items
             if (item is StardewValley.Object obj && obj.questItem.Value) continue;
@@ -179,18 +230,18 @@ public class DebtCollectorSabotage : ISabotage
 
         if (eligible.Count == 0)
         {
-            Game1.addHUDMessage(new HUDMessage(
+            MultiplayerTargeting.Notify(target,
                 $"💼 {triggeredBy} sent the Debt Collector but your inventory is already bare!",
-                HUDMessage.error_type));
+                HUDMessage.error_type);
             return;
         }
 
         var chosen = eligible[_rng.Next(eligible.Count)];
         var name   = chosen.item.DisplayName;
-        Game1.player.Items[chosen.idx] = null;
+        target.Items[chosen.idx] = null;
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"💼 {triggeredBy} sent the Debt Collector! They took your {name}!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

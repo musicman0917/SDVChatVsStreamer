@@ -1,6 +1,6 @@
 # ================================================================
 #  Chat vs Streamer - Installer
-#  Version 0.5.0 by NeighborhoodofMusic
+#  Version 0.7.0 by NeighborhoodofMusic
 # ================================================================
 
 $ErrorActionPreference = "Stop"
@@ -19,7 +19,7 @@ function Write-Header {
     Write-Host ""
     Write-Host "  +======================================================+" -ForegroundColor Cyan
     Write-Host "  *          CHAT VS STREAMER - INSTALLER                *" -ForegroundColor Cyan
-    Write-Host "  *                    v0.5.0                            *" -ForegroundColor Cyan
+    Write-Host "  *                    v0.7.0                            *" -ForegroundColor Cyan
     Write-Host "  +======================================================+" -ForegroundColor Cyan
     Write-Host ""
     if ($Step -and $Total) {
@@ -97,7 +97,11 @@ function Show-Welcome {
 # -- Screen: Optional Platforms -------------------------------------
 
 function Get-OptionalPlatforms {
-    Write-StepHeader "Additional Platforms"
+    # Total step count isn't known yet (it depends on the answers below), so this
+    # screen shows just "Additional Platforms" with no "Step X of Y" -- showing one
+    # now would show the stale pre-recompute total and could read wrong.
+    $script:StepCurrent++
+    Write-Header "Additional Platforms"
 
     Write-Host "  Twitch is always set up - it's the core of the mod." -ForegroundColor White
     Write-Host "  Optionally add either (or both) of these too:" -ForegroundColor White

@@ -199,18 +199,34 @@ public class NuclearChaosSabotage : ISabotage
         var farm = Game1.getFarm();
         int buildingsDestroyed = 0, animalsLost = 0, cropsKilled = 0, treesFelled = 0, rocksCleared = 0, fencesDestroyed = 0, itemsRescued = 0, debrisCleared = 0;
 
+        var allBuildings = farm.buildings.ToList();
+        ModEntry.Logger?.Log($"[NuclearChaos] === Destruction pass starting: {allBuildings.Count} building(s) on the farm ===", StardewModdingAPI.LogLevel.Info);
+
         // ── Buildings (and any animals living in them) ──
         // Each building gets its own try/catch -- a loop-wide one here would mean a single
         // bad building (mid-construction, an unusual indoor-location edge case, whatever)
         // silently aborts the ENTIRE pass the moment it's hit, leaving every other building
         // on the farm untouched with nothing but one quiet log line to show for it.
-        foreach (var building in farm.buildings.ToList())
+        //
+        // Every building is logged with its buildingType string AND its actual C# runtime
+        // type (some building kinds -- Greenhouse, FishPond, JunimoHut, Mill, Stable, etc. --
+        // are their own subclasses in 1.6, not just a string tag on a plain Building), plus
+        // whether it was kept, destroyed, or failed and why. This is the actual debugger the
+        // "didn't work entirely" report needs: next test, check the SMAPI log for these lines.
+        foreach (var building in allBuildings)
         {
+            var type    = building.buildingType.Value ?? "(null)";
+            var runtime = building.GetType().Name;
+            var label   = $"'{type}' [{runtime}] at {building.tileX.Value},{building.tileY.Value}";
+
             try
             {
-                var type = building.buildingType.Value ?? "";
-                if (KeepBuildingTypes.Any(k => type.Contains(k, StringComparison.OrdinalIgnoreCase)))
+                var matched = KeepBuildingTypes.FirstOrDefault(k => type.Contains(k, StringComparison.OrdinalIgnoreCase));
+                if (matched != null)
+                {
+                    ModEntry.Logger?.Log($"[NuclearChaos] {label} -> KEPT (matched \"{matched}\")", StardewModdingAPI.LogLevel.Info);
                     continue;
+                }
 
                 // Rescue chests and their contents before the building (and everything in it)
                 // is gone — losing stored items, tools especially, is real progress loss, not
@@ -240,14 +256,18 @@ public class NuclearChaosSabotage : ISabotage
 
                 farm.buildings.Remove(building);
                 buildingsDestroyed++;
+                ModEntry.Logger?.Log($"[NuclearChaos] {label} -> DESTROYED", StardewModdingAPI.LogLevel.Info);
             }
             catch (Exception ex)
             {
-                ModEntry.Logger?.Log($"[NuclearChaos] Failed to demolish '{building.buildingType.Value}': {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+                ModEntry.Logger?.Log($"[NuclearChaos] {label} -> FAILED: {ex}", StardewModdingAPI.LogLevel.Warn);
             }
         }
 
+        ModEntry.Logger?.Log($"[NuclearChaos] Buildings pass complete: {buildingsDestroyed} destroyed, {farm.buildings.Count} remain on the farm.", StardewModdingAPI.LogLevel.Info);
+
         // ── Crops ──
+        var cropCandidates = farm.terrainFeatures.Values.OfType<HoeDirt>().Count(d => d.crop != null && !d.crop.dead.Value);
         foreach (var dirt in farm.terrainFeatures.Values.OfType<HoeDirt>())
         {
             try
@@ -258,9 +278,10 @@ public class NuclearChaosSabotage : ISabotage
             }
             catch (Exception ex)
             {
-                ModEntry.Logger?.Log($"[NuclearChaos] Crop kill error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+                ModEntry.Logger?.Log($"[NuclearChaos] Crop kill error: {ex}", StardewModdingAPI.LogLevel.Warn);
             }
         }
+        ModEntry.Logger?.Log($"[NuclearChaos] Crops pass complete: {cropsKilled}/{cropCandidates} killed.", StardewModdingAPI.LogLevel.Info);
 
         // ── Trees & fruit trees ──
         var treeKeys = farm.terrainFeatures.Pairs
@@ -276,12 +297,14 @@ public class NuclearChaosSabotage : ISabotage
             }
             catch (Exception ex)
             {
-                ModEntry.Logger?.Log($"[NuclearChaos] Tree removal error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+                ModEntry.Logger?.Log($"[NuclearChaos] Tree removal error: {ex}", StardewModdingAPI.LogLevel.Warn);
             }
         }
+        ModEntry.Logger?.Log($"[NuclearChaos] Trees pass complete: {treesFelled}/{treeKeys.Count} felled.", StardewModdingAPI.LogLevel.Info);
 
         // ── Rocks — resource clumps (boulders, stumps, meteorites) ──
-        foreach (var clump in farm.resourceClumps.ToList())
+        var clumpCandidates = farm.resourceClumps.ToList();
+        foreach (var clump in clumpCandidates)
         {
             try
             {
@@ -290,9 +313,10 @@ public class NuclearChaosSabotage : ISabotage
             }
             catch (Exception ex)
             {
-                ModEntry.Logger?.Log($"[NuclearChaos] Resource clump removal error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+                ModEntry.Logger?.Log($"[NuclearChaos] Resource clump removal error: {ex}", StardewModdingAPI.LogLevel.Warn);
             }
         }
+        ModEntry.Logger?.Log($"[NuclearChaos] Resource clumps pass complete: {clumpCandidates.Count} candidate(s) processed.", StardewModdingAPI.LogLevel.Info);
 
         // ── Rocks — smaller mineable stones/ore nodes, and fences (both live in .objects) ──
         // Chests are explicitly excluded — "Stone Chest" (a 1.6 chest skin) would otherwise
@@ -316,9 +340,10 @@ public class NuclearChaosSabotage : ISabotage
             }
             catch (Exception ex)
             {
-                ModEntry.Logger?.Log($"[NuclearChaos] Rock/fence removal error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+                ModEntry.Logger?.Log($"[NuclearChaos] Rock/fence removal error: {ex}", StardewModdingAPI.LogLevel.Warn);
             }
         }
+        ModEntry.Logger?.Log($"[NuclearChaos] Rock/fence pass complete: {toRemove.Count} candidate(s) processed.", StardewModdingAPI.LogLevel.Info);
 
         // ── Debris — weeds (as Bush terrain features) and twigs/loose weeds (as objects) ──
         // Same matching ClearDebrisBlessing already uses; the "Stone" name check overlaps
@@ -336,7 +361,7 @@ public class NuclearChaosSabotage : ISabotage
             }
             catch (Exception ex)
             {
-                ModEntry.Logger?.Log($"[NuclearChaos] Debris clear error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+                ModEntry.Logger?.Log($"[NuclearChaos] Debris clear error: {ex}", StardewModdingAPI.LogLevel.Warn);
             }
         }
 
@@ -353,9 +378,14 @@ public class NuclearChaosSabotage : ISabotage
             }
             catch (Exception ex)
             {
-                ModEntry.Logger?.Log($"[NuclearChaos] Debris clear error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+                ModEntry.Logger?.Log($"[NuclearChaos] Debris clear error: {ex}", StardewModdingAPI.LogLevel.Warn);
             }
         }
+        ModEntry.Logger?.Log($"[NuclearChaos] Debris pass complete: {weedKeys.Count + debrisKeys.Count} candidate(s) processed.", StardewModdingAPI.LogLevel.Info);
+
+        ModEntry.Logger?.Log(
+            $"[NuclearChaos] === Destruction pass complete: {buildingsDestroyed} buildings, {animalsLost} animals, {cropsKilled} crops, {treesFelled} trees, {rocksCleared} rocks, {fencesDestroyed} fences, {debrisCleared} debris, {itemsRescued} items rescued ===",
+            StardewModdingAPI.LogLevel.Info);
 
         Game1.addHUDMessage(new HUDMessage(
             $"☢️ {triggeredBy} unleashed NUCLEAR CHAOS! {buildingsDestroyed} buildings demolished, {animalsLost} animals lost, {cropsKilled} crops killed, {treesFelled} trees felled, {rocksCleared} rocks cleared, {fencesDestroyed} fences destroyed, {debrisCleared} debris cleared, {itemsRescued} items rescued from doomed chests. Only the house stands.",

@@ -64,11 +64,11 @@ public static class BanState
         if (BanShopping && Game1.activeClickableMenu is ShopMenu)
             Game1.activeClickableMenu = null;
 
-        // Force close any dialogue if talking is banned — the OnButtonPressed suppression
-        // in ModEntry only stops the interact key from OPENING a fresh conversation; it
-        // can't catch every way an existing DialogueBox advances to its next line (mouse
-        // click straight on the menu, gift-giving dialogue, ambient/scheduled greetings,
-        // etc.), so this is the actual backstop that guarantees no conversation survives.
+        // Force close any dialogue if talking is banned — the OnButtonPressed suppression in
+        // ModEntry stops the interact key from OPENING a fresh conversation near an NPC, but
+        // it can't catch every way an existing DialogueBox advances to its next line (mouse
+        // click straight on the menu, ambient/scheduled greetings that aren't player-initiated,
+        // etc.), so this is the backstop that guarantees no conversation survives regardless.
         if (BanTalk && Game1.activeClickableMenu is DialogueBox)
             Game1.activeClickableMenu = null;
 

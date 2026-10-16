@@ -719,17 +719,17 @@ public class ModEntry : Mod
         {
             if (e.Button == SButton.MouseRight || e.Button == SButton.X || e.Button == SButton.ControllerA)
             {
-                var facing  = Game1.player.FacingDirection;
-                var tile    = Game1.player.TilePoint;
-                var checkTile = facing switch {
-                    0 => new Point(tile.X, tile.Y - 1),
-                    1 => new Point(tile.X + 1, tile.Y),
-                    2 => new Point(tile.X, tile.Y + 1),
-                    3 => new Point(tile.X - 1, tile.Y),
-                    _ => tile
-                };
-                var npc = Game1.player.currentLocation.isCharacterAtTile(checkTile.ToVector2());
-                if (npc != null) { Helper.Input.Suppress(e.Button); return; }
+                // Check distance to EVERY NPC in the location instead of just the single tile
+                // the player happens to be facing -- a facing-tile check misses a diagonal NPC
+                // or one that isn't perfectly tile-aligned (mid-walk animation), letting this
+                // same action button reach the game and fire a real interaction. That matters
+                // because gift-giving uses this exact button too: if the press gets through,
+                // the gift is consumed and friendship awarded even though the resulting
+                // DialogueBox gets force-closed a tick later by BanState.Tick()'s backstop --
+                // which only hides the dialogue, it can't undo an interaction that already ran.
+                bool npcNearby = Game1.player.currentLocation.characters.Any(npc =>
+                    Vector2.Distance(npc.Position, Game1.player.Position) < 96f);
+                if (npcNearby) { Helper.Input.Suppress(e.Button); return; }
             }
         }
 

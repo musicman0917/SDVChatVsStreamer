@@ -139,9 +139,11 @@ public class NuclearChaosSabotage : ISabotage
     public int Cost            => 50000;
     public int CooldownSeconds => 7200;
 
-    // Farmhouse isn't a Building at all, so it's safe by construction. These are
-    // the only Building types spared alongside it.
-    private static readonly string[] KeepBuildingTypes = { "Cabin", "Greenhouse", "Shipping" };
+    // Includes the main farmhouse itself -- since 1.6's house renovation system, it's a
+    // real Building entry in farm.buildings too (buildingType "Farmhouse"), just like a
+    // farmhand's "Cabin" below. It isn't safe by default; losing it ends the save, not
+    // just the farm, so it has to be excluded explicitly like everything else here.
+    private static readonly string[] KeepBuildingTypes = { "Farmhouse", "Cabin", "Greenhouse", "Shipping" };
 
     public void Execute(string triggeredBy)
     {

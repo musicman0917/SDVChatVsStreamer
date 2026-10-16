@@ -34,6 +34,7 @@
 - The installer's very first screen ("Additional Platforms") showed the wrong step total ("Step 1 of 9") because it was drawn before the TikTok/YouTube answers that actually determine the total (9–11) were known.
 - `Update.ps1` couldn't auto-detect a non-default Steam library or a `Local\Programs` install the way the installer already could, so updating always fell back to the manual folder browser for those setups.
 - Crows (`!buy crows`) kept the cost if there were no crops on the farm to eat — it now refunds the viewer instead of silently taking their points for nothing.
+- **Nuclear Chaos could destroy the player's own farmhouse.** Its building-demolition list assumed the farmhouse "isn't a Building at all," which was true pre-1.6 but no longer is — since the 1.6 house renovation update, the farmhouse is a real `Building` entry (`buildingType` `"Farmhouse"`) just like a farmhand's `"Cabin"`, which was already protected. The farmhouse wasn't, so it got demolished along with every shed and barn. Now excluded explicitly.
 
 ## v0.5.0
 

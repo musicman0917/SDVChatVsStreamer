@@ -139,11 +139,12 @@ public class NuclearChaosSabotage : ISabotage
     public int Cost            => 50000;
     public int CooldownSeconds => 7200;
 
-    // Includes the main farmhouse itself -- since 1.6's house renovation system, it's a
-    // real Building entry in farm.buildings too (buildingType "Farmhouse"), just like a
-    // farmhand's "Cabin" below. It isn't safe by default; losing it ends the save, not
-    // just the farm, so it has to be excluded explicitly like everything else here.
-    private static readonly string[] KeepBuildingTypes = { "Farmhouse", "Cabin", "Greenhouse", "Shipping" };
+    // Includes the main farmhouse and the mailbox -- both became real Building entries in
+    // farm.buildings in 1.6 (buildingType "Farmhouse" and "Mailbox", the latter from 1.6
+    // adding mailbox relocation via Robin), so neither is "safe by default" the way static,
+    // hardcoded farm scenery used to be pre-1.6. Each has to be excluded explicitly here,
+    // same as a farmhand's "Cabin" already was.
+    private static readonly string[] KeepBuildingTypes = { "Farmhouse", "Mailbox", "Cabin", "Greenhouse", "Shipping" };
 
     public void Execute(string triggeredBy)
     {

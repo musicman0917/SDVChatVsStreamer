@@ -3,7 +3,7 @@
 ## v0.7.0
 
 **New**
-- Nuclear Chaos (`!buy nuclear`, 50,000pts) — the ultimate sabotage. The Wizard (or, very rarely, the mod's own dev breaking the fourth wall) pops up in a real dialogue box to deliver a warning first; only once that's dismissed does the attack land — demolishes every non-housing building (animals inside included), kills every crop, fells every tree, and clears every rock, fence, and piece of debris. Screen flash, explosion sounds, and aftershocks follow.
+- Nuclear Chaos (`!buy nuclear`, 50,000pts) — the ultimate sabotage. The screen darkens, a sting plays, and the Wizard (or, very rarely, the mod's own dev breaking the fourth wall) pops up in a real multi-page dialogue box to build dread before delivering the warning; only once that's dismissed does the attack land — demolishes every non-housing building (animals inside included), kills every crop, fells every tree, and clears every rock, fence, and piece of debris. Screen flash, explosion sounds, and aftershocks follow.
 - Jump Scare (`!buy jumpscare`) — a startling full-screen flash and sound at a random moment in the next ~40 seconds, with no warning at either end.
 - Animal Challenge mode — a togglable "100 Chicken Challenge"-style goal with a live overlay counter. `!buy addanimal` (blessing) and `!buy spookanimal` (sabotage) help or hurt progress.
 - `!pointdrop` — a timed giveaway command for mods/broadcaster: announces a claim keyword, then awards points to everyone who types it within the window.

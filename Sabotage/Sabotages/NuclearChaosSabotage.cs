@@ -40,34 +40,52 @@ public static class NuclearChaosState
         "Hold onto something. The heavens are hurling fire at your farm!",
     };
 
+    // Shared buildup pages shown before the Wizard's specific line -- "$pause" is a real
+    // SDV dialogue command that holds a beat before the continue-arrow appears, same trick
+    // FloorIsLavaSabotage's intro uses.
+    private static readonly string[] WizardBuildup =
+    {
+        "...$pause",
+        "Farmer. Can you feel that?$pause",
+        "The sky itself is beginning to curdle.$pause",
+    };
+
     private static DateTime _flashUntil = DateTime.MinValue;
     private static DateTime _hazeUntil  = DateTime.MinValue;
+    private static bool     _warningActive;
     private static readonly List<DateTime> _pendingAftershocks = new();
 
-    /// <summary>Shows the Wizard's (or, super rarely, the dev's) warning as a real
-    /// dialogue popup the player has to click through, then runs <paramref name="onDestroy"/>
-    /// once it's dismissed -- the blast and the actual destruction both wait for that,
-    /// so the warning always lands before the farm does.</summary>
+    /// <summary>Shows the Wizard's (or, super rarely, the dev's) warning as a real,
+    /// multi-page dialogue popup the player has to click through, then runs
+    /// <paramref name="onDestroy"/> once it's dismissed -- the blast and the actual
+    /// destruction both wait for that, so the warning always lands before the farm does.
+    /// Darkens the screen and plays a sting the moment it opens, for the same reason.</summary>
     public static void ShowWarning(Action onDestroy)
     {
+        _warningActive = true;
+        void StartAttack() { _warningActive = false; onDestroy(); }
+
         try
         {
+            try { Game1.playSound("fireball"); } catch { /* sting is a nice-to-have */ }
+
             // Usually the Wizard senses doom. Super rarely (~1 in 20), the mod's own
-            // dev breaks the fourth wall instead — shown without a portrait, since
-            // there's no in-game character to attach one to.
+            // dev breaks the fourth wall instead — a single deadpan line, no buildup,
+            // shown without a portrait since there's no in-game character for it.
             if (_rng.Next(20) == 0)
             {
                 MrQiDialogue.Show(
                     new[] { "Blame your chat for this. Not me." },
-                    onDismissed: onDestroy,
+                    onDismissed: StartAttack,
                     characterName: "");
             }
             else
             {
-                var line = WizardLines[_rng.Next(WizardLines.Length)];
+                var line  = WizardLines[_rng.Next(WizardLines.Length)];
+                var pages = WizardBuildup.Append(line).ToArray();
                 MrQiDialogue.Show(
-                    new[] { line },
-                    onDismissed: onDestroy,
+                    pages,
+                    onDismissed: StartAttack,
                     characterName: "Wizard");
             }
         }
@@ -76,7 +94,7 @@ public static class NuclearChaosState
             // The warning popup is a dramatic nice-to-have -- the viewer already paid
             // 50,000pts for this, so if showing it somehow fails, the attack still has
             // to land instead of silently doing nothing.
-            onDestroy();
+            StartAttack();
         }
     }
 
@@ -124,14 +142,19 @@ public static class NuclearChaosState
         }
     }
 
-    /// <summary>Bright white flash, fading into a lingering orange haze. Draw every frame; no-ops outside its window.</summary>
+    /// <summary>While the warning dialogue is up, dims the world behind it; once it's
+    /// dismissed, a bright white flash fades into a lingering orange haze. Draw every
+    /// frame; no-ops outside both windows.</summary>
     public static void Draw(SpriteBatch sb)
     {
-        var now = DateTime.UtcNow;
-        if (now >= _hazeUntil) return;
-
         var viewport = Game1.graphics.GraphicsDevice.Viewport;
         var screen   = new Rectangle(0, 0, viewport.Width, viewport.Height);
+
+        if (_warningActive)
+            sb.Draw(Game1.fadeToBlackRect, screen, Color.Black * 0.5f);
+
+        var now = DateTime.UtcNow;
+        if (now >= _hazeUntil) return;
 
         if (now < _flashUntil)
         {

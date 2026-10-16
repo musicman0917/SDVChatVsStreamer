@@ -1,6 +1,6 @@
 # Patch Notes
 
-## v0.6.0
+## v0.7.0
 
 **New**
 - Nuclear Chaos (`!buy nuclear`, 50,000pts) — the ultimate sabotage. Demolishes every non-housing building (animals inside included), kills every crop, fells every tree, clears every rock and fence. Screen flash, explosion sounds, aftershocks, and a warning from the Wizard (or, very rarely, the mod's own dev breaking the fourth wall).

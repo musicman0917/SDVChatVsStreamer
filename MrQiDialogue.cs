@@ -8,17 +8,21 @@ public static class MrQiDialogue
 {
     public static void Init(IModHelper helper) { }
 
-    public static void Show(string[] lines, Action? onDismissed = null)
+    /// <summary>Shows <paramref name="lines"/> as a real character popup (portrait included)
+    /// if <paramref name="characterName"/> resolves to a loaded NPC, falling back to a plain
+    /// portrait-less dialogue box otherwise -- including when characterName is left empty,
+    /// e.g. for a "message from nobody in particular" line. Originally built just for Mr. Qi
+    /// (still the default), now generic enough for any character.</summary>
+    public static void Show(string[] lines, Action? onDismissed = null, string characterName = "MrQi")
     {
-        // Try real Mr. Qi first (if player has unlocked Ginger Island)
-        var qi = Game1.getCharacterFromName("MrQi");
-        if (qi != null)
+        var npc = string.IsNullOrEmpty(characterName) ? null : Game1.getCharacterFromName(characterName);
+        if (npc != null)
         {
             var dialogueText = string.Join("#", lines);
-            var dialogue = new Dialogue(qi, "MrQi_CVS", dialogueText);
-            qi.CurrentDialogue.Clear();
-            qi.CurrentDialogue.Push(dialogue);
-            Game1.drawDialogue(qi);
+            var dialogue = new Dialogue(npc, $"{characterName}_CVS", dialogueText);
+            npc.CurrentDialogue.Clear();
+            npc.CurrentDialogue.Push(dialogue);
+            Game1.drawDialogue(npc);
         }
         else
         {

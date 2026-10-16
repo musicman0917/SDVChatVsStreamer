@@ -8,7 +8,7 @@ using StardewValley.TerrainFeatures;
 namespace SDVChatVsStreamer.Sabotage.Sabotages;
 
 /// <summary>
-/// The flash, the boom(s), and Lewis's reaction. Kept separate from the actual
+/// The warning popup, the flash, and the boom(s). Kept separate from the actual
 /// destruction logic so a problem here can never affect whether the farm itself
 /// gets wiped.
 /// </summary>
@@ -44,6 +44,42 @@ public static class NuclearChaosState
     private static DateTime _hazeUntil  = DateTime.MinValue;
     private static readonly List<DateTime> _pendingAftershocks = new();
 
+    /// <summary>Shows the Wizard's (or, super rarely, the dev's) warning as a real
+    /// dialogue popup the player has to click through, then runs <paramref name="onDestroy"/>
+    /// once it's dismissed -- the blast and the actual destruction both wait for that,
+    /// so the warning always lands before the farm does.</summary>
+    public static void ShowWarning(Action onDestroy)
+    {
+        try
+        {
+            // Usually the Wizard senses doom. Super rarely (~1 in 20), the mod's own
+            // dev breaks the fourth wall instead — shown without a portrait, since
+            // there's no in-game character to attach one to.
+            if (_rng.Next(20) == 0)
+            {
+                MrQiDialogue.Show(
+                    new[] { "Blame your chat for this. Not me." },
+                    onDismissed: onDestroy,
+                    characterName: "");
+            }
+            else
+            {
+                var line = WizardLines[_rng.Next(WizardLines.Length)];
+                MrQiDialogue.Show(
+                    new[] { line },
+                    onDismissed: onDestroy,
+                    characterName: "Wizard");
+            }
+        }
+        catch
+        {
+            // The warning popup is a dramatic nice-to-have -- the viewer already paid
+            // 50,000pts for this, so if showing it somehow fails, the attack still has
+            // to land instead of silently doing nothing.
+            onDestroy();
+        }
+    }
+
     public static void Trigger()
     {
         var now = DateTime.UtcNow;
@@ -65,26 +101,6 @@ public static class NuclearChaosState
         _pendingAftershocks.Add(now.AddMilliseconds(500));
         _pendingAftershocks.Add(now.AddMilliseconds(1100));
         _pendingAftershocks.Add(now.AddMilliseconds(1900));
-
-        // Usually the Wizard senses doom. Super rarely (~1 in 20), the mod's own
-        // dev breaks the fourth wall instead — a plain HUD line, no in-game
-        // character to attach a speech bubble to.
-        if (_rng.Next(20) == 0)
-        {
-            const string line = "Blame your chat for this. Not me.";
-            Game1.addHUDMessage(new HUDMessage($"🛠️ NeighborhoodofMusic (the dev): \"{line}\"", HUDMessage.error_type));
-        }
-        else
-        {
-            var line = WizardLines[_rng.Next(WizardLines.Length)];
-            try
-            {
-                var wizard = Game1.getCharacterFromName("Wizard");
-                wizard?.showTextAboveHead(line);
-            }
-            catch { }
-            Game1.addHUDMessage(new HUDMessage($"🧙 Wizard: \"{line}\"", HUDMessage.error_type));
-        }
     }
 
     public static void Tick()
@@ -135,7 +151,7 @@ public class NuclearChaosSabotage : ISabotage
 {
     public string Name         => "Nuclear Chaos";
     public string BuyCommand   => "nuclear";
-    public string Description  => "the ultimate sabotage — demolishes every non-housing building (animals inside included), kills every crop, fells every tree, and clears every rock and fence on the farm";
+    public string Description  => "the ultimate sabotage — a Wizard's warning, then demolishes every non-housing building (animals inside included), kills every crop, fells every tree, and clears every rock, fence, and piece of debris on the farm";
     public int Cost            => 50000;
     public int CooldownSeconds => 7200;
 
@@ -148,10 +164,17 @@ public class NuclearChaosSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        // The warning has to land, and be dismissed, before any of this actually happens --
+        // see NuclearChaosState.ShowWarning.
+        NuclearChaosState.ShowWarning(onDestroy: () => DoDestruction(triggeredBy));
+    }
+
+    private static void DoDestruction(string triggeredBy)
+    {
         NuclearChaosState.Trigger();
 
         var farm = Game1.getFarm();
-        int buildingsDestroyed = 0, animalsLost = 0, cropsKilled = 0, treesFelled = 0, rocksCleared = 0, fencesDestroyed = 0, itemsRescued = 0;
+        int buildingsDestroyed = 0, animalsLost = 0, cropsKilled = 0, treesFelled = 0, rocksCleared = 0, fencesDestroyed = 0, itemsRescued = 0, debrisCleared = 0;
 
         // ── Buildings (and any animals living in them) ──
         try
@@ -270,8 +293,38 @@ public class NuclearChaosSabotage : ISabotage
             ModEntry.Logger?.Log($"[NuclearChaos] Rock/fence removal error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
         }
 
+        // ── Debris — weeds (as Bush terrain features) and twigs/loose weeds (as objects) ──
+        // Same matching ClearDebrisBlessing already uses; the "Stone" name check overlaps
+        // with the rock/fence pass above, which is harmless -- those are already gone by now.
+        try
+        {
+            var weedKeys = farm.terrainFeatures.Pairs
+                .Where(kv => kv.Value is Bush b && b.size.Value == 4)
+                .Select(kv => kv.Key)
+                .ToList();
+            foreach (var key in weedKeys)
+            {
+                farm.terrainFeatures.Remove(key);
+                debrisCleared++;
+            }
+
+            var debrisKeys = farm.objects.Pairs
+                .Where(kv => kv.Value.Name is "Twig" or "Stone" or "Weeds")
+                .Select(kv => kv.Key)
+                .ToList();
+            foreach (var key in debrisKeys)
+            {
+                farm.objects.Remove(key);
+                debrisCleared++;
+            }
+        }
+        catch (Exception ex)
+        {
+            ModEntry.Logger?.Log($"[NuclearChaos] Debris clear error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+        }
+
         Game1.addHUDMessage(new HUDMessage(
-            $"☢️ {triggeredBy} unleashed NUCLEAR CHAOS! {buildingsDestroyed} buildings demolished, {animalsLost} animals lost, {cropsKilled} crops killed, {treesFelled} trees felled, {rocksCleared} rocks cleared, {fencesDestroyed} fences destroyed, {itemsRescued} items rescued from doomed chests. Only the house stands.",
+            $"☢️ {triggeredBy} unleashed NUCLEAR CHAOS! {buildingsDestroyed} buildings demolished, {animalsLost} animals lost, {cropsKilled} crops killed, {treesFelled} trees felled, {rocksCleared} rocks cleared, {fencesDestroyed} fences destroyed, {debrisCleared} debris cleared, {itemsRescued} items rescued from doomed chests. Only the house stands.",
             HUDMessage.error_type));
     }
 }

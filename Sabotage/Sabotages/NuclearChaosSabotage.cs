@@ -134,7 +134,7 @@ public static class NuclearChaosState
 public class NuclearChaosSabotage : ISabotage
 {
     public string Name         => "Nuclear Chaos";
-    public string BuyCommand   => "nuclearchaos";
+    public string BuyCommand   => "nuclear";
     public string Description  => "the ultimate sabotage — demolishes every non-housing building (animals inside included), kills every crop, fells every tree, and clears every rock and fence on the farm";
     public int Cost            => 50000;
     public int CooldownSeconds => 7200;

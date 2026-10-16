@@ -86,7 +86,7 @@ Once that's wired up, `!balance`/`!buy`/etc. will post real replies into your Yo
 - Tool sabotage — upgrade or downgrade any tool mid-session
 - Explosions — bombs and mega bombs
 - **Jump Scare** (`!buy jumpscare`) — a startling full-screen flash and sound at a random moment in the next ~40 seconds. No warning when it's bought, none when it hits.
-- **Nuclear Chaos** (`!buy nuclearchaos`, 50,000pts) — the ultimate sabotage. Demolishes every non-housing building (animals inside included), kills every crop, fells every tree, clears every rock and fence on the farm. Screen flash, explosion sounds, aftershocks, and the Wizard (or, very rarely, the mod's own dev) warning you it's coming.
+- **Nuclear Chaos** (`!buy nuclear`, 50,000pts) — the ultimate sabotage. Demolishes every non-housing building (animals inside included), kills every crop, fells every tree, clears every rock and fence on the farm. Screen flash, explosion sounds, aftershocks, and the Wizard (or, very rarely, the mod's own dev) warning you it's coming.
 
 **Weapons (give the farmer a random weapon):**
 - `!buy weaponnormal` — early game weapons

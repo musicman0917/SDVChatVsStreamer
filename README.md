@@ -81,7 +81,8 @@ Once that's wired up, `!balance`/`!buy`/etc. will post real replies into your Yo
 - Weather chaos — rain, storm, snow, green rain, wind
 - Monster spawns — slimes, bugs, grubs, golems, frost bats, dust sprites, ghosts, serpents, shadow brutes, shadow shamans, iridium golems, squid kids
 - Farm destruction — kill crops, spawn weeds, steal gold, drain energy
-- Player debuffs — dizzy, drunk, speedup, forced sleep, warp
+- Player debuffs — dizzy, drunk, forced sleep, warp
+- Player status effects — speedup (movement speed, for better or worse)
 - Tool sabotage — upgrade or downgrade any tool mid-session
 - Explosions — bombs and mega bombs
 - **Jump Scare** (`!buy jumpscare`) — a startling full-screen flash and sound at a random moment in the next ~40 seconds. No warning when it's bought, none when it hits.

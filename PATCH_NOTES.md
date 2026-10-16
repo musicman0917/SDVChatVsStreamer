@@ -15,6 +15,7 @@
 - The `/tiktok` TikTok gift-tier guide page (documented in the README since it was added) is now actually served — the route existed only in the docs before this.
 
 **Fixed**
+- Speed Up (`!buy speedup`) and Trick Room (`!buy trickroom`) were literally the same effect — both just jumped the clock forward 60 minutes, at different prices. Speed Up now does what its name says: +2 movement speed for 5 minutes. Trick Room still skips the clock.
 - Confused was inverting movement for one tick then losing to the game's own input, and even after that fix it was mashing (both directions active at once) instead of cleanly inverting — the natural direction wasn't being removed, only the opposite added.
 - Ban Talk only blocked the interact key from opening a fresh conversation; an already-open dialogue could still be advanced through by other means. Now force-closed every tick like Ban Shopping already does for shop menus.
 - Snow's season restriction (winter only) was silently never enforced — its `Validate()` had the wrong method signature and never actually overrode the interface default.

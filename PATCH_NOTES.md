@@ -33,6 +33,7 @@
 - `package.ps1` used a PowerShell 7+-only operator (`??`), which threw a parse error under the Windows PowerShell 5.1 that ships by default on Windows.
 - The installer's very first screen ("Additional Platforms") showed the wrong step total ("Step 1 of 9") because it was drawn before the TikTok/YouTube answers that actually determine the total (9–11) were known.
 - `Update.ps1` couldn't auto-detect a non-default Steam library or a `Local\Programs` install the way the installer already could, so updating always fell back to the manual folder browser for those setups.
+- Crows (`!buy crows`) kept the cost if there were no crops on the farm to eat — it now refunds the viewer instead of silently taking their points for nothing.
 
 ## v0.5.0
 

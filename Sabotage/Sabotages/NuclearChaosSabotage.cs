@@ -200,9 +200,13 @@ public class NuclearChaosSabotage : ISabotage
         int buildingsDestroyed = 0, animalsLost = 0, cropsKilled = 0, treesFelled = 0, rocksCleared = 0, fencesDestroyed = 0, itemsRescued = 0, debrisCleared = 0;
 
         // ── Buildings (and any animals living in them) ──
-        try
+        // Each building gets its own try/catch -- a loop-wide one here would mean a single
+        // bad building (mid-construction, an unusual indoor-location edge case, whatever)
+        // silently aborts the ENTIRE pass the moment it's hit, leaving every other building
+        // on the farm untouched with nothing but one quiet log line to show for it.
+        foreach (var building in farm.buildings.ToList())
         {
-            foreach (var building in farm.buildings.ToList())
+            try
             {
                 var type = building.buildingType.Value ?? "";
                 if (KeepBuildingTypes.Any(k => type.Contains(k, StringComparison.OrdinalIgnoreCase)))
@@ -237,113 +241,120 @@ public class NuclearChaosSabotage : ISabotage
                 farm.buildings.Remove(building);
                 buildingsDestroyed++;
             }
-        }
-        catch (Exception ex)
-        {
-            ModEntry.Logger?.Log($"[NuclearChaos] Building demolition error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Failed to demolish '{building.buildingType.Value}': {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            }
         }
 
         // ── Crops ──
-        try
+        foreach (var dirt in farm.terrainFeatures.Values.OfType<HoeDirt>())
         {
-            foreach (var dirt in farm.terrainFeatures.Values.OfType<HoeDirt>())
+            try
             {
                 if (dirt.crop == null || dirt.crop.dead.Value) continue;
                 dirt.crop.Kill();
                 cropsKilled++;
             }
-        }
-        catch (Exception ex)
-        {
-            ModEntry.Logger?.Log($"[NuclearChaos] Crop kill error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Crop kill error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            }
         }
 
         // ── Trees & fruit trees ──
-        try
+        var treeKeys = farm.terrainFeatures.Pairs
+            .Where(kv => kv.Value is Tree or FruitTree)
+            .Select(kv => kv.Key)
+            .ToList();
+        foreach (var key in treeKeys)
         {
-            var treeKeys = farm.terrainFeatures.Pairs
-                .Where(kv => kv.Value is Tree or FruitTree)
-                .Select(kv => kv.Key)
-                .ToList();
-            foreach (var key in treeKeys)
+            try
             {
                 farm.terrainFeatures.Remove(key);
                 treesFelled++;
             }
-        }
-        catch (Exception ex)
-        {
-            ModEntry.Logger?.Log($"[NuclearChaos] Tree removal error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Tree removal error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            }
         }
 
         // ── Rocks — resource clumps (boulders, stumps, meteorites) ──
-        try
+        foreach (var clump in farm.resourceClumps.ToList())
         {
-            foreach (var clump in farm.resourceClumps.ToList())
+            try
             {
                 farm.resourceClumps.Remove(clump);
                 rocksCleared++;
             }
-        }
-        catch (Exception ex)
-        {
-            ModEntry.Logger?.Log($"[NuclearChaos] Resource clump removal error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Resource clump removal error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            }
         }
 
         // ── Rocks — smaller mineable stones/ore nodes, and fences (both live in .objects) ──
         // Chests are explicitly excluded — "Stone Chest" (a 1.6 chest skin) would otherwise
         // match the "Stone" name check below and get swept up with its contents.
-        try
-        {
-            var toRemove = farm.objects.Pairs
-                .Where(kv =>
-                    kv.Value is Fence ||
-                    (kv.Value is not Chest &&
-                     kv.Value.Name != null &&
-                     (kv.Value.Name.Contains("Stone", StringComparison.OrdinalIgnoreCase) ||
-                      kv.Value.Name.Contains("Node", StringComparison.OrdinalIgnoreCase))))
-                .ToList();
+        var toRemove = farm.objects.Pairs
+            .Where(kv =>
+                kv.Value is Fence ||
+                (kv.Value is not Chest &&
+                 kv.Value.Name != null &&
+                 (kv.Value.Name.Contains("Stone", StringComparison.OrdinalIgnoreCase) ||
+                  kv.Value.Name.Contains("Node", StringComparison.OrdinalIgnoreCase))))
+            .ToList();
 
-            foreach (var kv in toRemove)
+        foreach (var kv in toRemove)
+        {
+            try
             {
                 farm.objects.Remove(kv.Key);
                 if (kv.Value is Fence) fencesDestroyed++;
                 else rocksCleared++;
             }
-        }
-        catch (Exception ex)
-        {
-            ModEntry.Logger?.Log($"[NuclearChaos] Rock/fence removal error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Rock/fence removal error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            }
         }
 
         // ── Debris — weeds (as Bush terrain features) and twigs/loose weeds (as objects) ──
         // Same matching ClearDebrisBlessing already uses; the "Stone" name check overlaps
         // with the rock/fence pass above, which is harmless -- those are already gone by now.
-        try
+        var weedKeys = farm.terrainFeatures.Pairs
+            .Where(kv => kv.Value is Bush b && b.size.Value == 4)
+            .Select(kv => kv.Key)
+            .ToList();
+        foreach (var key in weedKeys)
         {
-            var weedKeys = farm.terrainFeatures.Pairs
-                .Where(kv => kv.Value is Bush b && b.size.Value == 4)
-                .Select(kv => kv.Key)
-                .ToList();
-            foreach (var key in weedKeys)
+            try
             {
                 farm.terrainFeatures.Remove(key);
                 debrisCleared++;
             }
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Debris clear error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            }
+        }
 
-            var debrisKeys = farm.objects.Pairs
-                .Where(kv => kv.Value.Name is "Twig" or "Stone" or "Weeds")
-                .Select(kv => kv.Key)
-                .ToList();
-            foreach (var key in debrisKeys)
+        var debrisKeys = farm.objects.Pairs
+            .Where(kv => kv.Value.Name is "Twig" or "Stone" or "Weeds")
+            .Select(kv => kv.Key)
+            .ToList();
+        foreach (var key in debrisKeys)
+        {
+            try
             {
                 farm.objects.Remove(key);
                 debrisCleared++;
             }
-        }
-        catch (Exception ex)
-        {
-            ModEntry.Logger?.Log($"[NuclearChaos] Debris clear error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Debris clear error: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+            }
         }
 
         Game1.addHUDMessage(new HUDMessage(

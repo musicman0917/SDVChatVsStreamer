@@ -16,7 +16,11 @@ public static class JumpScareState
     private static Texture2D? _face;
 
     private static readonly Random _rng = new();
-    private static readonly string[] ScarySounds = { "fuse", "batScreech", "serpentHit" };
+    // "fuse" was removed from this pool -- it's the looping hiss SDV plays while a placed
+    // bomb counts down, meant to be stopped by the bomb's own explosion. Played standalone
+    // here (no real bomb object behind it), nothing ever told it to stop, so it looped
+    // forever the moment that pick came up.
+    private static readonly string[] ScarySounds = { "batScreech", "serpentHit" };
 
     private static DateTime _fireAt      = DateTime.MaxValue;
     private static DateTime _flashUntil  = DateTime.MinValue;

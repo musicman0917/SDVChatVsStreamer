@@ -12,8 +12,10 @@ public class DizzySabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+
         // Tipsy debuff — speed -1 for 30 seconds (30000ms)
-        Game1.player.buffs.Apply(new Buff(
+        target.buffs.Apply(new Buff(
             id:          "CVS_Tipsy",
             source:      "Chat vs Streamer",
             displaySource: triggeredBy,
@@ -26,8 +28,8 @@ public class DizzySabotage : ISabotage
             description: $"{triggeredBy} made you dizzy!"
         ));
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🥴 {triggeredBy} made you dizzy! Speed -1 for 30 seconds.",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

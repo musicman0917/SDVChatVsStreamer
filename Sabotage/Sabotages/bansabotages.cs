@@ -22,6 +22,7 @@ public static class BanState
     private static DateTime _talkExpires;
     private static DateTime _runningExpires;
     private static DateTime _shoppingExpires;
+    private static int _lockedToolIndex;
 
     public static void Activate(string ban, int seconds)
     {
@@ -29,7 +30,11 @@ public static class BanState
         switch (ban)
         {
             case "inventory": BanInventory = true; _inventoryExpires = expires; break;
-            case "hotbar":    BanHotbar    = true; _hotbarExpires    = expires; break;
+            case "hotbar":
+                BanHotbar        = true;
+                _hotbarExpires   = expires;
+                _lockedToolIndex = Game1.player.CurrentToolIndex;
+                break;
             case "talk":      BanTalk      = true; _talkExpires      = expires; break;
             case "running":   BanRunning   = true; _runningExpires   = expires; break;
             case "shopping":  BanShopping  = true; _shoppingExpires  = expires; break;
@@ -59,9 +64,24 @@ public static class BanState
         if (BanShopping && Game1.activeClickableMenu is ShopMenu)
             Game1.activeClickableMenu = null;
 
+        // Force close any dialogue if talking is banned — the OnButtonPressed suppression in
+        // ModEntry stops the interact key from OPENING a fresh conversation near an NPC, but
+        // it can't catch every way an existing DialogueBox advances to its next line (mouse
+        // click straight on the menu, ambient/scheduled greetings that aren't player-initiated,
+        // etc.), so this is the backstop that guarantees no conversation survives regardless.
+        if (BanTalk && Game1.activeClickableMenu is DialogueBox)
+            Game1.activeClickableMenu = null;
+
         // Force walk if running is banned
         if (BanRunning)
             Game1.player.running = false;
+
+        // Force the equipped slot to stay put if hotbar switching is banned. The number-key/
+        // OemMinus/OemPlus suppression in ModEntry only blocks keyboard switching -- it can't
+        // catch mouse-wheel scrolling or controller bumpers, so this closes those gaps too by
+        // fixing the actual result regardless of which input method tried to change it.
+        if (BanHotbar && Game1.player.CurrentToolIndex != _lockedToolIndex)
+            Game1.player.CurrentToolIndex = _lockedToolIndex;
     }
 
     private static void Notify(string msg) =>
@@ -92,7 +112,7 @@ public static class BanState
 
 // ─── BAN INVENTORY ────────────────────────────────────────────────────────────
 
-public class BanInventorySabotage : ISabotage
+public class BanInventorySabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Ban Inventory";
     public string BuyCommand   => "baninventory";
@@ -101,6 +121,19 @@ public class BanInventorySabotage : ISabotage
     public int CooldownSeconds => 180;
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🚫 {triggeredBy} banned your inventory for 60 seconds!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         BanState.Activate("inventory", 60);
 
@@ -118,7 +151,7 @@ public class BanInventorySabotage : ISabotage
 
 // ─── BAN HOTBAR ───────────────────────────────────────────────────────────────
 
-public class BanHotbarSabotage : ISabotage
+public class BanHotbarSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Ban Hotbar";
     public string BuyCommand   => "banhotbar";
@@ -127,6 +160,19 @@ public class BanHotbarSabotage : ISabotage
     public int CooldownSeconds => 120;
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🚫 {triggeredBy} banned your hotbar for 60 seconds!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         BanState.Activate("hotbar", 60);
         Game1.addHUDMessage(new HUDMessage(
@@ -137,7 +183,7 @@ public class BanHotbarSabotage : ISabotage
 
 // ─── BAN TALK ─────────────────────────────────────────────────────────────────
 
-public class BanTalkSabotage : ISabotage
+public class BanTalkSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Ban Talk";
     public string BuyCommand   => "bantalk";
@@ -146,6 +192,19 @@ public class BanTalkSabotage : ISabotage
     public int CooldownSeconds => 120;
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🚫 {triggeredBy} banned talking to NPCs for 60 seconds!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         BanState.Activate("talk", 60);
         Game1.addHUDMessage(new HUDMessage(
@@ -156,7 +215,7 @@ public class BanTalkSabotage : ISabotage
 
 // ─── BAN RUNNING ──────────────────────────────────────────────────────────────
 
-public class BanRunningSabotage : ISabotage
+public class BanRunningSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Ban Running";
     public string BuyCommand   => "banrunning";
@@ -165,6 +224,19 @@ public class BanRunningSabotage : ISabotage
     public int CooldownSeconds => 120;
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🚫 {triggeredBy} banned running for 60 seconds! Walk, farmer, walk.",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         BanState.Activate("running", 60);
         Game1.addHUDMessage(new HUDMessage(
@@ -175,7 +247,7 @@ public class BanRunningSabotage : ISabotage
 
 // ─── BAN SHOPPING ─────────────────────────────────────────────────────────────
 
-public class BanShoppingSabotage : ISabotage
+public class BanShoppingSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Ban Shopping";
     public string BuyCommand   => "banshopping";
@@ -184,6 +256,19 @@ public class BanShoppingSabotage : ISabotage
     public int CooldownSeconds => 180;
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🚫 {triggeredBy} banned shopping for 60 seconds! Pierre will have to wait.",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         BanState.Activate("shopping", 60);
         if (Game1.activeClickableMenu is ShopMenu) Game1.activeClickableMenu = null;

@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-
 namespace SDVChatVsStreamer.UI;
 
 public enum ChatPlatform { Twitch, TikTok, YouTube }
@@ -16,7 +14,8 @@ public record ChatMessage(
 public class ChatFeed
 {
     private readonly int _maxMessages;
-    private readonly ConcurrentQueue<ChatMessage> _messages = new();
+    private readonly object _lock = new();
+    private readonly List<ChatMessage> _messages = new();
 
     public event Action<ChatMessage>? OnNewMessage;
     public event Action<string>? OnRemoveUser;
@@ -31,10 +30,12 @@ public class ChatFeed
     public void Add(string username, string text, ChatPlatform platform, string messageId = "", string? renderedText = null)
     {
         var msg = new ChatMessage(username, text, renderedText ?? HtmlEscape(text), platform, DateTime.UtcNow, messageId);
-        _messages.Enqueue(msg);
-
-        while (_messages.Count > _maxMessages)
-            _messages.TryDequeue(out _);
+        lock (_lock)
+        {
+            _messages.Add(msg);
+            while (_messages.Count > _maxMessages)
+                _messages.RemoveAt(0);
+        }
 
         OnNewMessage?.Invoke(msg);
     }
@@ -44,29 +45,36 @@ public class ChatFeed
 
     public void RemoveByUser(string username)
     {
-        var remaining = _messages.Where(m =>
-            !m.Username.Equals(username, StringComparison.OrdinalIgnoreCase)).ToList();
-        while (_messages.TryDequeue(out _)) { }
-        foreach (var m in remaining) _messages.Enqueue(m);
+        lock (_lock)
+        {
+            _messages.RemoveAll(m => m.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
+        }
         OnRemoveUser?.Invoke(username);
     }
 
     public void RemoveById(string messageId)
     {
-        var remaining = _messages.Where(m => m.MessageId != messageId).ToList();
-        while (_messages.TryDequeue(out _)) { }
-        foreach (var m in remaining) _messages.Enqueue(m);
+        lock (_lock)
+        {
+            _messages.RemoveAll(m => m.MessageId == messageId);
+        }
         OnRemoveMessage?.Invoke(messageId);
     }
 
     public void Clear()
     {
-        while (_messages.TryDequeue(out _)) { }
+        lock (_lock)
+        {
+            _messages.Clear();
+        }
         OnClear?.Invoke();
     }
 
     public IReadOnlyList<ChatMessage> GetRecent(int count)
     {
-        return _messages.Reverse().Take(count).Reverse().ToList();
+        lock (_lock)
+        {
+            return _messages.Skip(Math.Max(0, _messages.Count - count)).ToList();
+        }
     }
 }

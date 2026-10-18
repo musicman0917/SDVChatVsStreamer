@@ -36,7 +36,7 @@ $choice = Read-Host "  Enter 1 or 2"
 
 $modDir = switch ($choice.Trim()) {
     "1"     { $stardropPath }
-    "2"     { $defaultPath ?? $stardropPath }
+    "2"     { if ($defaultPath) { $defaultPath } else { $stardropPath } }
     default { $stardropPath }
 }
 

@@ -35,8 +35,14 @@ public class RenameAnimalSabotage : ISabotage
 
     public void ExecuteWithArgs(string triggeredBy, string args)
     {
+        // Validate() only runs on the !buy path — bits/channel points/TikTok/auto-trigger
+        // can fire this directly, so guard here too instead of assuming it already ran.
+        if (string.IsNullOrWhiteSpace(args)) return;
+
         var farm    = Game1.getFarm();
         var animals = farm.animals.Values.ToList();
+        if (animals.Count == 0) return;
+
         var rng     = new Random();
         var animal  = animals[rng.Next(animals.Count)];
         var oldName = animal.Name;
@@ -80,6 +86,10 @@ public class RenamePetSabotage : ISabotage
 
     public void ExecuteWithArgs(string triggeredBy, string args)
     {
+        // Validate() only runs on the !buy path — bits/channel points/TikTok/auto-trigger
+        // can fire this directly, so guard here too instead of assuming it already ran.
+        if (string.IsNullOrWhiteSpace(args)) return;
+
         var pet = Game1.getFarm().characters.OfType<Pet>().FirstOrDefault();
         if (pet == null) return;
 

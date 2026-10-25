@@ -43,7 +43,11 @@ Write-Host "Verifying zip contents..." -ForegroundColor Gray
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
 try {
-    $entryNames = $zip.Entries | ForEach-Object { $_.FullName }
+    # Compress-Archive is known to write nested entries with backslashes
+    # (ChatVsStreamer\ChatVsStreamer.dll) instead of the forward slashes the ZIP
+    # spec normally expects -- normalize so the folder check below doesn't miss
+    # real entries just because of which separator this run happened to use.
+    $entryNames = $zip.Entries | ForEach-Object { $_.FullName -replace '\\', '/' }
 } finally {
     $zip.Dispose()
 }

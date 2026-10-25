@@ -202,7 +202,7 @@ See [PATCH_NOTES.md](PATCH_NOTES.md) for full version history.
 
 ## 📜 License
 
-MIT — feel free to fork, modify, and build on this. Credit appreciated but not required.
+MIT — feel free to fork, modify, and build on this. Please credit NeighborhoodofMusic if you do.
 
 ---
 

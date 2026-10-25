@@ -86,6 +86,6 @@ The installer detects your Stardew Valley install, installs SMAPI if it's missin
 [size=4][b]Shout outs[/b][/size]
 Built on top of (and wouldn't exist without) [url=https://smapi.io/]SMAPI[/url], [url=https://www.nexusmods.com/stardewvalley/mods/5098]Generic Mod Config Menu[/url], and [url=https://tikfinity.zerinity.com/]Tikfinity[/url]. Thanks to their respective teams for the tools this mod integrates with.
 
-MIT licensed -- feel free to fork, modify, and build on this. Credit appreciated but not required.
+MIT licensed -- feel free to fork, modify, and build on this. Please credit NeighborhoodofMusic if you do.
 
 ====================================================================

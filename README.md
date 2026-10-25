@@ -160,6 +160,21 @@ All settings are available via Generic Mod Config Menu (GMCM) in-game:
 
 ---
 
+## 🔗 Hosting Your Own Shop Reference Page
+
+`!shop` posts a link instead of dumping every command into chat (GMCM → Chaos Shop → **Shop Reference URL**). It defaults to the original author's hosted copy of this page (this repo's `docs/` folder, published via GitHub Pages) — that's fine to leave as-is if you haven't changed any prices or cooldowns, but its footer credits the original author by name, which looks a little odd sending your own viewers to a page crediting someone else's channel.
+
+To host your own copy instead:
+1. Fork this repository on GitHub.
+2. In your fork, go to **Settings → Pages**. Under "Build and deployment," set **Source** to "Deploy from a branch," branch `main`, folder `/docs`, then save.
+3. GitHub publishes it at `https://<your-username>.github.io/SDVChatVsStreamer/` within a minute or two.
+4. In-game, open GMCM → Chaos Shop → **Shop Reference URL** and paste your fork's URL in.
+5. *(Optional)* If you've changed any costs/cooldowns in your own config, edit `docs/index.html` in your fork to match — the page's command list is static, not generated from your live settings, so it'll only show the defaults unless you update it yourself.
+
+Free, no server to maintain, and `!shop` now points somewhere that's actually yours.
+
+---
+
 ## 📦 Requirements
 
 - [Stardew Valley](https://www.stardewvalley.net/) 1.6+

@@ -1,0 +1,95 @@
+This file is BBCode, meant to be pasted into the Nexus Mods page's description
+editor (switch the editor to "Source" / BBCode mode before pasting, or Nexus's
+newer rich-text editor will show the raw tags as plain text instead of
+rendering them). Not part of the mod itself -- nothing here ships in the zip.
+
+====================================================================
+
+[size=5][b]Chat vs Streamer[/b][/size]
+
+Your Twitch and TikTok viewers earn chaos points just by watching -- then
+spend them to sabotage (or occasionally bless) your farm in real time. Full
+shop system, live OBS overlays, and a chat bot that actually talks back.
+
+[size=4][b]What it does[/b][/size]
+
+[list]
+[*]Viewers earn points by chatting, watching, subscribing, gifting subs, cheering bits, and raiding
+[*]A full in-chat shop: [b]!balance[/b], [b]!shop[/b], [b]!buy <command>[/b], [b]!info <command>[/b]
+[*]Dozens of sabotages and blessings -- weather chaos, monster spawns, crop destruction, player debuffs, tool swaps, explosions, full-screen jump scares, and the 50,000pt "Nuclear Chaos" ultimate
+[*]TikTok viewers (via [url=https://tikfinity.zerinity.com/]Tikfinity[/url]) earn points too, with named gifts triggering specific effects and a diamond-tier system for everything else
+[*]Experimental YouTube Live support via Streamer.bot (beta)
+[*]Live OBS browser-source overlays for chat, the shop, and TikTok gift redemptions
+[*]A togglable "100 Chicken Challenge"-style Animal Challenge mode chat can help or hurt
+[*]Alpha co-op multiplayer targeting -- give other streamers in your session their own chat-linked farmhand
+[*]Everything configurable in-game through Generic Mod Config Menu
+[/list]
+
+[size=4][b]Requirements[/b][/size]
+
+[list]
+[*][url=https://www.stardewvalley.net/]Stardew Valley[/url] 1.6+
+[*][url=https://smapi.io/]SMAPI[/url] 4.0+ (the installer handles this for you)
+[*][url=https://www.nexusmods.com/stardewvalley/mods/5098]Generic Mod Config Menu[/url] (optional, for in-game settings)
+[*][url=https://tikfinity.zerinity.com/]Tikfinity[/url] (optional, for TikTok integration)
+[/list]
+
+[size=4][b]Installation[/b][/size]
+
+[list=1]
+[*]Download the zip below
+[*]Unzip it anywhere
+[*]Right-click [b]Install.ps1[/b] and choose [b]Run with PowerShell[/b]
+[*]If Windows blocks it, open PowerShell as admin and run:
+[code]Set-ExecutionPolicy -Scope CurrentUser RemoteSigned[/code]
+then try again
+[/list]
+
+The installer detects your Stardew Valley install, installs SMAPI if it's
+missing, copies the mod into your Mods folder, walks you through Twitch
+credential setup, checks for Tikfinity, and shows you every OBS overlay URL
+at the end.
+
+[size=4][b]Chat commands[/b][/size]
+
+[list]
+[*][b]!balance[/b] -- check your chaos points
+[*][b]!shop[/b] -- browse every sabotage and blessing by tier
+[*][b]!buy <command>[/b] -- spend points on one
+[*][b]!info <command>[/b] -- details on a specific one
+[*][b]!give <user> <amount>[/b] -- transfer points (mods only)
+[*][b]!pointdrop[/b] -- timed giveaway: announces a claim keyword, awards points to everyone who types it in time (mods/broadcaster only)
+[/list]
+
+[size=4][b]OBS overlays[/b][/size]
+
+[list]
+[*]Chat overlay: [i]http://localhost:7373/chat[/i]
+[*]Shop sidebar: [i]http://localhost:7373/[/i]
+[*]Mobile shop: [i]http://localhost:7373/mobile[/i]
+[*]TikTok gift guide: [i]http://localhost:7373/tiktok[/i]
+[*]TikTok live feed (vertical): [i]http://localhost:7373/tiktoklive[/i]
+[/list]
+
+[size=4][b]Known limitations[/b][/size]
+
+[list]
+[*]YouTube integration is beta -- chat/membership/Super Chat points all work, but bot replies don't post back into YouTube chat yet (console log only); see the GitHub README for the Streamer.bot setup needed to enable that.
+[*]Multiplayer targeting is alpha and untested in a real multiplayer session. Input/screen-based effects (bans, jump scares, warps, and similar) only land on a co-op farmhand if they also install this mod themselves; everything else (money, buffs, inventory, monster spawns) redirects with no extra setup.
+[/list]
+
+[size=4][b]Source, full changelog, and support[/b][/size]
+
+Full README, changelog, and source: [url=https://github.com/musicman0917/SDVChatVsStreamer]github.com/musicman0917/SDVChatVsStreamer[/url]
+
+Built live on stream at [url=https://twitch.tv/neighborhoodofmusic]twitch.tv/neighborhoodofmusic[/url]
+
+[size=4][b]AI disclosure[/b][/size]
+
+NeighborhoodofMusic wrote the baseline code for this mod. Claude (Anthropic)
+was used to help sort, organize, and correct the code.
+
+[size=4][b]Permissions[/b][/size]
+
+MIT licensed -- feel free to fork, modify, and build on this. Credit
+appreciated but not required.

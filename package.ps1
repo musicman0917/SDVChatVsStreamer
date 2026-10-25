@@ -105,10 +105,19 @@ if (Test-Path $stagingDir) { Remove-Item $stagingDir -Recurse -Force }
 $stagingMod = Join-Path $stagingDir "ChatVsStreamer"
 New-Item -ItemType Directory -Path $stagingMod | Out-Null
 
-# Exclude secrets and personal data
-$exclude = @("TwitchAuth", "secrets.json", "config.json", "ViewerLedger.db")
+# Exclude secrets and personal data. ViewerLedger.db is prefix-matched, not just an exact
+# name match -- SQLite can leave "ViewerLedger.db-journal"/"-wal"/"-shm" sidecar files
+# behind if the game ever closed mid-write, and those would carry real viewer point data
+# into a public upload just as much as the main .db file would.
+$exclude   = @("TwitchAuth", "secrets.json", "config.json")
+$dbName    = "ViewerLedger.db"
 
-Get-ChildItem -Path $modDir | Where-Object { $exclude -notcontains $_.Name -and $_.Extension -ne ".zip" } | ForEach-Object {
+Get-ChildItem -Path $modDir | Where-Object {
+    $exclude -notcontains $_.Name -and
+    $_.Extension -ne ".zip" -and
+    $_.Name -ne $dbName -and
+    -not $_.Name.StartsWith("$dbName-")
+} | ForEach-Object {
     if ($_.PSIsContainer) {
         Copy-Item $_.FullName -Destination $stagingMod -Recurse -Force
     } else {

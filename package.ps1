@@ -125,7 +125,20 @@ Get-ChildItem -Path $modDir | Where-Object {
     }
 }
 
-Compress-Archive -Path $stagingMod -DestinationPath $zipPath
+# Install.ps1 (+ its RunMe.bat double-click wrapper) go in alongside ChatVsStreamer/, not
+# inside it -- Install.ps1 is the thing people are told to run after unzipping, and it
+# downloads/installs the mod itself at runtime (fetching the latest GitHub release zip on
+# its own), so it was never meant to live bundled inside the mod's own folder. RunMe.bat
+# calls "%~dp0Install.ps1" -- its own directory -- so it has to land next to Install.ps1,
+# not next to the .bat's original source location. Both copied into $stagingDir (not
+# $stagingMod) so they end up as siblings of ChatVsStreamer/ at the zip's root.
+$installerDir = Join-Path $scriptDir "Installer files"
+Copy-Item (Join-Path $installerDir "install.ps1") -Destination $stagingDir -Force
+Copy-Item (Join-Path $installerDir "RunMe.bat")   -Destination $stagingDir -Force
+
+# Passing multiple paths to -Path adds each one at the zip's top level directly, instead
+# of wrapping everything in an extra folder the way a single staging-dir path would.
+Compress-Archive -Path $stagingMod, (Join-Path $stagingDir "install.ps1"), (Join-Path $stagingDir "RunMe.bat") -DestinationPath $zipPath
 
 Remove-Item $stagingDir -Recurse -Force
 

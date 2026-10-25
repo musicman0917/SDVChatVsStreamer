@@ -4,6 +4,8 @@ A Stardew Valley SMAPI mod that lets your Twitch and TikTok viewers earn chaos p
 
 Built by [NeighborhoodofMusic](https://twitch.tv/neighborhoodofmusic).
 
+**AI disclosure:** NeighborhoodofMusic wrote the baseline code for this mod. Claude (Anthropic) was used to help sort, organize, and correct the code.
+
 ---
 
 ## 🚀 Installation

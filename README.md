@@ -41,8 +41,11 @@ The installer will:
 - Broadcaster ID auto-fetched on startup
 - Ban, timeout, and message delete events clear the chat overlay automatically
 
-### 🎵 TikTok Integration (via Tikfinity)
-- Connects to [Tikfinity](https://tikfinity.zerinity.com/)'s local WebSocket
+### 🎵 TikTok Integration (via Tikfinity) — Experimental
+
+⚠️ **Experimental.** Depends on [Tikfinity](https://tikfinity.zerinity.com/), a third-party bridge between TikTok Live and your PC — not something this mod controls, so behavior can shift if Tikfinity or TikTok's own Live platform changes.
+
+- Connects to Tikfinity's local WebSocket
 - Chat, follow, like, share, and subscribe events all award points
 - **Named gift overrides** with special in-game effects:
 

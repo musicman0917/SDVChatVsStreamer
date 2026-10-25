@@ -52,7 +52,7 @@ MAIN FEATURES (apply the bullet-list toolbar button after pasting)
 Viewers earn points by chatting, watching, subscribing, gifting subs, cheering bits, and raiding
 Full in-chat shop: !balance, !shop, !buy <command>, !info <command>
 Dozens of sabotages and blessings -- weather chaos, monster spawns, crop destruction, player debuffs, tool swaps, explosions, full-screen jump scares, and the 50,000pt Nuclear Chaos ultimate
-TikTok viewers (via Tikfinity) earn points too, with named gifts triggering specific effects and a diamond-tier system for everything else
+Experimental TikTok integration (via Tikfinity) -- viewers earn points too, with named gifts triggering specific effects and a diamond-tier system for everything else
 Experimental YouTube Live support via Streamer.bot (beta)
 Live OBS browser-source overlays for chat, the shop, and TikTok gift redemptions
 Togglable "100 Chicken Challenge"-style Animal Challenge mode chat can help or hurt
@@ -75,6 +75,7 @@ TikTok gift guide: http://localhost:7373/tiktok
 TikTok live feed (vertical): http://localhost:7373/tiktoklive
 
 Known limitations:
+TikTok integration is experimental -- it depends on Tikfinity, a third-party bridge between TikTok Live and your PC, so behavior can shift if Tikfinity or TikTok's own Live platform changes.
 YouTube integration is beta -- chat/membership/Super Chat points all work, but bot replies don't post back into YouTube chat yet (console log only); see the GitHub README for the Streamer.bot setup needed to enable that.
 Multiplayer targeting is alpha and untested in a real multiplayer session. Input/screen-based effects (bans, jump scares, warps, and similar) only land on a co-op farmhand if they also install this mod themselves; everything else (money, buffs, inventory, monster spawns) redirects with no extra setup.
 

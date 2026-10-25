@@ -1,4 +1,4 @@
-# ================================================================
+﻿# ================================================================
 #  Chat vs Streamer -- Update Script
 #  Downloads and installs the latest version from GitHub.
 #  Your credentials and save data are preserved.

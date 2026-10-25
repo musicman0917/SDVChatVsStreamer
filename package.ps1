@@ -1,4 +1,4 @@
-# ================================================================
+﻿# ================================================================
 #  Chat vs Streamer — Build & Package Script
 #  Run this before creating a GitHub release.
 #  Builds the mod and creates a zip ready to upload.

@@ -2,7 +2,7 @@
 
 A Stardew Valley SMAPI mod that lets your Twitch and TikTok viewers earn chaos points just by watching — then spend them to sabotage (or occasionally bless) your farm in real time.
 
-Built by [NeighborhoodofMusic](https://twitch.tv/neighborhoodofmusic).
+Built by [NeighborhoodofMusic](https://twitch.tv/neighborhoodofmusic). Also on [Nexus Mods](https://www.nexusmods.com/stardewvalley/mods/54605).
 
 **AI disclosure:** NeighborhoodofMusic wrote the baseline code for this mod. Claude (Anthropic) was used to help sort, organize, and correct the code.
 
@@ -10,7 +10,7 @@ Built by [NeighborhoodofMusic](https://twitch.tv/neighborhoodofmusic).
 
 ## 🚀 Installation
 
-1. Go to [Releases](https://github.com/musicman0917/SDVChatVsStreamer/releases) and download the latest zip
+1. Go to [Releases](https://github.com/musicman0917/SDVChatVsStreamer/releases) (or [Nexus Mods](https://www.nexusmods.com/stardewvalley/mods/54605)) and download the latest zip
 2. Unzip it anywhere
 3. Right-click `Install.ps1` and select **Run with PowerShell**
 4. If Windows blocks it, open PowerShell as admin and run:

@@ -13,6 +13,7 @@
 - Multiplayer Targeting now reaches input/screen effects too (Confused, bans, jump scares, warps, and similar) for any co-op player who also installs this mod themselves — those get relayed over SMAPI's own multiplayer messaging to run locally on their game. No install on their end still works exactly as before for everything else.
 - New vertical OBS overlay at `/tiktoklive` — a live feed of TikTok gift-triggered redemptions (tier-colored, auto-scrolling) built for a 1080×1920 portrait canvas, with a persistent footer pointing viewers to Twitch if they want to trigger chaos themselves instead of just watching it happen.
 - The `/tiktok` TikTok gift-tier guide page (documented in the README since it was added) is now actually served — the route existed only in the docs before this.
+- Now also published on [Nexus Mods](https://www.nexusmods.com/stardewvalley/mods/54605), with update checks against it alongside the existing GitHub source.
 
 **Fixed**
 - Debt Collector (`!buy debtcollector`) was meant to spare your tools but steal anything else, including weapons — but MeleeWeapon and Slingshot both derive from Tool in SDV's class hierarchy, so its "skip tools" check was quietly protecting weapons too. Weapons are stealable again; genuine tools (and the Scythe/Golden Scythe specifically, which are also MeleeWeapon under the hood) stay protected.

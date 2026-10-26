@@ -1,4 +1,4 @@
-# ================================================================
+﻿# ================================================================
 #  Chat vs Streamer -- Update Script
 #  Downloads and installs the latest version from GitHub.
 #  Your credentials and save data are preserved.
@@ -38,8 +38,16 @@ $candidates = @(
     "C:\Program Files (x86)\Steam\steamapps\common\Stardew Valley\Mods\ChatVsStreamer",
     "C:\Program Files\Steam\steamapps\common\Stardew Valley\Mods\ChatVsStreamer",
     "C:\Program Files (x86)\GOG Galaxy\Games\Stardew Valley\Mods\ChatVsStreamer",
-    "C:\Program Files\GOG Galaxy\Games\Stardew Valley\Mods\ChatVsStreamer"
+    "C:\Program Files\GOG Galaxy\Games\Stardew Valley\Mods\ChatVsStreamer",
+    "$env:USERPROFILE\AppData\Local\Programs\Stardew Valley\Mods\ChatVsStreamer"
 )
+
+try {
+    $steamPath = (Get-ItemProperty "HKCU:\Software\Valve\Steam" -ErrorAction SilentlyContinue).SteamPath
+    if ($steamPath) {
+        $candidates += "$steamPath\steamapps\common\Stardew Valley\Mods\ChatVsStreamer"
+    }
+} catch {}
 
 $modFolder = $null
 foreach ($path in $candidates) {

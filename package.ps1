@@ -1,4 +1,4 @@
-# ================================================================
+﻿# ================================================================
 #  Chat vs Streamer — Build & Package Script
 #  Run this before creating a GitHub release.
 #  Builds the mod and creates a zip ready to upload.
@@ -36,7 +36,7 @@ $choice = Read-Host "  Enter 1 or 2"
 
 $modDir = switch ($choice.Trim()) {
     "1"     { $stardropPath }
-    "2"     { $defaultPath ?? $stardropPath }
+    "2"     { if ($defaultPath) { $defaultPath } else { $stardropPath } }
     default { $stardropPath }
 }
 
@@ -105,10 +105,19 @@ if (Test-Path $stagingDir) { Remove-Item $stagingDir -Recurse -Force }
 $stagingMod = Join-Path $stagingDir "ChatVsStreamer"
 New-Item -ItemType Directory -Path $stagingMod | Out-Null
 
-# Exclude secrets and personal data
-$exclude = @("TwitchAuth", "secrets.json", "config.json", "ViewerLedger.db")
+# Exclude secrets and personal data. ViewerLedger.db is prefix-matched, not just an exact
+# name match -- SQLite can leave "ViewerLedger.db-journal"/"-wal"/"-shm" sidecar files
+# behind if the game ever closed mid-write, and those would carry real viewer point data
+# into a public upload just as much as the main .db file would.
+$exclude   = @("TwitchAuth", "secrets.json", "config.json")
+$dbName    = "ViewerLedger.db"
 
-Get-ChildItem -Path $modDir | Where-Object { $exclude -notcontains $_.Name -and $_.Extension -ne ".zip" } | ForEach-Object {
+Get-ChildItem -Path $modDir | Where-Object {
+    $exclude -notcontains $_.Name -and
+    $_.Extension -ne ".zip" -and
+    $_.Name -ne $dbName -and
+    -not $_.Name.StartsWith("$dbName-")
+} | ForEach-Object {
     if ($_.PSIsContainer) {
         Copy-Item $_.FullName -Destination $stagingMod -Recurse -Force
     } else {
@@ -116,7 +125,20 @@ Get-ChildItem -Path $modDir | Where-Object { $exclude -notcontains $_.Name -and 
     }
 }
 
-Compress-Archive -Path $stagingMod -DestinationPath $zipPath
+# Install.ps1 (+ its RunMe.bat double-click wrapper) go in alongside ChatVsStreamer/, not
+# inside it -- Install.ps1 is the thing people are told to run after unzipping, and it
+# downloads/installs the mod itself at runtime (fetching the latest GitHub release zip on
+# its own), so it was never meant to live bundled inside the mod's own folder. RunMe.bat
+# calls "%~dp0Install.ps1" -- its own directory -- so it has to land next to Install.ps1,
+# not next to the .bat's original source location. Both copied into $stagingDir (not
+# $stagingMod) so they end up as siblings of ChatVsStreamer/ at the zip's root.
+$installerDir = Join-Path $scriptDir "Installer files"
+Copy-Item (Join-Path $installerDir "install.ps1") -Destination $stagingDir -Force
+Copy-Item (Join-Path $installerDir "RunMe.bat")   -Destination $stagingDir -Force
+
+# Passing multiple paths to -Path adds each one at the zip's top level directly, instead
+# of wrapping everything in an extra folder the way a single staging-dir path would.
+Compress-Archive -Path $stagingMod, (Join-Path $stagingDir "install.ps1"), (Join-Path $stagingDir "RunMe.bat") -DestinationPath $zipPath
 
 Remove-Item $stagingDir -Recurse -Force
 

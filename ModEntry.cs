@@ -8,6 +8,7 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Menus;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 
 namespace SDVChatVsStreamer;
@@ -16,7 +17,11 @@ public class ModEntry : Mod
 {
     public static IMonitor? Logger { get; private set; }
     public static ViewerLedger? Ledger { get; private set; }
-    public static Queue<Action> PendingActions { get; } = new();
+    public static RaidEventSystem? RaidEvents { get; private set; }
+    // Enqueued from several independent background threads at once (Twitch IRC, TikTok,
+    // YouTube polling, the overlay's HTTP server) and dequeued from the main thread --
+    // a plain Queue<T> is not safe for that without an external lock.
+    public static ConcurrentQueue<Action> PendingActions { get; } = new();
     public static Action? PendingDismissalAction { get; set; }
     public static SDVChatVsStreamer.YouTube.YouTubeManager? YouTubeManager { get; private set; }
     private bool _dismissalWaitTick = false;
@@ -55,10 +60,15 @@ public class ModEntry : Mod
 
         // Sabotage
         _sabotage = new SabotageEngine(_ledger, Monitor, _config);
+        RaidEvents = _sabotage.RaidEvents;
         _clipService = new ClipService(_config, Monitor, Helper.DirectoryPath);
         _sabotage.SetClipService(_clipService);
         _clipService.SetOverlay(_overlay);
         SDVChatVsStreamer.Sabotage.Sabotages.ToolSabotageHelper.SetMonitor(Monitor);
+        SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.Init(_config);
+        SDVChatVsStreamer.Sabotage.Sabotages.JumpScareState.Init(helper, Monitor);
+        SDVChatVsStreamer.Sabotage.MultiplayerTargeting.Init(_config);
+        SDVChatVsStreamer.Sabotage.PeerRelay.Init(helper, ModManifest, Monitor);
         RegisterSabotages();
 
         // Wire raid event system into points engine for double points
@@ -91,10 +101,53 @@ public class ModEntry : Mod
         helper.Events.GameLoop.DayStarted      += OnDayStarted;
         helper.Events.GameLoop.ReturnedToTitle += OnReturnedToTitle;
         helper.Events.Input.ButtonPressed      += OnButtonPressed;
+        helper.Events.Input.ButtonReleased     += OnButtonReleased;
         helper.Events.Input.ButtonsChanged     += OnButtonsChanged;
         helper.Events.Player.Warped            += OnWarped;
+        helper.Events.Multiplayer.ModMessageReceived += OnModMessageReceived;
 
         Monitor.Log("[ChatVsStreamer] Mod loaded.", LogLevel.Info);
+    }
+
+    // ─── Peer Relay (cross-instance co-op messaging) ─────────────────────────
+
+    private void OnModMessageReceived(object? sender, StardewModdingAPI.Events.ModMessageReceivedEventArgs e)
+    {
+        if (!Context.IsWorldReady) return;
+        if (e.FromModID != ModManifest.UniqueID) return;
+
+        try
+        {
+            if (e.Type == SDVChatVsStreamer.Sabotage.PeerRelay.EffectMessageType)
+            {
+                var payload = e.ReadAs<SDVChatVsStreamer.Sabotage.PeerRelay.RelayPayload>();
+                var sabotage = _sabotage.GetDefinition(payload.EffectId)?.Sabotage;
+                if (sabotage is SDVChatVsStreamer.Sabotage.ILocallyRelayable relayable)
+                {
+                    Monitor.Log($"[ChatVsStreamer] Running relayed effect '{payload.EffectId}' (bought by {payload.TriggeredBy}).", LogLevel.Debug);
+                    relayable.ExecuteLocal(payload.TriggeredBy);
+                }
+                else
+                {
+                    Monitor.Log($"[ChatVsStreamer] Received relay for unknown/non-relayable effect '{payload.EffectId}'.", LogLevel.Warn);
+                }
+            }
+            else if (e.Type == SDVChatVsStreamer.Sabotage.PeerRelay.RefundMessageType)
+            {
+                // Only the host actually owns the shared ledger -- a farmhand relaying this
+                // to itself (e.g. local co-op) would just be a harmless no-op double-credit
+                // risk, so only act on it if this instance really is the host.
+                if (!Game1.IsMasterGame) return;
+
+                var payload = e.ReadAs<SDVChatVsStreamer.Sabotage.PeerRelay.RefundPayload>();
+                Ledger?.AddPoints(payload.Username, payload.Amount);
+                Monitor.Log($"[ChatVsStreamer] Refunded {payload.Amount}pts to {payload.Username} ({payload.Reason}) on behalf of a farmhand.", LogLevel.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            Monitor.Log($"[ChatVsStreamer] Failed to handle peer relay message '{e.Type}': {ex.Message}", LogLevel.Warn);
+        }
     }
 
     // ─── Sabotage Registration ────────────────────────────────────────────────
@@ -181,7 +234,6 @@ public class ModEntry : Mod
         _sabotage.Register(new MashedSabotage());
         _sabotage.Register(new FreezeTimeSabotage());
         _sabotage.Register(new FloorIsLavaSabotage());
-        //_sabotage.Register(new SlipNSlideSabotage()); // removed — too unstable
         _sabotage.Register(new WarpWhistleSabotage());
         _sabotage.Register(new WarpWhistlePlusSabotage());
         _sabotage.Register(new WarpWhistleMaxSabotage());
@@ -220,6 +272,16 @@ public class ModEntry : Mod
         // ── Tool sabotages (24 commands) ──
         foreach (var toolSabotage in ToolSabotage.BuildAll())
             _sabotage.Register(toolSabotage);
+
+        // ── Animal Challenge (help/hurt commands) ──
+        _sabotage.Register(new SpookAnimalSabotage());
+        _sabotage.Register(new AddAnimalBlessing());
+
+        // ── Jump Scare ──
+        _sabotage.Register(new JumpScareSabotage());
+
+        // ── Nuclear Chaos ──
+        _sabotage.Register(new NuclearChaosSabotage());
 
         // ── Bit pools ──
         _sabotage.RegisterBitEvent(new DrainEnergySabotage(), BitTier.Small);
@@ -281,14 +343,15 @@ public class ModEntry : Mod
     private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
     {
         // Register GMCM config menu
-        GmcmSetup.Register(Helper, ModManifest, _config);
+        GmcmSetup.Register(Helper, ModManifest, _config, () => _twitch.SyncCoopChannels(), () => _overlay.PushConfig());
 
         var overlayPath = Path.Combine(Helper.DirectoryPath, "Overlay", "overlay.html");
         var mobilePath  = Path.Combine(Helper.DirectoryPath, "Overlay", "mobile.html");
         var chatPath    = Path.Combine(Helper.DirectoryPath, "Overlay", "chat.html");
         var alertPath   = Path.Combine(Helper.DirectoryPath, "Overlay", "alert.html");
         var alertMobilePath = Path.Combine(Helper.DirectoryPath, "Overlay", "alertmobile.html");
-        _overlay.Start(overlayPath, mobilePath, chatPath, alertPath, alertMobilePath, _chatFeed);
+        var tiktokLivePath  = Path.Combine(Helper.DirectoryPath, "Overlay", "tiktoklive.html");
+        _overlay.Start(overlayPath, mobilePath, chatPath, alertPath, alertMobilePath, tiktokLivePath, _chatFeed);
 
         // Push new chat messages to the browser source
         _chatFeed.OnNewMessage   += msg  => _overlay.PushChatMessage(msg);
@@ -326,6 +389,7 @@ public class ModEntry : Mod
         _twitch.SetGameActive(true);
         _youtube?.SetGameActive(true);
         _donorDrive?.SetGameActive(true);
+        _tiktok?.SetGameActive(true);
         Monitor.Log("[ChatVsStreamer] Save loaded — sabotages enabled.", LogLevel.Info);
     }
 
@@ -334,6 +398,7 @@ public class ModEntry : Mod
         _twitch.SetGameActive(false);
         _youtube?.SetGameActive(false);
         _donorDrive?.SetGameActive(false);
+        _tiktok?.SetGameActive(false);
         Monitor.Log("[ChatVsStreamer] Returned to title — sabotages disabled.", LogLevel.Info);
     }
 
@@ -348,11 +413,13 @@ public class ModEntry : Mod
         if (e.IsMultipleOf(3600))
             _sabotage.TickAutoTrigger(msg => _twitch.SendMessage(msg));
         SDVChatVsStreamer.Sabotage.Sabotages.BlindfoldSabotage.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.JumpScareState.Tick();
+        SDVChatVsStreamer.Sabotage.Sabotages.NuclearChaosState.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.ConfusedSabotage.Tick();
+        ApplyConfusedControls();
         SDVChatVsStreamer.Sabotage.Sabotages.MashedSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.FreezeTimeSabotage.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.FloorIsLavaSabotage.Tick();
-        //SDVChatVsStreamer.Sabotage.Sabotages.SlipNSlideSabotage.Tick(); // removed
         SDVChatVsStreamer.Sabotage.Sabotages.WarpWhistleState.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.BanState.Tick();
         SDVChatVsStreamer.Sabotage.Sabotages.NarcolepsySabotage.Tick();
@@ -362,8 +429,8 @@ public class ModEntry : Mod
         SDVChatVsStreamer.Sabotage.Sabotages.HeavyPocketsSabotage.Tick();
 
         // Drain general pending actions (e.g. TikTok emotes)
-        while (PendingActions.Count > 0)
-            PendingActions.Dequeue().Invoke();
+        while (PendingActions.TryDequeue(out var pendingAction))
+            pendingAction.Invoke();
 
         // Dismissal detection — wait one tick after setting so menu has time to open
         if (PendingDismissalAction != null)
@@ -387,6 +454,7 @@ public class ModEntry : Mod
         TikTok.TikTokManager.ProcessPendingReturnToTitle();
 
         var activeViewers = _twitch.GetActiveViewers();
+        if (_tiktok != null) activeViewers = activeViewers.Union(_tiktok.GetActiveViewers()).ToList();
         _points.Update(activeViewers);
 
         // Push leaderboard every 60 seconds
@@ -405,6 +473,25 @@ public class ModEntry : Mod
                 raidEvents.IsHalvedCosts,
                 (int)(raidEvents.IsDoublePoints ? (raidEvents._doublePointsExpiry - DateTime.UtcNow).TotalSeconds : 0),
                 (int)(raidEvents.IsHalvedCosts  ? (raidEvents._halveCostsExpiry  - DateTime.UtcNow).TotalSeconds : 0));
+
+            if (SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.IsEnabled)
+                _overlay.PushChallenge(
+                    SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.GetCount(),
+                    SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.GoalCount,
+                    SDVChatVsStreamer.Sabotage.Sabotages.AnimalChallengeState.FilterLabel);
+
+            // Top TikTok supporter shoutout — a growth funnel toward Twitch, not a
+            // parallel chat economy, so this only ever shows recognition + a CTA.
+            if (_config.EnableTikTok && _config.TikTokShoutoutEnabled)
+            {
+                var topSupporter = _tiktok?.GetTopSupporter();
+                if (topSupporter != null)
+                    _overlay.PushTikTokShoutout(
+                        topSupporter.Value.Username,
+                        topSupporter.Value.Points,
+                        _config.TikTokShoutoutCtaText,
+                        _config.ChannelName);
+            }
         }
     }
 
@@ -435,7 +522,7 @@ public class ModEntry : Mod
 
     private void OnButtonsChanged(object? sender, StardewModdingAPI.Events.ButtonsChangedEventArgs e)
     {
-        if (!ConfusedSabotage.IsActive || !Context.IsWorldReady) return;
+        if (!Context.IsWorldReady) return;
 
         // Sticky — suppress item switching and dropping
         if (StickySabotage.IsActive)
@@ -448,28 +535,63 @@ public class ModEntry : Mod
                     Helper.Input.Suppress(btn);
             }
         }
+    }
 
-        var moveButtons = new[] {
-            SButton.W, SButton.S, SButton.A, SButton.D,
-            SButton.Up, SButton.Down, SButton.Left, SButton.Right
-        };
+    private void OnButtonReleased(object? sender, StardewModdingAPI.Events.ButtonReleasedEventArgs e)
+    {
+        _confusedHeldMoveButtons.Remove(e.Button);
+    }
 
-        foreach (var btn in moveButtons)
+    private readonly HashSet<SButton> _confusedHeldMoveButtons = new();
+
+    private static readonly SButton[] MoveButtons = {
+        SButton.W, SButton.S, SButton.A, SButton.D,
+        SButton.Up, SButton.Down, SButton.Left, SButton.Right
+    };
+
+    // Runs every tick (not just on ButtonsChanged) so a held key stays inverted
+    // for as long as it's held, instead of only flickering on the initial press.
+    private void ApplyConfusedControls()
+    {
+        if (!ConfusedSabotage.IsActive) return;
+
+        // Deliberately NOT using Helper.Input.IsDown here — once a button gets suppressed
+        // below, IsDown can start reporting it as released on a later tick even while it's
+        // still physically held, which made this loop stop re-suppressing/re-inverting and
+        // let the real input bleed through. The result alternated between "moves naturally"
+        // and "frozen" tick to tick, which read as mashing instead of a clean inversion.
+        // _confusedHeldMoveButtons is maintained from real press/release transitions instead,
+        // so it isn't affected by our own suppression.
+        foreach (var btn in _confusedHeldMoveButtons.ToList())
         {
-            if (Helper.Input.IsDown(btn))
+            Helper.Input.Suppress(btn);
+
+            // The game already added the button's real (natural) direction to
+            // movementDirections before this postfix runs — Suppress alone is one
+            // tick too late to stop that, so without removing it here the farmer
+            // ends up with both the natural AND the inverted direction active at
+            // once, which nets out as jittery mashing instead of clean inversion.
+            var natural = btn switch
             {
-                Helper.Input.Suppress(btn);
-                var opposite = btn switch
-                {
-                    SButton.W    or SButton.Up    => 2, // down
-                    SButton.S    or SButton.Down  => 0, // up
-                    SButton.A    or SButton.Left  => 1, // right
-                    SButton.D    or SButton.Right => 3, // left
-                    _                             => -1
-                };
-                if (opposite >= 0 && !Game1.player.movementDirections.Contains(opposite))
-                    Game1.player.movementDirections.Add(opposite);
-            }
+                SButton.W    or SButton.Up    => 0, // up
+                SButton.S    or SButton.Down  => 2, // down
+                SButton.A    or SButton.Left  => 3, // left
+                SButton.D    or SButton.Right => 1, // right
+                _                             => -1
+            };
+            var opposite = btn switch
+            {
+                SButton.W    or SButton.Up    => 2, // down
+                SButton.S    or SButton.Down  => 0, // up
+                SButton.A    or SButton.Left  => 1, // right
+                SButton.D    or SButton.Right => 3, // left
+                _                             => -1
+            };
+
+            if (natural >= 0)
+                while (Game1.player.movementDirections.Remove(natural)) { } // strip every copy, not just one
+            if (opposite >= 0 && !Game1.player.movementDirections.Contains(opposite))
+                Game1.player.movementDirections.Add(opposite);
         }
     }
 
@@ -554,6 +676,8 @@ public class ModEntry : Mod
         // External effect indicators — all share the same 'y' counter above
         // so nothing ever overlaps regardless of how many are active at once
         BlindfoldSabotage.Draw(sb);          // full-screen overlay, not a stacking line
+        JumpScareState.Draw(sb);             // brief full-screen flash, no stacking line — no warning either
+        NuclearChaosState.Draw(sb);          // blast flash + lingering haze, no stacking line
         FloorIsLavaSabotage.Draw(sb, ref y); // haze overlay + stacking countdown line
         WarpWhistleState.Draw(sb, ref y);
         BanState.Draw(sb, ref y);
@@ -561,6 +685,14 @@ public class ModEntry : Mod
 
     private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
     {
+        // Tracked independently of Helper.Input.IsDown for ApplyConfusedControls() below —
+        // once we start suppressing a movement key, IsDown can start reflecting that
+        // suppression on the very next tick, making our own steady-state check think the
+        // key was released. ButtonPressed/ButtonReleased fire on real physical transitions
+        // regardless of suppression, so tracking held keys this way avoids that trap.
+        if (MoveButtons.Contains(e.Button))
+            _confusedHeldMoveButtons.Add(e.Button);
+
         // Ban state input suppression
         if (Context.IsWorldReady && SDVChatVsStreamer.Sabotage.Sabotages.BanState.BanInventory)
         {
@@ -587,17 +719,17 @@ public class ModEntry : Mod
         {
             if (e.Button == SButton.MouseRight || e.Button == SButton.X || e.Button == SButton.ControllerA)
             {
-                var facing  = Game1.player.FacingDirection;
-                var tile    = Game1.player.TilePoint;
-                var checkTile = facing switch {
-                    0 => new Point(tile.X, tile.Y - 1),
-                    1 => new Point(tile.X + 1, tile.Y),
-                    2 => new Point(tile.X, tile.Y + 1),
-                    3 => new Point(tile.X - 1, tile.Y),
-                    _ => tile
-                };
-                var npc = Game1.player.currentLocation.isCharacterAtTile(checkTile.ToVector2());
-                if (npc != null) { Helper.Input.Suppress(e.Button); return; }
+                // Check distance to EVERY NPC in the location instead of just the single tile
+                // the player happens to be facing -- a facing-tile check misses a diagonal NPC
+                // or one that isn't perfectly tile-aligned (mid-walk animation), letting this
+                // same action button reach the game and fire a real interaction. That matters
+                // because gift-giving uses this exact button too: if the press gets through,
+                // the gift is consumed and friendship awarded even though the resulting
+                // DialogueBox gets force-closed a tick later by BanState.Tick()'s backstop --
+                // which only hides the dialogue, it can't undo an interaction that already ran.
+                bool npcNearby = Game1.player.currentLocation.characters.Any(npc =>
+                    Vector2.Distance(npc.Position, Game1.player.Position) < 96f);
+                if (npcNearby) { Helper.Input.Suppress(e.Button); return; }
             }
         }
 
@@ -608,7 +740,7 @@ public class ModEntry : Mod
                 if (Game1.activeClickableMenu is ShopMenu)
                 { Helper.Input.Suppress(e.Button); return; }
         }
-        if (e.Button == SButton.F9 && TwitchAuth._pendingAuth)
+        if (e.Button.ToString().Equals(_config.PasteTokenKey, StringComparison.OrdinalIgnoreCase) && TwitchAuth._pendingAuth)
         {
             var token = GetClipboardText();
             if (!string.IsNullOrWhiteSpace(token))
@@ -629,6 +761,18 @@ public class ModEntry : Mod
             && Game1.activeClickableMenu == null)
         {
             Game1.activeClickableMenu = new UI.IgnoreListMenu(_config, Helper);
+        }
+
+        // Force the Chaos Gods to fire immediately — bypasses the enabled toggle
+        // and quiet-period cooldown, for clip farming or just testing on demand
+        if (e.Button.ToString().Equals(_config.ForceChaosKey, StringComparison.OrdinalIgnoreCase)
+            && Context.IsWorldReady)
+        {
+            bool fired = _sabotage.ForceAutoTrigger(msg => _twitch.SendMessage(msg));
+            if (!fired)
+                Game1.addHUDMessage(new HUDMessage(
+                    "⚡ Chaos Gods have nothing to fire — check your Auto Trigger Pool in GMCM.",
+                    HUDMessage.error_type));
         }
     }
 

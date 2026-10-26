@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TikTok Live Feed</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,400;0,700;1,400&display=swap');
+
+  :root {
+    --red:    #ff2d55;
+    --cyan:   #00f2ea;
+    --purple: #9147ff;
+    --purple-light: #bf94ff;
+    --dark:   #0d0d14;
+    --card:   #161620;
+    --border: #222233;
+    --text:   #f0f0f5;
+    --muted:  #6a6a88;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { background: transparent; }
+
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: var(--dark);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 36px 40px 28px;
+    background: linear-gradient(90deg, rgba(255,45,85,0.18), rgba(0,242,234,0.1));
+    border-bottom: 2px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .header svg { width: 56px; height: 56px; flex-shrink: 0; }
+
+  .header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 54px;
+    letter-spacing: 4px;
+    line-height: 1;
+    background: linear-gradient(90deg, #fff, var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-sub {
+    font-size: 20px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+
+  /* ── Feed ── */
+
+  .feed {
+    flex: 1;
+    overflow: hidden;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .empty {
+    margin: auto;
+    text-align: center;
+    color: var(--muted);
+    font-size: 26px;
+    line-height: 1.6;
+  }
+
+  .empty .big { font-size: 64px; display: block; margin-bottom: 12px; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 26px 30px;
+    border-left: 7px solid var(--muted);
+    animation: slideIn 0.35s ease;
+    flex-shrink: 0;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .row.fading { animation: fadeOut 0.4s ease forwards; }
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to   { opacity: 0; transform: translateY(8px); }
+  }
+
+  .row.nuisance    { border-left-color: #778899; }
+  .row.disruptive  { border-left-color: #f0a500; }
+  .row.painful     { border-left-color: #ff6b35; }
+  .row.devastating { border-left-color: var(--red); }
+  .row.blessing    { border-left-color: var(--cyan); box-shadow: 0 0 22px rgba(0,242,234,0.12); }
+
+  .row-icon {
+    font-size: 44px;
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .row-info { flex: 1; min-width: 0; }
+
+  .row-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 34px;
+    letter-spacing: 1px;
+    line-height: 1.1;
+  }
+
+  .row.nuisance    .row-name { color: #aab8c2; }
+  .row.disruptive  .row-name { color: #f0a500; }
+  .row.painful     .row-name { color: #ff6b35; }
+  .row.devastating .row-name { color: var(--red); }
+  .row.blessing    .row-name { color: var(--cyan); }
+
+  .row-user {
+    font-size: 21px;
+    color: var(--text);
+    margin-top: 6px;
+  }
+
+  .row-user b { color: var(--cyan); }
+
+  .row-time {
+    font-size: 17px;
+    color: var(--muted);
+    flex-shrink: 0;
+    white-space: nowrap;
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+
+  /* ── Guide (shown when TikTok integration is off) ── */
+
+  .guide {
+    flex: 1;
+    overflow: hidden;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .guide-section {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 4px 0;
+  }
+
+  .row.fun       { border-left-color: var(--cyan); }
+  .row.chaos     { border-left-color: #ff9500; }
+  .row.legendary { border-left-color: #ffd700; box-shadow: 0 0 22px rgba(255,215,0,0.12); }
+
+  .row.fun       .row-name { color: var(--cyan); }
+  .row.chaos     .row-name { color: #ff9500; }
+  .row.legendary .row-name { color: #ffd700; }
+
+  .row-desc {
+    font-size: 19px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .row-desc strong { color: #c0c0d0; }
+
+  /* ── Footer CTA ── */
+
+  .footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 28px 32px 36px;
+    border-top: 2px solid var(--border);
+    background: linear-gradient(0deg, rgba(145,71,255,0.14), rgba(145,71,255,0.02));
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  .footer-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px;
+    letter-spacing: 2px;
+    color: var(--purple-light);
+  }
+
+  .footer-cta {
+    font-size: 24px;
+    color: var(--text);
+    opacity: 0.95;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <svg viewBox="0 0 24 24">
+      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1.01-.07z" fill="url(#hg)"/>
+      <defs>
+        <linearGradient id="hg" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#ff2d55"/>
+          <stop offset="100%" stop-color="#00f2ea"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div>
+      <div class="header-title">GIFT CHAOS</div>
+      <div class="header-sub" id="header-sub">How TikTok gifts trigger chaos</div>
+    </div>
+  </div>
+
+  <div class="guide" id="guide">
+    <div class="guide-section">✦ Special Gifts</div>
+
+    <div class="row fun">
+      <div class="row-icon">💗</div>
+      <div class="row-info">
+        <div class="row-name">Heart Me</div>
+        <div class="row-desc">Farmer does a <strong>heart emote</strong></div>
+      </div>
+    </div>
+
+    <div class="row fun">
+      <div class="row-icon">🌹</div>
+      <div class="row-info">
+        <div class="row-name">Rose</div>
+        <div class="row-desc">Farmer does a <strong>happy emote</strong></div>
+      </div>
+    </div>
+
+    <div class="row fun">
+      <div class="row-icon">🍦</div>
+      <div class="row-info">
+        <div class="row-name">Ice Cream</div>
+        <div class="row-desc">Adds <strong>Ice Cream</strong> to inventory</div>
+      </div>
+    </div>
+
+    <div class="row chaos">
+      <div class="row-icon">🎆</div>
+      <div class="row-info">
+        <div class="row-name">Fireworks</div>
+        <div class="row-desc"><strong>Mega Bomb</strong> at the farmer's feet</div>
+      </div>
+    </div>
+
+    <div class="row chaos">
+      <div class="row-icon">📦</div>
+      <div class="row-info">
+        <div class="row-name">Mystery Box</div>
+        <div class="row-desc">Mystery item + <strong>devastating sabotage</strong></div>
+      </div>
+    </div>
+
+    <div class="row legendary">
+      <div class="row-icon">🌌</div>
+      <div class="row-info">
+        <div class="row-name">TikTok Universe</div>
+        <div class="row-desc">Mr. Qi — <strong>forces the day to end</strong></div>
+      </div>
+    </div>
+
+    <div class="guide-section">✦ Every Other Gift — By Diamond Value</div>
+
+    <div class="row nuisance">
+      <div class="row-icon">😤</div>
+      <div class="row-info">
+        <div class="row-name">1–9 💎 — Nuisance</div>
+        <div class="row-desc">Rain, trash, dizzy, energy drain</div>
+      </div>
+    </div>
+
+    <div class="row disruptive">
+      <div class="row-icon">😈</div>
+      <div class="row-info">
+        <div class="row-name">10–49 💎 — Disruptive</div>
+        <div class="row-desc">Slimes, crows, bats, stolen gold</div>
+      </div>
+    </div>
+
+    <div class="row painful">
+      <div class="row-icon">💥</div>
+      <div class="row-info">
+        <div class="row-name">50–199 💎 — Painful</div>
+        <div class="row-desc">Bombs, swarms, warps, weeds</div>
+      </div>
+    </div>
+
+    <div class="row devastating">
+      <div class="row-icon">💀</div>
+      <div class="row-info">
+        <div class="row-name">200–499 💎 — Devastating</div>
+        <div class="row-desc">Forced sleep, crop death, green rain</div>
+      </div>
+    </div>
+
+    <div class="row blessing">
+      <div class="row-icon">🌟</div>
+      <div class="row-info">
+        <div class="row-name">500+ 💎 — Blessing</div>
+        <div class="row-desc">Restored energy, gold, watered crops</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feed" id="feed" style="display:none">
+    <div class="empty" id="empty">
+      <span class="big">🎁</span>
+      Waiting for the first gift to trigger chaos...
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-headline">💜 WANT TO REDEEM IT YOURSELF?</div>
+    <div class="footer-cta">Come join the chaos on the purple app!</div>
+  </div>
+
+<script>
+  const params    = new URLSearchParams(location.search);
+  const maxItems  = parseInt(params.get('maxItems') || '7');
+  const port      = params.get('port') || location.port || '7373';
+
+  const feedEl   = document.getElementById('feed');
+  const emptyEl  = document.getElementById('empty');
+  const guideEl  = document.getElementById('guide');
+  const subEl    = document.getElementById('header-sub');
+
+  // Starts in guide mode (TikTok integration is off by default) and swaps to the live
+  // feed once config says it's enabled -- and back again if it's ever turned off.
+  let tikTokEnabled = false;
+
+  function setMode(enabled) {
+    if (enabled === tikTokEnabled) return;
+    tikTokEnabled = enabled;
+    guideEl.style.display = enabled ? 'none' : '';
+    feedEl.style.display  = enabled ? ''     : 'none';
+    subEl.textContent = enabled ? 'Live TikTok redemptions' : 'How TikTok gifts trigger chaos';
+  }
+
+  function applyConfig(cfg) {
+    if (!cfg) return;
+    setMode(!!cfg.tikTokEnabled);
+  }
+
+  const TIER_ICONS = {
+    nuisance:    '😤',
+    disruptive:  '😈',
+    painful:     '💥',
+    devastating: '💀',
+    blessing:    '🌟',
+  };
+
+  const items = []; // { el, ts }
+
+  function timeAgo(ts) {
+    const secs = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (secs < 3)   return 'just now';
+    if (secs < 60)  return `${secs}s ago`;
+    const mins = Math.floor(secs / 60);
+    return `${mins}m ago`;
+  }
+
+  function addRedemption(msg) {
+    emptyEl.style.display = 'none';
+
+    const row = document.createElement('div');
+    const tier = (msg.tier || '').toLowerCase();
+    row.className = `row ${tier}`;
+    row.dataset.ts = String(msg.timestamp || Date.now());
+
+    const icon = TIER_ICONS[tier] || '✨';
+
+    row.innerHTML = `
+      <div class="row-icon">${icon}</div>
+      <div class="row-info">
+        <div class="row-name">${esc(msg.sabotageName || '')}</div>
+        <div class="row-user"><b>${esc(msg.username || 'someone')}</b> triggered this with a gift</div>
+      </div>
+      <div class="row-time">just now</div>
+    `;
+
+    feedEl.insertBefore(row, feedEl.firstChild);
+    items.unshift(row);
+
+    while (items.length > maxItems) {
+      const old = items.pop();
+      old.classList.add('fading');
+      setTimeout(() => old.remove(), 400);
+    }
+
+    if (!items.length) emptyEl.style.display = '';
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+  }
+
+  // Refresh "time ago" labels every few seconds without needing new events
+  setInterval(() => {
+    items.forEach(row => {
+      const timeEl = row.querySelector('.row-time');
+      if (timeEl) timeEl.textContent = timeAgo(parseInt(row.dataset.ts, 10));
+    });
+  }, 2000);
+
+  let ws;
+  function connect() {
+    ws = new WebSocket(`ws://localhost:${port}/`);
+
+    ws.onmessage = e => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'init' || msg.type === 'config') applyConfig(msg.config);
+        else if (msg.type === 'feed' && msg.eventType === 'tiktok') addRedemption(msg);
+      } catch {}
+    };
+
+    ws.onclose = () => setTimeout(connect, 3000);
+    ws.onerror = () => ws.close();
+  }
+
+  connect();
+</script>
+
+</body>
+</html>

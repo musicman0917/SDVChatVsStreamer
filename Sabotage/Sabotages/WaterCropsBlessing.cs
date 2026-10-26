@@ -10,6 +10,7 @@ public class WaterCropsBlessing : ISabotage
     public string Description  => "waters all crops on the farm";
     public int Cost            => 150;
     public int CooldownSeconds => 300;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {

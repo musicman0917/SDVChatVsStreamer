@@ -130,18 +130,21 @@ public class ViewerLedger
     public bool DeductPoints(string username, int amount)
     {
         EnsureViewer(username);
-        if (GetPoints(username) < amount) return false;
 
+        // The balance check and the deduction must happen in one atomic statement -- a separate
+        // SELECT-then-UPDATE leaves a window where two concurrent deductions (e.g. two chat
+        // commands landing close together) can each pass the check before either one applies,
+        // letting a viewer spend more points than they actually have.
         using var conn = GetConnection();
         using var cmd  = conn.CreateCommand();
         cmd.CommandText = @"
             UPDATE viewers
             SET points = points - $a, total_spent = total_spent + $a
-            WHERE username = $u;";
+            WHERE username = $u AND points >= $a;";
         cmd.Parameters.AddWithValue("$a", amount);
         cmd.Parameters.AddWithValue("$u", username.ToLower());
-        cmd.ExecuteNonQuery();
-        return true;
+        var rowsAffected = cmd.ExecuteNonQuery();
+        return rowsAffected > 0;
     }
 
     public void SetSubTier(string username, SubTier tier)

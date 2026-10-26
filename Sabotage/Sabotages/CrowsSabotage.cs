@@ -23,8 +23,14 @@ public class CrowsSabotage : ISabotage
 
         if (crops.Count == 0)
         {
+            // Refund what was actually paid, not the static base Cost -- see WarpSabotage
+            // for why (a halved-cost raid event active at purchase time would otherwise
+            // refund more than the player spent).
+            int refund = ModEntry.RaidEvents?.ApplyCostModifier(Cost) ?? Cost;
+            ModEntry.Ledger?.AddPoints(triggeredBy, refund);
+
             Game1.addHUDMessage(new HUDMessage(
-                $"🐦 {triggeredBy} sent crows but there are no crops to eat!",
+                $"🐦 {triggeredBy} sent crows but there were no crops to eat! Refunded {refund}pts.",
                 HUDMessage.newQuest_type));
             return;
         }

@@ -14,6 +14,7 @@
 - New vertical OBS overlay at `/tiktoklive` — a live feed of TikTok gift-triggered redemptions (tier-colored, auto-scrolling) built for a 1080×1920 portrait canvas, with a persistent footer pointing viewers to Twitch if they want to trigger chaos themselves instead of just watching it happen.
 - The `/tiktok` TikTok gift-tier guide page (documented in the README since it was added) is now actually served — the route existed only in the docs before this.
 - Now also published on [Nexus Mods](https://www.nexusmods.com/stardewvalley/mods/54605), with update checks against it alongside the existing GitHub source.
+- `Install.ps1` now installs straight from a `ChatVsStreamer/` folder sitting next to it, if one's there, instead of always re-downloading the mod from GitHub first -- it never checked for that even after the packaged zip started shipping with both together. Faster, works offline, and avoids the "script fetches and installs something from the internet" pattern that trips automated antivirus heuristics on sight. Standalone copies of `Install.ps1` (no local mod files alongside it) still fall back to the GitHub download exactly as before.
 
 **Fixed**
 - Debt Collector (`!buy debtcollector`) was meant to spare your tools but steal anything else, including weapons — but MeleeWeapon and Slingshot both derive from Tool in SDV's class hierarchy, so its "skip tools" check was quietly protecting weapons too. Weapons are stealable again; genuine tools (and the Scythe/Golden Scythe specifically, which are also MeleeWeapon under the hood) stay protected.

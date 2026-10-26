@@ -42,7 +42,7 @@ The installer detects your Stardew Valley install, installs SMAPI if it's missin
 [*]Full in-chat shop: [b]!balance[/b], [b]!shop[/b], [b]!buy <command>[/b], [b]!info <command>[/b]
 [*]Dozens of sabotages and blessings -- weather chaos, monster spawns, crop destruction, player debuffs, tool swaps, explosions, full-screen jump scares, and the 50,000pt Nuclear Chaos ultimate
 [*]Experimental TikTok integration (via [url=https://tikfinity.zerinity.com/]Tikfinity[/url]) -- viewers earn points too, with named gifts triggering specific effects and a diamond-tier system for everything else
-[*]Experimental YouTube Live support via Streamer.bot (beta)
+[*]Experimental YouTube Live support via [url=https://streamer.bot/]Streamer.bot[/url] (beta)
 [*]Live OBS browser-source overlays for chat, the shop, and TikTok gift redemptions
 [*]Togglable "100 Chicken Challenge"-style Animal Challenge mode chat can help or hurt
 [*]Alpha co-op multiplayer targeting -- give other streamers in your session their own chat-linked farmhand
@@ -81,10 +81,11 @@ The installer detects your Stardew Valley install, installs SMAPI if it's missin
 [*][url=https://smapi.io/]SMAPI[/url] 4.0+ (the installer handles this for you)
 [*][url=https://www.nexusmods.com/stardewvalley/mods/5098]Generic Mod Config Menu[/url] (optional, for in-game settings)
 [*][url=https://tikfinity.zerinity.com/]Tikfinity[/url] (optional, for TikTok integration)
+[*][url=https://streamer.bot/]Streamer.bot[/url] (optional, for experimental YouTube integration)
 [/list]
 
 [size=4][b]Shout outs[/b][/size]
-Built on top of (and wouldn't exist without) [url=https://smapi.io/]SMAPI[/url], [url=https://www.nexusmods.com/stardewvalley/mods/5098]Generic Mod Config Menu[/url], and [url=https://tikfinity.zerinity.com/]Tikfinity[/url]. Thanks to their respective teams for the tools this mod integrates with.
+Built on top of (and wouldn't exist without) [url=https://smapi.io/]SMAPI[/url], [url=https://www.nexusmods.com/stardewvalley/mods/5098]Generic Mod Config Menu[/url], [url=https://tikfinity.zerinity.com/]Tikfinity[/url], and [url=https://streamer.bot/]Streamer.bot[/url]. Thanks to their respective teams for the tools this mod integrates with.
 
 MIT licensed -- feel free to fork, modify, and build on this. Please credit NeighborhoodofMusic if you do.
 

@@ -5,7 +5,12 @@ namespace SDVChatVsStreamer;
 
 public static class GmcmSetup
 {
-    public static void Register(IModHelper helper, IManifest manifest, ModConfig config)
+    /// <param name="onMultiplayerConfigChanged">Invoked after every GMCM save so co-op channel
+    /// joins/parts can be reconciled live instead of requiring a restart to take effect.</param>
+    /// <param name="onOverlayConfigChanged">Invoked after every GMCM save so connected overlay
+    /// browser sources pick up config changes (e.g. enabling TikTok) immediately instead of
+    /// needing a manual refresh in OBS.</param>
+    public static void Register(IModHelper helper, IManifest manifest, ModConfig config, Action? onMultiplayerConfigChanged = null, Action? onOverlayConfigChanged = null)
     {
         var api = helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
         if (api == null)
@@ -17,7 +22,12 @@ public static class GmcmSetup
         api.Register(
             mod:   manifest,
             reset: () => ResetConfig(config),
-            save:  () => helper.WriteConfig(config)
+            save:  () =>
+            {
+                helper.WriteConfig(config);
+                onMultiplayerConfigChanged?.Invoke();
+                onOverlayConfigChanged?.Invoke();
+            }
         );
 
         // ─── Pages ────────────────────────────────────────────────────────────
@@ -36,6 +46,8 @@ public static class GmcmSetup
         api.AddPageLink(manifest, "overlay",   () => "🖥️  OBS Overlay (Shop/Feed)");
         api.AddPageLink(manifest, "chatfeed",  () => "💬 Chat Feed Display");
         api.AddPageLink(manifest, "autoclip",  () => "🎬 Auto-Clipping");
+        api.AddPageLink(manifest, "challenge", () => "🐔 Animal Challenge");
+        api.AddPageLink(manifest, "multiplayer", () => "👥 Multiplayer Targeting");
         api.AddPageLink(manifest, "ignored",   () => "🚫 Ignored Users");
 
         // ─── General ──────────────────────────────────────────────────────────
@@ -105,6 +117,26 @@ public static class GmcmSetup
             tooltip: () => "How long before the same viewer can earn chat bonus again",
             min: 10, max: 600);
 
+        api.AddSectionTitle(manifest, () => "Point Drop");
+        api.AddParagraph(manifest, () => "A mod/broadcaster-only giveaway: !pointdrop posts an announcement, then anyone who types the claim keyword within the window gets the points. Works in whichever channel it's triggered from.");
+        api.AddNumberOption(manifest,
+            getValue: () => config.PointDropAmount,
+            setValue: v => config.PointDropAmount = v,
+            name: () => "Points Awarded",
+            tooltip: () => "How many chaos points each claimant receives",
+            min: 1, max: 100000);
+        api.AddNumberOption(manifest,
+            getValue: () => config.PointDropWindowSeconds,
+            setValue: v => config.PointDropWindowSeconds = v,
+            name: () => "Claim Window (seconds)",
+            tooltip: () => "How long chat has to type the claim keyword after the announcement",
+            min: 5, max: 300);
+        api.AddTextOption(manifest,
+            getValue: () => config.PointDropClaimKeyword,
+            setValue: v => config.PointDropClaimKeyword = v,
+            name: () => "Claim Keyword",
+            tooltip: () => "What chatters type to claim points, e.g. !1");
+
         api.AddSectionTitle(manifest, () => "Event Bonuses");
         api.AddNumberOption(manifest,
             getValue: () => config.FollowBonus,
@@ -133,8 +165,8 @@ public static class GmcmSetup
         api.AddNumberOption(manifest,
             getValue: () => config.RaidViewerBonus,
             setValue: v => config.RaidViewerBonus = v,
-            name: () => "Raider Welcome Bonus",
-            tooltip: () => "Points awarded to each viewer who joins via raid",
+            name: () => "Raid Leader Flat Bonus",
+            tooltip: () => "Extra flat bonus for the raid leader, on top of the per-viewer bonus above. Twitch doesn't expose individual raiding viewers' usernames, so this can't be paid out to them directly.",
             min: 0, max: 200);
 
         api.AddSectionTitle(manifest, () => "Sub Multipliers");
@@ -337,6 +369,11 @@ public static class GmcmSetup
             setValue: v => config.AutoTriggerPool = v,
             name: () => "Sabotage Pool",
             tooltip: () => "Comma-separated list of !buy commands to pick from");
+        api.AddTextOption(manifest,
+            getValue: () => config.ForceChaosKey,
+            setValue: v => config.ForceChaosKey = v,
+            name: () => "Force Chaos Key",
+            tooltip: () => "Press this key in-game to immediately fire a random sabotage from the pool above — ignores the Enabled toggle and quiet-period cooldown. Handy for clip farming on demand (default: F7)");
 
         // ─── TikTok ───────────────────────────────────────────────────────────
 
@@ -393,6 +430,19 @@ public static class GmcmSetup
             name: () => "Points Per Gift Diamond",
             tooltip: () => "Gifts are valued in TikTok diamonds — how many chaos points each diamond is worth",
             min: 0, max: 100);
+
+        api.AddSectionTitle(manifest, () => "Twitch Shoutout");
+        api.AddParagraph(manifest, () => "TikTok has no real chat economy here by design — it's meant as a funnel toward Twitch, not a parallel one. This shows your current top TikTok supporter in the overlay alongside a call-to-action pointing them at your Twitch channel.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.TikTokShoutoutEnabled,
+            setValue: v => config.TikTokShoutoutEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Show the top TikTok supporter + CTA in the overlay");
+        api.AddTextOption(manifest,
+            getValue: () => config.TikTokShoutoutCtaText,
+            setValue: v => config.TikTokShoutoutCtaText = v,
+            name: () => "Call-To-Action Text",
+            tooltip: () => "Shown next to the top supporter's name — your Twitch channel name is appended automatically");
 
         // ─── YouTube ──────────────────────────────────────────────────────────
 
@@ -487,6 +537,24 @@ public static class GmcmSetup
             setValue: v => config.OverlayMaxLeaderboardItems = v,
             name: () => "Max Leaderboard Items",
             min: 1, max: 10);
+
+        api.AddSectionTitle(manifest, () => "Embedded Chat & Alerts");
+        api.AddParagraph(manifest, () => "Fold the chat overlay and alert popup into this same browser source, so you only need to add one OBS source instead of three. Off by default so upgrading doesn't duplicate anything you've already added separately.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.OverlayIncludeChat,
+            setValue: v => config.OverlayIncludeChat = v,
+            name: () => "Include Chat",
+            tooltip: () => "Show the Twitch/TikTok chat feed inside this overlay instead of (or in addition to) the separate /chat browser source");
+        api.AddTextOption(manifest,
+            getValue: () => config.OverlayChatCorner,
+            setValue: v => config.OverlayChatCorner = v,
+            name: () => "Chat Corner",
+            allowedValues: new[] { "TopLeft", "TopRight", "BottomLeft", "BottomRight" });
+        api.AddBoolOption(manifest,
+            getValue: () => config.OverlayIncludeAlerts,
+            setValue: v => config.OverlayIncludeAlerts = v,
+            name: () => "Include Alert Popups",
+            tooltip: () => "Show the transient alert popup inside this overlay instead of (or in addition to) the separate /alert browser source");
 
         api.AddSectionTitle(manifest, () => "Appearance");
         api.AddNumberOption(manifest,
@@ -633,6 +701,65 @@ public static class GmcmSetup
             name: () => "Raid Clip Cooldown (seconds)",
             min: 0, max: 1800);
 
+        // ─── Animal Challenge ─────────────────────────────────────────────────
+
+        api.AddPage(manifest, "challenge", () => "Animal Challenge");
+
+        api.AddParagraph(manifest, () => "A togglable \"100 Chicken Challenge\"-style goal: try to reach a target number of a given animal type on the farm. Chat can buy !buy addanimal to help or !buy spookanimal to hurt your progress.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.ChallengeModeEnabled,
+            setValue: v => config.ChallengeModeEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Turns on the challenge counter and the addanimal/spookanimal shop commands");
+        api.AddTextOption(manifest,
+            getValue: () => config.ChallengeAnimalFilter,
+            setValue: v => config.ChallengeAnimalFilter = v,
+            name: () => "Animal Type",
+            tooltip: () => "Which animals count toward the goal — matches any animal type containing this text (e.g. \"Chicken\" matches White/Brown/Void/Golden Chicken). Use \"Any\" to count every farm animal.");
+        api.AddNumberOption(manifest,
+            getValue: () => config.ChallengeGoalCount,
+            setValue: v => config.ChallengeGoalCount = v,
+            name: () => "Goal Count",
+            tooltip: () => "How many matching animals counts as reaching the challenge",
+            min: 1, max: 999);
+
+        // ─── Multiplayer Targeting ────────────────────────────────────────────
+
+        api.AddPage(manifest, "multiplayer", () => "Multiplayer Targeting");
+
+        api.AddParagraph(manifest, () => "Playing co-op with other streamers? Each co-op player is their own broadcaster with their own Twitch channel. Mark a slot below Live and type in their channel name, and this mod joins that channel too — their chat starts earning chaos points the same way yours already does, and any command typed there (by them or their own viewers) lands on THEIR farmhand instead of you, no mod install needed on their end. Their in-game character name must match their channel name EXACTLY (case-insensitive) or targeting falls back to you.");
+        api.AddParagraph(manifest, () => "Sabotages that change save-file state (money, health/stamina, buffs, inventory, nearby monster/explosion spawns) are redirected this way with no extra setup. Effects that read your keyboard or draw straight to a screen — Confused, jump scares, bans, warps, and similar — are different: those can only ever run on whoever's game is actually executing the mod's code, so they land on you UNLESS that co-op player also installs this mod themselves, in which case the effect is relayed to run locally on their own game instead. If they don't have it installed, those effects keep landing on you, same as always.");
+        api.AddBoolOption(manifest,
+            getValue: () => config.MultiplayerTargetingEnabled,
+            setValue: v => config.MultiplayerTargetingEnabled = v,
+            name: () => "Enabled",
+            tooltip: () => "Master switch — turns co-op channel joining and farmhand targeting on or off");
+
+        // Up to 7 additional players (host + 7 = the game's 8-player multiplayer cap). A loop
+        // instead of 7 copy-pasted blocks — each closure captures its own slot index.
+        for (int i = 0; i < config.CoopPlayers.Count; i++)
+        {
+            int idx          = i;
+            int playerNumber = i + 2;
+
+            api.AddSectionTitle(manifest, () => $"Player {playerNumber}");
+            api.AddTextOption(manifest,
+                getValue: () => config.CoopPlayers[idx].Channel,
+                setValue: v => config.CoopPlayers[idx].Channel = v,
+                name: () => "Twitch Channel",
+                tooltip: () => "Their Twitch channel name (lowercase) — must match their in-game character name exactly");
+            api.AddBoolOption(manifest,
+                getValue: () => config.CoopPlayers[idx].Live,
+                setValue: v => config.CoopPlayers[idx].Live = v,
+                name: () => "Live",
+                tooltip: () => "Join this channel, let their chat start earning chaos points, and start routing commands typed there to their farmhand. Takes effect as soon as you back out of this menu.");
+            api.AddBoolOption(manifest,
+                getValue: () => config.CoopPlayers[idx].AllowReplies,
+                setValue: v => config.CoopPlayers[idx].AllowReplies = v,
+                name: () => "Allow Bot Replies",
+                tooltip: () => "Turn off if this player would rather their chat stayed bot-silent. The bot still reads their channel either way — that's what makes targeting and points work — it just won't post anything back when this is off.");
+        }
+
         // ─── Ignored Users ────────────────────────────────────────────────────
 
         api.AddPage(manifest, "ignored", () => "Ignored Users");
@@ -657,6 +784,9 @@ public static class GmcmSetup
         config.BasePassivePoints         = defaults.BasePassivePoints;
         config.ChatBonusPoints           = defaults.ChatBonusPoints;
         config.ChatBonusCooldownSeconds  = defaults.ChatBonusCooldownSeconds;
+        config.PointDropAmount           = defaults.PointDropAmount;
+        config.PointDropWindowSeconds    = defaults.PointDropWindowSeconds;
+        config.PointDropClaimKeyword     = defaults.PointDropClaimKeyword;
         config.MultiplierNone            = defaults.MultiplierNone;
         config.MultiplierPrime           = defaults.MultiplierPrime;
         config.MultiplierT1              = defaults.MultiplierT1;
@@ -700,6 +830,10 @@ public static class GmcmSetup
         config.TikTokSubBonus            = defaults.TikTokSubBonus;
         config.TikTokLikeBonus           = defaults.TikTokLikeBonus;
         config.TikTokPointsPerDiamond    = defaults.TikTokPointsPerDiamond;
+        config.TikTokShoutoutEnabled     = defaults.TikTokShoutoutEnabled;
+        config.TikTokShoutoutCtaText     = defaults.TikTokShoutoutCtaText;
+        config.YouTubeEnabled            = defaults.YouTubeEnabled;
+        config.StreamerbotPort           = defaults.StreamerbotPort;
         config.EnableStarterRedemption        = defaults.EnableStarterRedemption;
         config.StarterRedemptionTitleSmall    = defaults.StarterRedemptionTitleSmall;
         config.StarterRedemptionPointsSmall   = defaults.StarterRedemptionPointsSmall;
@@ -718,6 +852,9 @@ public static class GmcmSetup
         config.OverlayMaxShopItems       = defaults.OverlayMaxShopItems;
         config.OverlayMaxFeedItems       = defaults.OverlayMaxFeedItems;
         config.OverlayMaxLeaderboardItems = defaults.OverlayMaxLeaderboardItems;
+        config.OverlayIncludeChat        = defaults.OverlayIncludeChat;
+        config.OverlayIncludeAlerts      = defaults.OverlayIncludeAlerts;
+        config.OverlayChatCorner         = defaults.OverlayChatCorner;
         config.OverlayWidth              = defaults.OverlayWidth;
         config.OverlayFontSize           = defaults.OverlayFontSize;
         config.OverlayTheme              = defaults.OverlayTheme;
@@ -729,6 +866,7 @@ public static class GmcmSetup
         config.AutoTriggerEnabled        = defaults.AutoTriggerEnabled;
         config.AutoTriggerMinutes        = defaults.AutoTriggerMinutes;
         config.AutoTriggerPool           = defaults.AutoTriggerPool;
+        config.ForceChaosKey             = defaults.ForceChaosKey;
         config.AutoClipEnabled                = defaults.AutoClipEnabled;
         config.ClipNuisance                   = defaults.ClipNuisance;
         config.ClipDisruptive                 = defaults.ClipDisruptive;
@@ -742,5 +880,10 @@ public static class GmcmSetup
         config.ClipDevastatingCooldownSeconds = defaults.ClipDevastatingCooldownSeconds;
         config.ClipRaids                      = defaults.ClipRaids;
         config.ClipRaidsCooldownSeconds       = defaults.ClipRaidsCooldownSeconds;
+        config.ChallengeModeEnabled           = defaults.ChallengeModeEnabled;
+        config.ChallengeAnimalFilter          = defaults.ChallengeAnimalFilter;
+        config.ChallengeGoalCount             = defaults.ChallengeGoalCount;
+        config.MultiplayerTargetingEnabled    = defaults.MultiplayerTargetingEnabled;
+        config.CoopPlayers                    = defaults.CoopPlayers;
     }
 }

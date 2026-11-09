@@ -40,14 +40,15 @@ public class MetronomeSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var hotbar = Game1.player.Items.Take(12).ToList();
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var hotbar = target.Items.Take(12).ToList();
         var shuffled = hotbar.OrderBy(_ => _rng.Next()).ToList();
         for (int i = 0; i < 12; i++)
-            Game1.player.Items[i] = shuffled[i];
+            target.Items[i] = shuffled[i];
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🎵 {triggeredBy} used Metronome! Your hotbar is shuffled!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -60,6 +61,7 @@ public class LuckyChantBlessing : ISabotage
     public string Description  => "sets your daily luck to maximum";
     public int Cost            => 150;
     public int CooldownSeconds => 300;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     public void Execute(string triggeredBy)
     {
@@ -79,6 +81,7 @@ public class PayDayBlessing : ISabotage
     public string Description  => "fills empty inventory slots with useful items";
     public int Cost            => 200;
     public int CooldownSeconds => 180;
+    public SabotageTier Tier   => SabotageTier.Blessing;
 
     private static readonly string[] Pool = {
         "(O)388",  // Wood
@@ -97,20 +100,21 @@ public class PayDayBlessing : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
         int filled = 0;
-        for (int i = 0; i < Game1.player.Items.Count; i++)
+        for (int i = 0; i < target.Items.Count; i++)
         {
-            if (Game1.player.Items[i] == null)
+            if (target.Items[i] == null)
             {
                 var id = Pool[_rng.Next(Pool.Length)];
-                Game1.player.Items[i] = ItemRegistry.Create(id, _rng.Next(5, 20));
+                target.Items[i] = ItemRegistry.Create(id, _rng.Next(5, 20));
                 filled++;
             }
         }
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"💰 {triggeredBy} used Pay Day! {filled} slots filled with goodies!",
-            HUDMessage.newQuest_type));
+            HUDMessage.newQuest_type);
     }
 }
 
@@ -137,20 +141,21 @@ public class TrashDaySabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
         int filled = 0;
-        for (int i = 0; i < Game1.player.Items.Count; i++)
+        for (int i = 0; i < target.Items.Count; i++)
         {
-            if (Game1.player.Items[i] == null)
+            if (target.Items[i] == null)
             {
                 var id = TrashPool[_rng.Next(TrashPool.Length)];
-                Game1.player.Items[i] = ItemRegistry.Create(id, _rng.Next(1, 5));
+                target.Items[i] = ItemRegistry.Create(id, _rng.Next(1, 5));
                 filled++;
             }
         }
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🗑️ {triggeredBy} used Trash Day! {filled} slots filled with junk!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -186,7 +191,7 @@ public class SoakSabotage : ISabotage
 
 // ─── TELEPORT — warps to a random NPC location ───────────────────────────────
 
-public class TeleportSabotage : ISabotage
+public class TeleportSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Teleport";
     public string BuyCommand   => "teleport";
@@ -203,6 +208,17 @@ public class TeleportSabotage : ISabotage
     private static readonly Random _rng = new();
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target, $"✨ {triggeredBy} used Teleport on you!", HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         var npcName = NPCs[_rng.Next(NPCs.Length)];
         var npc = Game1.getCharacterFromName(npcName);
@@ -242,9 +258,20 @@ public class TeleportSabotage : ISabotage
         }
 
         ModEntry.Logger?.Log("[TeleportSabotage] All fallback warps failed — refunding.", LogLevel.Warn);
-        ModEntry.Ledger?.AddPoints(triggeredBy, Cost);
+        // Refund what was actually paid, not the static base Cost -- see WarpSabotage for
+        // why (halved-costs raid meta event could make this an over-refund otherwise).
+        int refund = ModEntry.RaidEvents?.ApplyCostModifier(Cost) ?? Cost;
+
+        // See WarpSabotage.ExecuteLocal -- the shared ledger only exists on the host, so a
+        // relayed farmhand routes the refund back there instead of crediting their own
+        // separate, un-synced ViewerLedger.
+        if (Game1.IsMasterGame)
+            ModEntry.Ledger?.AddPoints(triggeredBy, refund);
+        else
+            PeerRelay.RequestRefund(triggeredBy, refund, BuyCommand);
+
         Game1.addHUDMessage(new HUDMessage(
-            $"✨ {triggeredBy} tried to Teleport you, but nowhere safe was found! Refunded {Cost}pts.",
+            $"✨ {triggeredBy} tried to Teleport you, but nowhere safe was found! Refunded {refund}pts.",
             HUDMessage.error_type));
     }
 }

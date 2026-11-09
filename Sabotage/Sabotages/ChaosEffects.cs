@@ -21,35 +21,36 @@ public class InfestationSabotage : ISabotage
     private static readonly Random _rng = new();
 
     // Pull from existing monster pool — works indoors too
-    private static readonly Func<Vector2, Monster>[] MonsterFactory = {
-        pos => new GreenSlime(pos, Game1.player.currentLocation.GetSeasonIndex()),
-        pos => new Bat(pos, -555),   // Frost bat
-        pos => new Serpent(pos),
-        pos => new ShadowBrute(pos),
-        pos => new Ghost(pos),
-        pos => new DustSpirit(pos, false),
-        pos => new SquidKid(pos),
+    private static readonly Func<Vector2, GameLocation, Monster>[] MonsterFactory = {
+        (pos, loc) => new GreenSlime(pos, loc.GetSeasonIndex()),
+        (pos, loc) => new Bat(pos, -555),   // Frost bat
+        (pos, loc) => new Serpent(pos),
+        (pos, loc) => new ShadowBrute(pos),
+        (pos, loc) => new Ghost(pos),
+        (pos, loc) => new DustSpirit(pos, false),
+        (pos, loc) => new SquidKid(pos),
     };
 
     public void Execute(string triggeredBy)
     {
-        var loc    = Game1.player.currentLocation;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc    = target.currentLocation;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var tiles  = MonsterSpawnHelper.FindSpawnTiles(loc, origin, 8, maxRadius: 10);
         var factory = MonsterFactory[_rng.Next(MonsterFactory.Length)];
 
         foreach (var pos in tiles)
-            loc.characters.Add(factory(pos));
+            loc.characters.Add(factory(pos, loc));
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🐛 {triggeredBy} triggered an Infestation! Monsters everywhere!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
 // ─── BLINDFOLD — darken screen for 30 seconds ────────────────────────────────
 
-public class BlindfoldSabotage : ISabotage
+public class BlindfoldSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Blindfold";
     public string BuyCommand   => "blindfold";
@@ -61,6 +62,19 @@ public class BlindfoldSabotage : ISabotage
     public static DateTime ExpiresAt  { get; private set; }
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🙈 {triggeredBy} used Blindfold! Good luck seeing anything!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         IsActive  = true;
         ExpiresAt = DateTime.UtcNow.AddSeconds(30);
@@ -100,7 +114,7 @@ public class BlindfoldSabotage : ISabotage
 
 // ─── CONFUSED — inverts WASD controls for 60 seconds ─────────────────────────
 
-public class ConfusedSabotage : ISabotage
+public class ConfusedSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Confused";
     public string BuyCommand   => "confused";
@@ -112,6 +126,19 @@ public class ConfusedSabotage : ISabotage
     public static DateTime ExpiresAt { get; private set; }
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🌀 {triggeredBy} used Confused! Controls inverted for 60 seconds!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         IsActive  = true;
         ExpiresAt = DateTime.UtcNow.AddSeconds(60);
@@ -133,7 +160,7 @@ public class ConfusedSabotage : ISabotage
 
 // ─── MASHED — movement controls fight each other ─────────────────────────────
 
-public class MashedSabotage : ISabotage
+public class MashedSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Mashed";
     public string BuyCommand   => "mashed";
@@ -148,6 +175,19 @@ public class MashedSabotage : ISabotage
     private static readonly int[] Directions = { 0, 1, 2, 3 };
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🎮 {triggeredBy} mashed your controls! Good luck moving!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         IsActive  = true;
         ExpiresAt = DateTime.UtcNow.AddSeconds(60);
@@ -209,85 +249,9 @@ public class FreezeTimeSabotage : ISabotage
         IsActive ? Math.Max(0, (int)(ExpiresAt - DateTime.UtcNow).TotalSeconds) : 0;
 }
 
-// ─── SLIP N SLIDE — ice physics for 60 seconds ───────────────────────────────
-
-public class SlipNSlideSabotage : ISabotage
-{
-    public string Name         => "Slip n Slide";
-    public string BuyCommand   => "slipnslide";
-    public string Description  => "ice physics — you can't stop easily for 60 seconds";
-    public int Cost            => 250;
-    public int CooldownSeconds => 180;
-
-    public static bool IsActive      { get; private set; }
-    public static DateTime ExpiresAt { get; private set; }
-
-    // Stored momentum direction
-    public static float VelocityX { get; private set; }
-    public static float VelocityY { get; private set; }
-
-    private const float Friction    = 0.92f; // how quickly momentum decays (lower = icier)
-    private const float Acceleration = 0.8f; // how much input adds to velocity
-    private const float MaxSpeed     = 6f;   // cap
-
-    public void Execute(string triggeredBy)
-    {
-        IsActive  = true;
-        ExpiresAt = DateTime.UtcNow.AddSeconds(60);
-        VelocityX = 0f;
-        VelocityY = 0f;
-
-        Game1.addHUDMessage(new HUDMessage(
-            $"🛝 {triggeredBy} activated Slip n Slide! Good luck stopping!",
-            HUDMessage.error_type));
-    }
-
-    public static void Tick()
-    {
-        if (!IsActive) return;
-        if (DateTime.UtcNow >= ExpiresAt)
-        {
-            IsActive  = false;
-            VelocityX = 0f;
-            VelocityY = 0f;
-            Game1.player.temporarySpeedBuff = 0f;
-            Game1.addHUDMessage(new HUDMessage(
-                "🛝 The slide has ended. Your dignity may never recover.",
-                HUDMessage.newQuest_type));
-            return;
-        }
-
-        var dirs = Game1.player.movementDirections;
-
-        // Add acceleration in pressed directions
-        if (dirs.Contains(0)) VelocityY -= Acceleration; // up
-        if (dirs.Contains(2)) VelocityY += Acceleration; // down
-        if (dirs.Contains(3)) VelocityX -= Acceleration; // left
-        if (dirs.Contains(1)) VelocityX += Acceleration; // right
-
-        // Clamp to max speed
-        VelocityX = Math.Clamp(VelocityX, -MaxSpeed, MaxSpeed);
-        VelocityY = Math.Clamp(VelocityY, -MaxSpeed, MaxSpeed);
-
-        // Apply momentum as position offset
-        if (Math.Abs(VelocityX) > 0.1f || Math.Abs(VelocityY) > 0.1f)
-        {
-            Game1.player.position.X += VelocityX * 2f;
-            Game1.player.position.Y += VelocityY * 2f;
-        }
-
-        // Apply friction — momentum decays slowly
-        VelocityX *= Friction;
-        VelocityY *= Friction;
-    }
-
-    public static int SecsLeft =>
-        IsActive ? Math.Max(0, (int)(ExpiresAt - DateTime.UtcNow).TotalSeconds) : 0;
-}
-
 // ─── WARP WHISTLE — 5% chance to warp to random building on entry ────────────
 
-public class WarpWhistleSabotage : ISabotage
+public class WarpWhistleSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Warp Whistle";
     public string BuyCommand   => "warpwhistle";
@@ -297,6 +261,19 @@ public class WarpWhistleSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🎺 {triggeredBy} used Warp Whistle! Every door is a gamble for 5 minutes!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
+    {
         WarpWhistleState.Activate(triggeredBy, DateTime.UtcNow.AddMinutes(5), 0.05);
         Game1.addHUDMessage(new HUDMessage(
             $"🎺 {triggeredBy} used Warp Whistle! Every door is a gamble for 5 minutes!",
@@ -304,7 +281,7 @@ public class WarpWhistleSabotage : ISabotage
     }
 }
 
-public class WarpWhistlePlusSabotage : ISabotage
+public class WarpWhistlePlusSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Warp Whistle+";
     public string BuyCommand   => "warpwhistleplus";
@@ -314,6 +291,19 @@ public class WarpWhistlePlusSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🎺 {triggeredBy} used Warp Whistle+! 50% chance on every door for the rest of the day!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
+    {
         WarpWhistleState.Activate(triggeredBy, DateTime.UtcNow.AddHours(20), 0.50);
         Game1.addHUDMessage(new HUDMessage(
             $"🎺 {triggeredBy} used Warp Whistle+! 50% chance on every door for the rest of the day!",
@@ -321,7 +311,7 @@ public class WarpWhistlePlusSabotage : ISabotage
     }
 }
 
-public class WarpWhistleMaxSabotage : ISabotage
+public class WarpWhistleMaxSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Warp Whistle MAX";
     public string BuyCommand   => "warpwhistlemax";
@@ -331,6 +321,19 @@ public class WarpWhistleMaxSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🎺 {triggeredBy} used Warp Whistle MAX! Every door is a trap for 15 minutes!",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
+    {
         WarpWhistleState.Activate(triggeredBy, DateTime.UtcNow.AddMinutes(15), 0.995);
         Game1.addHUDMessage(new HUDMessage(
             $"🎺 {triggeredBy} used Warp Whistle MAX! Every door is a trap for 15 minutes!",
@@ -338,7 +341,7 @@ public class WarpWhistleMaxSabotage : ISabotage
     }
 }
 
-public class WarpWhistleMaxPlusSabotage : ISabotage
+public class WarpWhistleMaxPlusSabotage : ISabotage, ILocallyRelayable
 {
     public string Name         => "Warp Whistle MAX+";
     public string BuyCommand   => "warpwhistlemaxplus";
@@ -347,6 +350,19 @@ public class WarpWhistleMaxPlusSabotage : ISabotage
     public int CooldownSeconds => 900;
 
     public void Execute(string triggeredBy)
+    {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        if (target != Game1.player && PeerRelay.TryRelay(target, BuyCommand, triggeredBy))
+        {
+            MultiplayerTargeting.Notify(target,
+                $"🎺 {triggeredBy} used Warp Whistle MAX+! Every door is a trap for the rest of the day. Good luck.",
+                HUDMessage.error_type);
+            return;
+        }
+        ExecuteLocal(triggeredBy);
+    }
+
+    public void ExecuteLocal(string triggeredBy)
     {
         WarpWhistleState.Activate(triggeredBy, DateTime.UtcNow.AddHours(20), 0.995);
         Game1.addHUDMessage(new HUDMessage(
@@ -365,6 +381,15 @@ public static class WarpWhistleState
     public static double Chance      { get; private set; } = 0.05;
 
     private static readonly Random _rng = new();
+
+    // Every destination in Buildings is itself indoors, so landing on one re-satisfies
+    // OnWarped's "!loc.IsOutdoors" check and would immediately re-roll on the very next
+    // warp event -- at the high-probability tiers that's a near-certain runaway chain
+    // bouncing the player between buildings every frame with no chance to regain
+    // control. This grace period stops a whistle-triggered warp from re-triggering
+    // itself while still re-rolling normally on the player's next real building entry.
+    private static readonly TimeSpan RetriggerGracePeriod = TimeSpan.FromSeconds(2);
+    private static DateTime _lastWhistleWarp = DateTime.MinValue;
 
     private static readonly (string Location, int X, int Y)[] Buildings = {
         ("SeedShop",        4,  20),
@@ -425,6 +450,12 @@ public static class WarpWhistleState
             return;
         }
 
+        if (DateTime.UtcNow - _lastWhistleWarp < RetriggerGracePeriod)
+        {
+            ModEntry.Logger?.Log("[WarpWhistleState] Skipped — inside the post-warp grace period.", LogLevel.Debug);
+            return;
+        }
+
         // Roll based on current chance
         double roll = _rng.NextDouble();
         ModEntry.Logger?.Log($"[WarpWhistleState] Roll: {roll:P1} vs chance {Chance:P1}", LogLevel.Debug);
@@ -442,6 +473,7 @@ public static class WarpWhistleState
             if (SDVChatVsStreamer.Sabotage.WarpHelper.SafeWarpToRandomSpot(dest.Location, dest.X, dest.Y, _rng))
             {
                 ModEntry.Logger?.Log($"[WarpWhistleState] Successfully warped to {dest.Location}.", LogLevel.Info);
+                _lastWhistleWarp = DateTime.UtcNow;
                 Game1.addHUDMessage(new HUDMessage(
                     $"🎺 The Warp Whistle activated! You ended up in {dest.Location}!",
                     HUDMessage.error_type));

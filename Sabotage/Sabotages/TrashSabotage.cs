@@ -18,26 +18,28 @@ public class TrashSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+
         // Find an empty slot
-        var emptySlots = Enumerable.Range(0, Game1.player.Items.Count)
-            .Where(i => Game1.player.Items[i] == null)
+        var emptySlots = Enumerable.Range(0, target.Items.Count)
+            .Where(i => target.Items[i] == null)
             .ToList();
 
         if (emptySlots.Count == 0)
         {
-            Game1.addHUDMessage(new HUDMessage(
+            MultiplayerTargeting.Notify(target,
                 $"🗑️ {triggeredBy} tried to fill your inventory with trash but it's already full!",
-                HUDMessage.newQuest_type));
+                HUDMessage.newQuest_type);
             return;
         }
 
         int slot       = emptySlots[_rng.Next(emptySlots.Count)];
         string trashId = TrashIds[_rng.Next(TrashIds.Length)];
 
-        Game1.player.Items[slot] = new StardewValley.Object(trashId, 1);
+        target.Items[slot] = new StardewValley.Object(trashId, 1);
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🗑️ {triggeredBy} put trash in your inventory!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

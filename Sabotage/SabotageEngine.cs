@@ -100,7 +100,16 @@ public class SabotageEngine
                 Balance = balance
             };
 
-        _ledger.DeductPoints(username, effectiveCost);
+        // DeductPoints re-checks the balance atomically (two near-simultaneous purchases could
+        // both pass the check above before either deducts) -- if it loses that race, bail out
+        // instead of firing the sabotage for free.
+        if (!_ledger.DeductPoints(username, effectiveCost))
+            return new BuyResult
+            {
+                Status  = BuyStatus.InsufficientFunds,
+                Cost    = effectiveCost,
+                Balance = _ledger.GetPoints(username)
+            };
 
         // Validate before executing — refund if rejected
         var validationError = def.Sabotage.Validate(args);
@@ -121,7 +130,7 @@ public class SabotageEngine
         // Auto-clip if configured for this tier
         _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
 
-        _overlay?.PushFeedEvent(username, def.Name, def.Description, effectiveCost, "buy");
+        _overlay?.PushFeedEvent(username, def.Name, def.Description, effectiveCost, "buy", def.Sabotage.Tier.ToString().ToLower());
         _overlay?.PushShopUpdate();
 
         _monitor.Log($"[SabotageEngine] {username} bought '{def.Name}' for {effectiveCost}pts", LogLevel.Info);
@@ -191,7 +200,7 @@ public class SabotageEngine
         {
             def.Fire(username);
             names.Add(def.Name);
-            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, eventType);
+            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, eventType, def.Sabotage.Tier.ToString().ToLower());
             _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         }
         _overlay?.PushShopUpdate();
@@ -215,13 +224,29 @@ public class SabotageEngine
         if (!StardewModdingAPI.Context.IsWorldReady) return;
         if ((DateTime.UtcNow - _lastSabotageTime).TotalMinutes < _config.AutoTriggerMinutes) return;
 
+        FireRandomAutoTrigger(sendChat);
+    }
+
+    /// <summary>
+    /// Immediately fires a random sabotage from the Auto Trigger Pool, bypassing
+    /// the enabled toggle and quiet-period cooldown. For a manual "force it now"
+    /// hotkey, not the passive ambient system — e.g. clip farming on demand.
+    /// </summary>
+    public bool ForceAutoTrigger(Action<string> sendChat)
+    {
+        if (!StardewModdingAPI.Context.IsWorldReady) return false;
+        return FireRandomAutoTrigger(sendChat);
+    }
+
+    private bool FireRandomAutoTrigger(Action<string> sendChat)
+    {
         var pool = _config.AutoTriggerPool
             .Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => s.Trim().ToLower())
             .Where(s => _shop.ContainsKey(s))
             .ToList();
 
-        if (pool.Count == 0) return;
+        if (pool.Count == 0) return false;
 
         var command = pool[_autoRng.Next(pool.Count)];
         var def     = _shop[command];
@@ -229,12 +254,13 @@ public class SabotageEngine
         _lastSabotageTime = DateTime.UtcNow;
         def.Fire("The Chaos Gods");
 
-        _overlay?.PushFeedEvent("The Chaos Gods", def.Name, def.Description, 0, "buy");
+        _overlay?.PushFeedEvent("The Chaos Gods", def.Name, def.Description, 0, "buy", def.Sabotage.Tier.ToString().ToLower());
         _overlay?.PushShopUpdate();
         _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, "The Chaos Gods", _config);
 
         sendChat($"🌩️ The Chaos Gods grow restless... !buy {command} was triggered automatically! Type !shop to join the chaos!");
         _monitor.Log($"[SabotageEngine] Auto-trigger fired: {command}", LogLevel.Info);
+        return true;
     }
 
     public bool DebugBuy(string username, string buyCommand)
@@ -245,7 +271,7 @@ public class SabotageEngine
         if (def == null) return false;
 
         def.Fire(username);
-        _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "buy");
+        _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "buy", def.Sabotage.Tier.ToString().ToLower());
         _overlay?.PushShopUpdate();
         _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         _monitor.Log($"[SabotageEngine] Debug buy: {username} triggered {buyCommand}", LogLevel.Info);
@@ -261,7 +287,7 @@ public class SabotageEngine
 
         def.Fire(username);
 
-        _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "channelpoints");
+        _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "channelpoints", def.Sabotage.Tier.ToString().ToLower());
         _overlay?.PushShopUpdate();
         _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
 
@@ -299,7 +325,7 @@ public class SabotageEngine
         {
             _monitor.Log($"[SabotageEngine] TikTok gift triggered: {def.Name} for {username}", LogLevel.Info);
             def.Fire(username);
-            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "tiktok");
+            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "tiktok", def.Sabotage.Tier.ToString().ToLower());
             _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         }
     }
@@ -314,7 +340,7 @@ public class SabotageEngine
         {
             _monitor.Log($"[SabotageEngine] TikTok blessing triggered: {def.Name} for {username}", LogLevel.Info);
             def.Fire(username);
-            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "tiktok");
+            _overlay?.PushFeedEvent(username, def.Name, def.Description, 0, "tiktok", def.Sabotage.Tier.ToString().ToLower());
             _clipService?.TryClipForTier(def.Sabotage.Tier, def.BuyCommand, username, _config);
         }
     }

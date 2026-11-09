@@ -74,20 +74,21 @@ internal static class MonsterSpawnHelper
     private static readonly Random _fallbackRng = new();
 
     // Spawns a mines-only monster with a funny fallback message if not in mines
-    public static bool CheckMinesOrFallback(GameLocation loc, string monsterName, string triggeredBy, string friendlyName)
+    public static bool CheckMinesOrFallback(GameLocation loc, string monsterName, string triggeredBy, string friendlyName, Farmer? target = null)
     {
         if (IsMinesLocation(loc)) return true;
+        target ??= Game1.player;
 
         // Not in mines — spawn a random surface-friendly monster instead
         var fallbacks = new[] { "slime", "bat", "ghost", "shadowbrute" };
         var fallback  = fallbacks[_fallbackRng.Next(fallbacks.Length)];
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🎲 {triggeredBy} tried to spawn a {friendlyName} but they can't survive here! A random monster showed up instead!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
 
         // Spawn a fallback monster
-        var origin = Game1.player.Tile;
+        var origin = target.Tile;
         var pos    = FindSpawnTile(loc, origin, 2, 0);
         StardewValley.Monsters.Monster? monster = fallback switch
         {
@@ -127,15 +128,16 @@ public class SpawnBugSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc    = Game1.player.currentLocation;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc    = target.currentLocation;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var tiles  = MonsterSpawnHelper.FindSpawnTiles(loc, origin, 5);
         foreach (var pos in tiles)
             loc.characters.Add(new Bug(pos, 0));
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🐛 {triggeredBy} sent a bug swarm after you!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -149,15 +151,16 @@ public class SpawnGrubSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc    = Game1.player.currentLocation;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc    = target.currentLocation;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var tiles  = MonsterSpawnHelper.FindSpawnTiles(loc, origin, 4);
         foreach (var pos in tiles)
             loc.characters.Add(new Grub(pos, false));
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🐛 {triggeredBy} sent grubs crawling at you!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -171,13 +174,14 @@ public class SpawnGolemSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc = Game1.player.currentLocation;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc = target.currentLocation;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var pos = MonsterSpawnHelper.FindSpawnTile(loc, origin, 2, 0);
-        loc.characters.Add(new RockGolem(pos, Game1.player.CombatLevel));
-        Game1.addHUDMessage(new HUDMessage(
+        loc.characters.Add(new RockGolem(pos, target.CombatLevel));
+        MultiplayerTargeting.Notify(target,
             $"🪨 {triggeredBy} dropped a rock golem in your path!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -193,14 +197,15 @@ public class SpawnFrostBatSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc = Game1.player.currentLocation;
-        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "Bat", triggeredBy, "Frost Bat")) return;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc = target.currentLocation;
+        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "Bat", triggeredBy, "Frost Bat", target)) return;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var pos = MonsterSpawnHelper.FindSpawnTile(loc, origin, 2, -2);
         loc.characters.Add(new Bat(pos, -555));
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🦇 {triggeredBy} released a frost bat!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -214,15 +219,16 @@ public class SpawnDustSpriteSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc = Game1.player.currentLocation;
-        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "DustSpirit", triggeredBy, "Dust Sprite")) return;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc = target.currentLocation;
+        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "DustSpirit", triggeredBy, "Dust Sprite", target)) return;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var tiles  = MonsterSpawnHelper.FindSpawnTiles(loc, origin, 5);
         foreach (var pos in tiles)
             loc.characters.Add(new DustSpirit(pos, false));
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"💨 {triggeredBy} summoned a dust sprite pack!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -236,14 +242,15 @@ public class SpawnGhostSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc = Game1.player.currentLocation;
-        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "Ghost", triggeredBy, "Ghost")) return;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc = target.currentLocation;
+        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "Ghost", triggeredBy, "Ghost", target)) return;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var pos = MonsterSpawnHelper.FindSpawnTile(loc, origin, 3, 0);
         loc.characters.Add(new Ghost(pos));
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"👻 {triggeredBy} sent a ghost to haunt you!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -259,14 +266,15 @@ public class SpawnSerpentSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc = Game1.player.currentLocation;
-        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "Serpent", triggeredBy, "Serpent")) return;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc = target.currentLocation;
+        if (!MonsterSpawnHelper.CheckMinesOrFallback(loc, "Serpent", triggeredBy, "Serpent", target)) return;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var pos = MonsterSpawnHelper.FindSpawnTile(loc, origin, 3, 0);
         loc.characters.Add(new Serpent(pos));
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🐍 {triggeredBy} unleashed a serpent!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -280,13 +288,14 @@ public class SpawnShadowBruteSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc = Game1.player.currentLocation;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc = target.currentLocation;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var pos = MonsterSpawnHelper.FindSpawnTile(loc, origin, 2, 0);
         loc.characters.Add(new ShadowBrute(pos));
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"👹 {triggeredBy} summoned a shadow brute!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -300,13 +309,14 @@ public class SpawnShadowShamanSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc = Game1.player.currentLocation;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc = target.currentLocation;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var pos = MonsterSpawnHelper.FindSpawnTile(loc, origin, 3, -1);
         loc.characters.Add(new ShadowShaman(pos));
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🔮 {triggeredBy} summoned a shadow shaman!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -320,13 +330,14 @@ public class SpawnIridiumGolemSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc = Game1.player.currentLocation;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc = target.currentLocation;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var pos = MonsterSpawnHelper.FindSpawnTile(loc, origin, 2, 0);
         loc.characters.Add(new RockGolem(pos, 10));
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"💎 {triggeredBy} dropped an iridium golem on you!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }
 
@@ -340,14 +351,15 @@ public class SpawnSquidKidSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var loc    = Game1.player.currentLocation;
-        var origin = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var loc    = target.currentLocation;
+        var origin = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var tiles  = MonsterSpawnHelper.FindSpawnTiles(loc, origin, 4);
         foreach (var pos in tiles)
             loc.characters.Add(new SquidKid(pos));
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🔥 {triggeredBy} surrounded you with squid kids!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

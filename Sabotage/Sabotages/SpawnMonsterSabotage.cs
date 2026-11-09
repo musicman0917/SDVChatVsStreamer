@@ -14,13 +14,14 @@ public class SpawnMonsterSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var location = Game1.player.currentLocation;
-        var origin   = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+        var target   = MultiplayerTargeting.Resolve(triggeredBy);
+        var location = target.currentLocation;
+        var origin   = new Vector2(target.TilePoint.X, target.TilePoint.Y);
         var pos      = MonsterSpawnHelper.FindSpawnTile(location, origin, 2, 0);
 
-        location.characters.Add(new GreenSlime(pos, Game1.player.currentLocation.GetSeasonIndex()));
-        Game1.addHUDMessage(new HUDMessage(
+        location.characters.Add(new GreenSlime(pos, location.GetSeasonIndex()));
+        MultiplayerTargeting.Notify(target,
             $"🟢 {triggeredBy} sent a slime after you!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

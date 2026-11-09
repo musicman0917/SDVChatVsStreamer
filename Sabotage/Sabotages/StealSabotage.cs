@@ -14,25 +14,26 @@ public class StealSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var inventory = Game1.player.Items
+        var target = MultiplayerTargeting.Resolve(triggeredBy);
+        var inventory = target.Items
             .Select((item, idx) => (item, idx))
             .Where(x => x.item != null)
             .ToList();
 
         if (inventory.Count == 0)
         {
-            Game1.addHUDMessage(new HUDMessage(
+            MultiplayerTargeting.Notify(target,
                 $"🦝 {triggeredBy} tried to steal but your inventory is empty!",
-                HUDMessage.newQuest_type));
+                HUDMessage.newQuest_type);
             return;
         }
 
         var (item, idx) = inventory[_rng.Next(inventory.Count)];
         var itemName    = item.DisplayName;
-        Game1.player.Items[idx] = null;
+        target.Items[idx] = null;
 
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🦝 {triggeredBy} stole your {itemName}!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

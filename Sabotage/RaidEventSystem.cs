@@ -162,8 +162,12 @@ public class RaidEventSystem
                 var farm1 = Game1.getFarm();
                 var crops1 = farm1.terrainFeatures.Values.OfType<HoeDirt>()
                     .Where(d => d.crop != null && !d.crop.dead.Value).ToList();
-                if (crops1.Count > 0) crops1[_rng.Next(crops1.Count)].crop.Kill();
-                return "sent crows";
+                if (crops1.Count > 0)
+                {
+                    crops1[_rng.Next(crops1.Count)].crop.Kill();
+                    return "killed one of your crops";
+                }
+                return "tried to kill a crop but found none";
 
             case "warp player":
                 var dests = new[] { ("Town", 50, 80), ("Beach", 30, 5), ("Mountain", 30, 20) };
@@ -267,8 +271,8 @@ public class RaidEventSystem
                 _halveCostsExpiry = DateTime.UtcNow.AddMinutes(5);
             }),
             ("raiders get bonus points 🎁", () => {
-                // Bonus points awarded per raider when they chat — handled in PointsEngine via config
-                // We store the bonus amount for TwitchManager to use
+                // Bonus points awarded once per chatter on their first message during the
+                // window — TryClaimRaiderBonus enforces the one-time-per-window part.
                 RaiderBonusPoints = tier switch
                 {
                     RaidTier.Small   => 25,
@@ -278,6 +282,7 @@ public class RaidEventSystem
                     _ => 25
                 };
                 RaiderBonusExpiry = DateTime.UtcNow.AddMinutes(10);
+                _raiderBonusClaimed.Clear();
             }),
         };
 
@@ -297,6 +302,19 @@ public class RaidEventSystem
     public int RaiderBonusPoints { get; private set; } = 0;
     public DateTime RaiderBonusExpiry { get; private set; } = DateTime.MinValue;
     public bool IsRaiderBonusActive => DateTime.UtcNow < RaiderBonusExpiry;
+
+    private readonly HashSet<string> _raiderBonusClaimed = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Returns the bonus amount if the window is active and this user hasn't already claimed it
+    /// this window, marking them as claimed; returns 0 otherwise. Without this, every chat
+    /// message from every user (not just raiders) during the window awarded the bonus again.
+    /// </summary>
+    public int TryClaimRaiderBonus(string username)
+    {
+        if (!IsRaiderBonusActive) return 0;
+        return _raiderBonusClaimed.Add(username) ? RaiderBonusPoints : 0;
+    }
 
     /// <summary>Apply multiplier to a point cost if costs are halved.</summary>
     public int ApplyCostModifier(int cost) =>

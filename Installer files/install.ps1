@@ -1,6 +1,6 @@
-# ================================================================
+﻿# ================================================================
 #  Chat vs Streamer - Installer
-#  Version 0.5.0 by NeighborhoodofMusic
+#  Version 0.7.0 by NeighborhoodofMusic
 # ================================================================
 
 $ErrorActionPreference = "Stop"
@@ -19,7 +19,7 @@ function Write-Header {
     Write-Host ""
     Write-Host "  +======================================================+" -ForegroundColor Cyan
     Write-Host "  *          CHAT VS STREAMER - INSTALLER                *" -ForegroundColor Cyan
-    Write-Host "  *                    v0.5.0                            *" -ForegroundColor Cyan
+    Write-Host "  *                    v0.7.0                            *" -ForegroundColor Cyan
     Write-Host "  +======================================================+" -ForegroundColor Cyan
     Write-Host ""
     if ($Step -and $Total) {
@@ -97,7 +97,11 @@ function Show-Welcome {
 # -- Screen: Optional Platforms -------------------------------------
 
 function Get-OptionalPlatforms {
-    Write-StepHeader "Additional Platforms"
+    # Total step count isn't known yet (it depends on the answers below), so this
+    # screen shows just "Additional Platforms" with no "Step X of Y" -- showing one
+    # now would show the stale pre-recompute total and could read wrong.
+    $script:StepCurrent++
+    Write-Header "Additional Platforms"
 
     Write-Host "  Twitch is always set up - it's the core of the mod." -ForegroundColor White
     Write-Host "  Optionally add either (or both) of these too:" -ForegroundColor White
@@ -373,6 +377,31 @@ function Get-ModsFolder {
 
 # -- Screen: Install Files -----------------------------------------------
 
+function Copy-ModSourceToDest {
+    param([string]$Source, [string]$Dest)
+
+    New-Item -ItemType Directory -Path $Dest -Force | Out-Null
+
+    $items = Get-ChildItem -Path $Source
+    $total = $items.Count
+    $done  = 0
+
+    foreach ($item in $items) {
+        if ($item.PSIsContainer) {
+            Copy-Item $item.FullName -Destination $Dest -Recurse -Force
+        } else {
+            Copy-Item $item.FullName -Destination $Dest -Force
+        }
+        $done++
+        $pct = [math]::Floor($done / $total * 100)
+        Write-ProgressBar $pct "Installing..."
+    }
+
+    Write-ProgressBar 100 "Done!"
+    Write-Host ""
+    Write-Host ""
+}
+
 function Install-ModFiles {
     param([string]$ModsFolder)
     Write-StepHeader "Downloading & Installing"
@@ -390,6 +419,30 @@ function Install-ModFiles {
     }
 
     Write-Host ""
+
+    # If the mod's own files are already sitting right next to this installer (e.g.
+    # downloaded together in the same Nexus zip), install straight from those instead of
+    # reaching out to GitHub -- faster, works offline, and avoids the "script downloads
+    # and installs a payload from the internet" pattern that automated virus scanners flag
+    # on sight regardless of whether anything's actually wrong with it.
+    $localModSource = Join-Path $PSScriptRoot "ChatVsStreamer"
+
+    if (Test-Path $localModSource) {
+        Write-Step "Found Chat vs Streamer files alongside the installer -- installing from those."
+
+        $version = "(unknown version)"
+        try {
+            $localManifest = Get-Content (Join-Path $localModSource "manifest.json") -Raw | ConvertFrom-Json
+            $version = $localManifest.Version
+        } catch { }
+
+        Write-Step "Installing to Mods folder..."
+        Copy-ModSourceToDest -Source $localModSource -Dest $destFolder
+
+        Write-Success "Chat vs Streamer $version installed!"
+        return $destFolder
+    }
+
     Write-Step "Checking for latest version on GitHub..."
 
     try {
@@ -421,26 +474,7 @@ function Install-ModFiles {
         }
 
         Write-Step "Installing to Mods folder..."
-        New-Item -ItemType Directory -Path $destFolder -Force | Out-Null
-
-        $items = Get-ChildItem -Path $modSource.FullName
-        $total = $items.Count
-        $done  = 0
-
-        foreach ($item in $items) {
-            if ($item.PSIsContainer) {
-                Copy-Item $item.FullName -Destination $destFolder -Recurse -Force
-            } else {
-                Copy-Item $item.FullName -Destination $destFolder -Force
-            }
-            $done++
-            $pct = [math]::Floor($done / $total * 100)
-            Write-ProgressBar $pct "Installing..."
-        }
-
-        Write-ProgressBar 100 "Done!"
-        Write-Host ""
-        Write-Host ""
+        Copy-ModSourceToDest -Source $modSource.FullName -Dest $destFolder
 
         Remove-Item $zipPath     -Force -ErrorAction SilentlyContinue
         Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue

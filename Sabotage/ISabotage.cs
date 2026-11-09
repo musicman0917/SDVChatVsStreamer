@@ -8,13 +8,15 @@ public interface ISabotage
     int Cost { get; }
     int CooldownSeconds { get; }
 
+    // Default tier is inferred from cost for sabotages. Blessings are never inferred —
+    // every Blessing class overrides this explicitly, so anything expensive that
+    // doesn't override falls into Devastating rather than being mistaken for a blessing.
     SabotageTier Tier => Cost switch
     {
         <= 100  => SabotageTier.Nuisance,
         <= 200  => SabotageTier.Disruptive,
         <= 350  => SabotageTier.Painful,
-        <= 1000 => SabotageTier.Devastating,
-        _       => SabotageTier.Blessing
+        _       => SabotageTier.Devastating
     };
 
     string? Validate(string args = "") => null;

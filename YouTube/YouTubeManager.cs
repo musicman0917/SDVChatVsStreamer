@@ -98,13 +98,27 @@ public class YouTubeManager
     private async Task ReceiveLoop(ClientWebSocket ws, CancellationToken ct)
     {
         var buffer = new byte[8192];
+        var sb     = new StringBuilder();
+
         while (!ct.IsCancellationRequested && ws.State == WebSocketState.Open)
         {
-            var result = await ws.ReceiveAsync(buffer, ct);
-            if (result.MessageType == WebSocketMessageType.Close) break;
+            sb.Clear();
+            WebSocketReceiveResult result;
+            bool closed = false;
+            do
+            {
+                result = await ws.ReceiveAsync(buffer, ct);
+                if (result.MessageType == WebSocketMessageType.Close) { closed = true; break; }
+                sb.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+            }
+            // A single ReceiveAsync call only returns one WebSocket frame -- a message
+            // split across multiple frames (or bigger than this buffer) would otherwise
+            // be silently truncated and fail to parse as JSON.
+            while (!result.EndOfMessage);
 
-            var json = Encoding.UTF8.GetString(buffer, 0, result.Count);
-            try { HandleMessage(json); }
+            if (closed) break;
+
+            try { HandleMessage(sb.ToString()); }
             catch (Exception ex)
             {
                 _monitor.Log($"[YouTubeManager] Parse error: {ex.Message}", LogLevel.Debug);
@@ -114,7 +128,7 @@ public class YouTubeManager
 
     private void HandleMessage(string json)
     {
-        var doc = JsonDocument.Parse(json);
+        using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
         // Only handle YouTube chat message events
@@ -245,9 +259,10 @@ public class YouTubeManager
         _monitor.Log($"[YouTubeManager] SuperChat from {username}: ${amount}", LogLevel.Info);
         ModEntry.PendingActions.Enqueue(() =>
         {
-            // Convert dollars to bits equivalent then to points
+            // Convert dollars to bits equivalent (Twitch's 100-bits-per-dollar ratio), then
+            // apply the same bits-to-points rate PointsEngine.OnBits uses for Twitch cheers.
             int bits = (int)(amount * 100);
-            int pts  = Math.Max(1, bits / Math.Max(1, _config.BitsPerPoint));
+            int pts  = Math.Max(1, bits * _config.BitsPerPoint);
             _ledger.AddPoints(username, pts);
             Game1.addHUDMessage(new HUDMessage(
                 $"💛 {username} sent a Super Chat! +{pts}pts",

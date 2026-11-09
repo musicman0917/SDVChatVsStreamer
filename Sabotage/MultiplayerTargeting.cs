@@ -1,0 +1,99 @@
+using StardewValley;
+
+namespace SDVChatVsStreamer.Sabotage;
+
+/// <summary>
+/// Resolves which Farmer a sabotage should actually act on. Every sabotage in the library
+/// was originally written against Game1.player (the local player of whichever machine runs
+/// the mod). This directly redirects effects that mutate host-authoritative, network-synced
+/// state (Farmer stats/buffs/money/items, or GameLocation contents like monsters and
+/// explosions) to a resolved farmhand with no extra work, since the host can mutate any
+/// connected player's synced state regardless of who's running what.
+///
+/// Effects that read local input or draw directly to a screen (Confused, jump scares, bans,
+/// warps, and similar) are different: that code can only ever affect whoever's game is
+/// actually executing it. A resolved farmhand without the mod installed has no way to run it
+/// at all, so those effects still fall back to Game1.player (the host) for them. A farmhand
+/// who DOES have the mod gets the effect via PeerRelay instead, which asks their own copy of
+/// this mod to run it locally over SMAPI's built-in multiplayer messaging -- see
+/// Sabotage/PeerRelay.cs. Resolve() itself doesn't know or care which case applies; callers
+/// that support relay check PeerRelay.TryRelay(target, ...) themselves after resolving.
+///
+/// Targeting is routed by CHANNEL, not by chatter username: each co-op player is their own
+/// streamer with their own Twitch channel, and TwitchManager joins those channels alongside
+/// the host's own. Any command typed in a co-op player's channel — by them or one of their
+/// own viewers — targets THAT player's farmhand, the same way any command in the host's own
+/// channel already targets the host. The channel-to-farmhand link is an exact (case-insensitive)
+/// match between the channel name and a connected farmhand's character name.
+/// </summary>
+public static class MultiplayerTargeting
+{
+    private static ModConfig? _config;
+
+    public static void Init(ModConfig config) => _config = config;
+
+    /// <summary>
+    /// Set by TwitchManager immediately before dispatching a chat-triggered command, naming the
+    /// Twitch channel the message came from, and cleared right after in a finally block. Safe as
+    /// an ambient static because the whole chat-command dispatch chain (OnMessageReceived →
+    /// SabotageEngine.TryBuy → ISabotage.Execute) runs synchronously within a single TwitchLib
+    /// event callback — no other message can interleave between the set and the clear.
+    /// </summary>
+    public static string? CurrentChannel { get; set; }
+
+    /// <summary>The host's own channel plus every enabled co-op player channel from config.</summary>
+    public static IEnumerable<(string Channel, bool Enabled)> ConfiguredCoopChannels()
+    {
+        if (_config == null) yield break;
+        foreach (var slot in _config.CoopPlayers)
+            yield return (slot.Channel, slot.Live);
+    }
+
+    /// <summary>
+    /// Resolves the Farmer a chat-triggered command should land on. If multiplayer targeting is
+    /// off, the message didn't come from a configured co-op channel, or no currently connected
+    /// farmhand's character name matches that channel exactly, falls back to Game1.player (the
+    /// host) — the same behavior as before this feature existed. Commands from the host's own
+    /// channel always resolve to Game1.player.
+    /// </summary>
+    public static Farmer Resolve(string triggeredBy)
+    {
+        if (_config == null || !_config.MultiplayerTargetingEnabled) return Game1.player;
+
+        var channel = CurrentChannel;
+        if (string.IsNullOrWhiteSpace(channel)) return Game1.player;
+        if (channel.Equals(_config.ChannelName, StringComparison.OrdinalIgnoreCase)) return Game1.player;
+
+        bool isConfiguredCoopChannel = ConfiguredCoopChannels().Any(c =>
+            c.Enabled && !string.IsNullOrWhiteSpace(c.Channel) &&
+            c.Channel.Trim().Equals(channel, StringComparison.OrdinalIgnoreCase));
+        if (!isConfiguredCoopChannel) return Game1.player;
+
+        try
+        {
+            foreach (var farmer in Game1.getOnlineFarmers())
+            {
+                if (farmer.Name.Equals(channel, StringComparison.OrdinalIgnoreCase))
+                    return farmer;
+            }
+        }
+        catch (Exception ex)
+        {
+            ModEntry.Logger?.Log($"[MultiplayerTargeting] Farmhand lookup failed: {ex.Message}", StardewModdingAPI.LogLevel.Warn);
+        }
+
+        return Game1.player;
+    }
+
+    /// <summary>
+    /// Shows a HUD message on the local (host) screen — the only screen this code is running
+    /// on. When the effect actually landed on a farmhand rather than the host, tags who it
+    /// hit so the message isn't misread as having happened to the host.
+    /// </summary>
+    public static void Notify(Farmer target, string message, int hudType)
+    {
+        if (target != Game1.player)
+            message += $" (hit {target.Name})";
+        Game1.addHUDMessage(new HUDMessage(message, hudType));
+    }
+}

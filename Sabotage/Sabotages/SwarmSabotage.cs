@@ -16,21 +16,20 @@ public class SwarmSabotage : ISabotage
 
     public void Execute(string triggeredBy)
     {
-        var location = Game1.player.currentLocation;
-        int season   = Game1.player.currentLocation.GetSeasonIndex();
+        var target   = MultiplayerTargeting.Resolve(triggeredBy);
+        var location = target.currentLocation;
+        int season   = location.GetSeasonIndex();
+        var origin   = new Vector2(target.TilePoint.X, target.TilePoint.Y);
 
-        for (int i = 0; i < 5; i++)
-        {
-            var offset = new Vector2(
-                Game1.player.TilePoint.X + _rng.Next(-3, 4),
-                Game1.player.TilePoint.Y + _rng.Next(-3, 4)
-            ) * 64f;
+        // Raw random offsets (as this used to do) have no passability check, so slimes
+        // could land inside walls, water, or other solid terrain -- use the same
+        // tile-search helper every other monster-spawn sabotage relies on.
+        var tiles = MonsterSpawnHelper.FindSpawnTiles(location, origin, 5);
+        foreach (var pos in tiles)
+            location.characters.Add(new GreenSlime(pos, season));
 
-            location.characters.Add(new GreenSlime(offset, season));
-        }
-
-        Game1.addHUDMessage(new HUDMessage(
+        MultiplayerTargeting.Notify(target,
             $"🟢🟢🟢 {triggeredBy} sent a slime SWARM after you!",
-            HUDMessage.error_type));
+            HUDMessage.error_type);
     }
 }

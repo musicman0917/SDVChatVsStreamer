@@ -102,18 +102,18 @@ public class PointsEngine
         _monitor.Log($"[PointsEngine] +{total}pts (gifted {giftCount}) → {gifterUsername}", LogLevel.Info);
     }
 
-    public void OnRaid(string raidLeader, int viewerCount, List<string> raiders)
+    public void OnRaid(string raidLeader, int viewerCount)
     {
         _ledger.EnsureViewer(raidLeader);
-        var leaderBonus = _config.RaidLeaderPointsPerViewer * viewerCount;
-        _ledger.AddPoints(raidLeader, leaderBonus);
-        _monitor.Log($"[PointsEngine] +{leaderBonus}pts (raid leader) → {raidLeader}", LogLevel.Info);
 
-        foreach (var raider in raiders)
-        {
-            _ledger.EnsureViewer(raider);
-            _ledger.AddPoints(raider, _config.RaidViewerBonus);
-        }
+        // RaidViewerBonus used to be a per-viewer bonus for each individual raiding
+        // chatter, but Twitch's raid notification never exposes their usernames -- there's
+        // no API to tell us who they are, so it could never actually be paid out. Folded
+        // into a flat bonus for the raid leader instead, on top of the existing
+        // per-viewer-scaled bonus, rather than leaving the setting dead.
+        var bonus = (_config.RaidLeaderPointsPerViewer * viewerCount) + _config.RaidViewerBonus;
+        _ledger.AddPoints(raidLeader, bonus);
+        _monitor.Log($"[PointsEngine] +{bonus}pts (raid leader: {_config.RaidLeaderPointsPerViewer}/viewer x{viewerCount} + {_config.RaidViewerBonus} flat) → {raidLeader}", LogLevel.Info);
     }
 
     public void OnBits(string username, int bitCount)

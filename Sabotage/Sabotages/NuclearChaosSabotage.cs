@@ -1,0 +1,394 @@
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using StardewValley;
+using StardewValley.Buildings;
+using StardewValley.Objects;
+using StardewValley.TerrainFeatures;
+
+namespace SDVChatVsStreamer.Sabotage.Sabotages;
+
+/// <summary>
+/// The warning popup, the flash, and the boom(s). Kept separate from the actual
+/// destruction logic so a problem here can never affect whether the farm itself
+/// gets wiped.
+/// </summary>
+public static class NuclearChaosState
+{
+    private static readonly Random _rng = new();
+
+    private static readonly string[] WizardLines =
+    {
+        "I sense... a GIANT FIREBALL, hurtling toward your farm as we speak!",
+        "The arcane winds warn me: a sphere of pure flame descends upon you!",
+        "By my beard! A fireball of unspeakable size approaches your land!",
+        "The stars foretold this. A great fire falls from the heavens, mortal.",
+        "Flee if you must — a colossal fireball is already in the air!",
+        "My crystal ball shows only fire. SO MUCH FIRE.",
+        "This was not in my calculations. A meteor of flame descends!",
+        "I have seen many omens, farmer. None so dire as this blazing sphere.",
+        "The ley lines tremble! Something enormous and burning approaches!",
+        "Quickly, gather your belongings — the sky itself is about to ignite!",
+        "Junimo, hide! A fireball vast enough to swallow the valley draws near!",
+        "I warned the Guild about this. They did not listen. NOBODY listens.",
+        "This magic is beyond even me. Brace yourself, mortal.",
+        "The tower's windows rattle — a fireball of ancient power nears your farm!",
+        "I felt the disturbance from my tower. A great flame comes for your crops.",
+        "Do not look directly at it! ...too late. Well, good luck.",
+        "The prophecy spoke of this day. I did not think it would be a Tuesday.",
+        "Rasmodius warns you: incoming fireball, of truly cosmic proportions!",
+        "My familiar just fainted. That's never a good sign. FIREBALL INBOUND!",
+        "Hold onto something. The heavens are hurling fire at your farm!",
+    };
+
+    // Shared buildup pages shown before the Wizard's specific line -- "$pause" is a real
+    // SDV dialogue command that holds a beat before the continue-arrow appears, same trick
+    // FloorIsLavaSabotage's intro uses.
+    private static readonly string[] WizardBuildup =
+    {
+        "...$pause",
+        "Farmer. Can you feel that?$pause",
+        "The sky itself is beginning to curdle.$pause",
+    };
+
+    private static DateTime _flashUntil = DateTime.MinValue;
+    private static DateTime _hazeUntil  = DateTime.MinValue;
+    private static bool     _warningActive;
+    private static readonly List<DateTime> _pendingAftershocks = new();
+
+    /// <summary>Shows the Wizard's (or, super rarely, the dev's) warning as a real,
+    /// multi-page dialogue popup the player has to click through, then runs
+    /// <paramref name="onDestroy"/> once it's dismissed -- the blast and the actual
+    /// destruction both wait for that, so the warning always lands before the farm does.
+    /// Darkens the screen and plays a sting the moment it opens, for the same reason.</summary>
+    public static void ShowWarning(Action onDestroy)
+    {
+        _warningActive = true;
+        void StartAttack() { _warningActive = false; onDestroy(); }
+
+        try
+        {
+            try { Game1.playSound("fireball"); } catch { /* sting is a nice-to-have */ }
+
+            // Usually the Wizard senses doom. Super rarely (~1 in 20), the mod's own
+            // dev breaks the fourth wall instead — a single deadpan line, no buildup,
+            // shown without a portrait since there's no in-game character for it.
+            if (_rng.Next(20) == 0)
+            {
+                MrQiDialogue.Show(
+                    new[] { "Blame your chat for this. Not me." },
+                    onDismissed: StartAttack,
+                    characterName: "");
+            }
+            else
+            {
+                var line  = WizardLines[_rng.Next(WizardLines.Length)];
+                var pages = WizardBuildup.Append(line).ToArray();
+                MrQiDialogue.Show(
+                    pages,
+                    onDismissed: StartAttack,
+                    characterName: "Wizard");
+            }
+        }
+        catch
+        {
+            // The warning popup is a dramatic nice-to-have -- the viewer already paid
+            // 50,000pts for this, so if showing it somehow fails, the attack still has
+            // to land instead of silently doing nothing.
+            StartAttack();
+        }
+    }
+
+    public static void Trigger()
+    {
+        var now = DateTime.UtcNow;
+        _flashUntil = now.AddMilliseconds(600);
+        _hazeUntil  = now.AddSeconds(6);
+
+        // The real blast — reuses the exact same GameLocation.explode(...) call
+        // BombSabotage already uses, for a proven-correct sound/VFX/damage boom.
+        try
+        {
+            var loc = Game1.player.currentLocation;
+            var pos = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y);
+            loc.explode(pos, 5, Game1.player);
+        }
+        catch { /* explosion is a nice-to-have, never worth crashing over */ }
+
+        // Staggered aftershocks nearby — the "alarms going off" cascade
+        _pendingAftershocks.Clear();
+        _pendingAftershocks.Add(now.AddMilliseconds(500));
+        _pendingAftershocks.Add(now.AddMilliseconds(1100));
+        _pendingAftershocks.Add(now.AddMilliseconds(1900));
+    }
+
+    public static void Tick()
+    {
+        if (_pendingAftershocks.Count == 0 || !StardewModdingAPI.Context.IsWorldReady) return;
+
+        var now = DateTime.UtcNow;
+        for (int i = _pendingAftershocks.Count - 1; i >= 0; i--)
+        {
+            if (now < _pendingAftershocks[i]) continue;
+            _pendingAftershocks.RemoveAt(i);
+
+            try
+            {
+                var loc    = Game1.player.currentLocation;
+                var offset = new Vector2(_rng.Next(-3, 4), _rng.Next(-3, 4));
+                var pos    = new Vector2(Game1.player.TilePoint.X, Game1.player.TilePoint.Y) + offset;
+                loc.explode(pos, 2, Game1.player);
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>While the warning dialogue is up, dims the world behind it; once it's
+    /// dismissed, a bright white flash fades into a lingering orange haze. Draw every
+    /// frame; no-ops outside both windows.</summary>
+    public static void Draw(SpriteBatch sb)
+    {
+        var viewport = Game1.graphics.GraphicsDevice.Viewport;
+        var screen   = new Rectangle(0, 0, viewport.Width, viewport.Height);
+
+        if (_warningActive)
+            sb.Draw(Game1.fadeToBlackRect, screen, Color.Black * 0.5f);
+
+        var now = DateTime.UtcNow;
+        if (now >= _hazeUntil) return;
+
+        if (now < _flashUntil)
+        {
+            var frac = (_flashUntil - now).TotalMilliseconds / 600.0;
+            sb.Draw(Game1.fadeToBlackRect, screen, Color.White * (float)Math.Clamp(frac, 0, 1));
+        }
+        else
+        {
+            sb.Draw(Game1.fadeToBlackRect, screen, Color.OrangeRed * 0.22f);
+        }
+    }
+}
+
+// ─── NUCLEAR CHAOS — wipes the farm down to the house, cabins, greenhouse, and shipping bin ──
+
+public class NuclearChaosSabotage : ISabotage
+{
+    public string Name         => "Nuclear Chaos";
+    public string BuyCommand   => "nuclear";
+    public string Description  => "the ultimate sabotage — a Wizard's warning, then demolishes every non-housing building (animals inside included), kills every crop, fells every tree, and clears every rock, fence, and piece of debris on the farm";
+    public int Cost            => 50000;
+    public int CooldownSeconds => 7200;
+
+    // Includes the main farmhouse and the mailbox -- both became real Building entries in
+    // farm.buildings in 1.6 (buildingType "Farmhouse" and "Mailbox", the latter from 1.6
+    // adding mailbox relocation via Robin), so neither is "safe by default" the way static,
+    // hardcoded farm scenery used to be pre-1.6. Each has to be excluded explicitly here,
+    // same as a farmhand's "Cabin" already was.
+    private static readonly string[] KeepBuildingTypes = { "Farmhouse", "Mailbox", "Cabin", "Greenhouse", "Shipping" };
+
+    public void Execute(string triggeredBy)
+    {
+        // The warning has to land, and be dismissed, before any of this actually happens --
+        // see NuclearChaosState.ShowWarning.
+        NuclearChaosState.ShowWarning(onDestroy: () => DoDestruction(triggeredBy));
+    }
+
+    private static void DoDestruction(string triggeredBy)
+    {
+        NuclearChaosState.Trigger();
+
+        var farm = Game1.getFarm();
+        int buildingsDestroyed = 0, animalsLost = 0, cropsKilled = 0, treesFelled = 0, rocksCleared = 0, fencesDestroyed = 0, itemsRescued = 0, debrisCleared = 0;
+
+        var allBuildings = farm.buildings.ToList();
+        ModEntry.Logger?.Log($"[NuclearChaos] === Destruction pass starting: {allBuildings.Count} building(s) on the farm ===", StardewModdingAPI.LogLevel.Info);
+
+        // ── Buildings (and any animals living in them) ──
+        // Each building gets its own try/catch -- a loop-wide one here would mean a single
+        // bad building (mid-construction, an unusual indoor-location edge case, whatever)
+        // silently aborts the ENTIRE pass the moment it's hit, leaving every other building
+        // on the farm untouched with nothing but one quiet log line to show for it.
+        //
+        // Every building is logged with its buildingType string AND its actual C# runtime
+        // type (some building kinds -- Greenhouse, FishPond, JunimoHut, Mill, Stable, etc. --
+        // are their own subclasses in 1.6, not just a string tag on a plain Building), plus
+        // whether it was kept, destroyed, or failed and why. This is the actual debugger the
+        // "didn't work entirely" report needs: next test, check the SMAPI log for these lines.
+        foreach (var building in allBuildings)
+        {
+            var type    = building.buildingType.Value ?? "(null)";
+            var runtime = building.GetType().Name;
+            var label   = $"'{type}' [{runtime}] at {building.tileX.Value},{building.tileY.Value}";
+
+            try
+            {
+                var matched = KeepBuildingTypes.FirstOrDefault(k => type.Contains(k, StringComparison.OrdinalIgnoreCase));
+                if (matched != null)
+                {
+                    ModEntry.Logger?.Log($"[NuclearChaos] {label} -> KEPT (matched \"{matched}\")", StardewModdingAPI.LogLevel.Info);
+                    continue;
+                }
+
+                // Rescue chests and their contents before the building (and everything in it)
+                // is gone — losing stored items, tools especially, is real progress loss, not
+                // fun chaos. The empty chest itself is still lost with the building; only its
+                // contents are saved.
+                var indoors = building.GetIndoors();
+                if (indoors != null)
+                {
+                    foreach (var chest in indoors.objects.Values.OfType<Chest>().ToList())
+                    {
+                        foreach (var item in chest.Items.ToList())
+                        {
+                            if (item == null) continue;
+                            if (Game1.player.addItemToInventory(item) != null)
+                                Game1.createItemDebris(item, Game1.player.Position, -1, Game1.player.currentLocation);
+                            itemsRescued++;
+                        }
+                    }
+                }
+
+                var homed = farm.animals.Values.Where(a => a.home == building).ToList();
+                foreach (var animal in homed)
+                {
+                    farm.animals.Remove(animal.myID.Value);
+                    animalsLost++;
+                }
+
+                farm.buildings.Remove(building);
+                buildingsDestroyed++;
+                ModEntry.Logger?.Log($"[NuclearChaos] {label} -> DESTROYED", StardewModdingAPI.LogLevel.Info);
+            }
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] {label} -> FAILED: {ex}", StardewModdingAPI.LogLevel.Warn);
+            }
+        }
+
+        ModEntry.Logger?.Log($"[NuclearChaos] Buildings pass complete: {buildingsDestroyed} destroyed, {farm.buildings.Count} remain on the farm.", StardewModdingAPI.LogLevel.Info);
+
+        // ── Crops ──
+        var cropCandidates = farm.terrainFeatures.Values.OfType<HoeDirt>().Count(d => d.crop != null && !d.crop.dead.Value);
+        foreach (var dirt in farm.terrainFeatures.Values.OfType<HoeDirt>())
+        {
+            try
+            {
+                if (dirt.crop == null || dirt.crop.dead.Value) continue;
+                dirt.crop.Kill();
+                cropsKilled++;
+            }
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Crop kill error: {ex}", StardewModdingAPI.LogLevel.Warn);
+            }
+        }
+        ModEntry.Logger?.Log($"[NuclearChaos] Crops pass complete: {cropsKilled}/{cropCandidates} killed.", StardewModdingAPI.LogLevel.Info);
+
+        // ── Trees & fruit trees ──
+        var treeKeys = farm.terrainFeatures.Pairs
+            .Where(kv => kv.Value is Tree or FruitTree)
+            .Select(kv => kv.Key)
+            .ToList();
+        foreach (var key in treeKeys)
+        {
+            try
+            {
+                farm.terrainFeatures.Remove(key);
+                treesFelled++;
+            }
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Tree removal error: {ex}", StardewModdingAPI.LogLevel.Warn);
+            }
+        }
+        ModEntry.Logger?.Log($"[NuclearChaos] Trees pass complete: {treesFelled}/{treeKeys.Count} felled.", StardewModdingAPI.LogLevel.Info);
+
+        // ── Rocks — resource clumps (boulders, stumps, meteorites) ──
+        var clumpCandidates = farm.resourceClumps.ToList();
+        foreach (var clump in clumpCandidates)
+        {
+            try
+            {
+                farm.resourceClumps.Remove(clump);
+                rocksCleared++;
+            }
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Resource clump removal error: {ex}", StardewModdingAPI.LogLevel.Warn);
+            }
+        }
+        ModEntry.Logger?.Log($"[NuclearChaos] Resource clumps pass complete: {clumpCandidates.Count} candidate(s) processed.", StardewModdingAPI.LogLevel.Info);
+
+        // ── Rocks — smaller mineable stones/ore nodes, and fences (both live in .objects) ──
+        // Chests are explicitly excluded — "Stone Chest" (a 1.6 chest skin) would otherwise
+        // match the "Stone" name check below and get swept up with its contents.
+        var toRemove = farm.objects.Pairs
+            .Where(kv =>
+                kv.Value is Fence ||
+                (kv.Value is not Chest &&
+                 kv.Value.Name != null &&
+                 (kv.Value.Name.Contains("Stone", StringComparison.OrdinalIgnoreCase) ||
+                  kv.Value.Name.Contains("Node", StringComparison.OrdinalIgnoreCase))))
+            .ToList();
+
+        foreach (var kv in toRemove)
+        {
+            try
+            {
+                farm.objects.Remove(kv.Key);
+                if (kv.Value is Fence) fencesDestroyed++;
+                else rocksCleared++;
+            }
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Rock/fence removal error: {ex}", StardewModdingAPI.LogLevel.Warn);
+            }
+        }
+        ModEntry.Logger?.Log($"[NuclearChaos] Rock/fence pass complete: {toRemove.Count} candidate(s) processed.", StardewModdingAPI.LogLevel.Info);
+
+        // ── Debris — weeds (as Bush terrain features) and twigs/loose weeds (as objects) ──
+        // Same matching ClearDebrisBlessing already uses; the "Stone" name check overlaps
+        // with the rock/fence pass above, which is harmless -- those are already gone by now.
+        var weedKeys = farm.terrainFeatures.Pairs
+            .Where(kv => kv.Value is Bush b && b.size.Value == 4)
+            .Select(kv => kv.Key)
+            .ToList();
+        foreach (var key in weedKeys)
+        {
+            try
+            {
+                farm.terrainFeatures.Remove(key);
+                debrisCleared++;
+            }
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Debris clear error: {ex}", StardewModdingAPI.LogLevel.Warn);
+            }
+        }
+
+        var debrisKeys = farm.objects.Pairs
+            .Where(kv => kv.Value.Name is "Twig" or "Stone" or "Weeds")
+            .Select(kv => kv.Key)
+            .ToList();
+        foreach (var key in debrisKeys)
+        {
+            try
+            {
+                farm.objects.Remove(key);
+                debrisCleared++;
+            }
+            catch (Exception ex)
+            {
+                ModEntry.Logger?.Log($"[NuclearChaos] Debris clear error: {ex}", StardewModdingAPI.LogLevel.Warn);
+            }
+        }
+        ModEntry.Logger?.Log($"[NuclearChaos] Debris pass complete: {weedKeys.Count + debrisKeys.Count} candidate(s) processed.", StardewModdingAPI.LogLevel.Info);
+
+        ModEntry.Logger?.Log(
+            $"[NuclearChaos] === Destruction pass complete: {buildingsDestroyed} buildings, {animalsLost} animals, {cropsKilled} crops, {treesFelled} trees, {rocksCleared} rocks, {fencesDestroyed} fences, {debrisCleared} debris, {itemsRescued} items rescued ===",
+            StardewModdingAPI.LogLevel.Info);
+
+        Game1.addHUDMessage(new HUDMessage(
+            $"☢️ {triggeredBy} unleashed NUCLEAR CHAOS! {buildingsDestroyed} buildings demolished, {animalsLost} animals lost, {cropsKilled} crops killed, {treesFelled} trees felled, {rocksCleared} rocks cleared, {fencesDestroyed} fences destroyed, {debrisCleared} debris cleared, {itemsRescued} items rescued from doomed chests. Only the house stands.",
+            HUDMessage.error_type));
+    }
+}
